@@ -2,11 +2,12 @@
 
 | Alan | Durum | Kanıt / kabul adımı |
 | --- | --- | --- |
-| Python hesaplama, kaynak ve rapor akışı | 77 otomatik test geçti | `cd python` ve `python run_tests.py` |
-| Python JavaScript/API | V4'te 72 benzetim ve yerel API kontrolü geçti | [V4 doğrulama kaydı](../python/Dogrulama_Durumu.json) |
-| Python Windows başlangıcı, dosya pencereleri ve gerçek tarayıcı yerleşimi | Canlı test bekliyor | [Python canlı kontrol listesi](../python/V4_CANLI_KONTROL.md) |
-| Makro modülleri ve paket | Kaynak ve paket kontrolleri geçti | [VBA doğrulama kaydı](../makro/Dogrulama_Durumu.json) |
-| VBA derleme, sentetik hesap düğmesi ve Excel rapor çıktısı | Windows masaüstü Excel'de canlı test bekliyor | [VBA canlı kontrol listesi](../makro/V4_CANLI_KONTROL.md) |
+| Python hesaplama, kaynak, V5 analizleri ve rapor akışı | 93 otomatik test geçti | `cd python` ve `python run_tests.py`; GitHub Actions her gönderimde çalıştırır |
+| Python JavaScript/API | V4'te 72 benzetim ve yerel API kontrolü geçti (V5'te arayüz hesabı değişmedi) | [Python doğrulama kaydı](../python/Dogrulama_Durumu.json) |
+| VBA kaynakları | `vba_elle` kopyaları güncel; ayrılmış sözcük, Windows-1254 kodlaması ve kurulum modül listesi denetimi geçti | `python tools/vba_araclari.py kontrol`; GitHub Actions |
+| VBA ↔ Python eşdeğerliği | Aynı sentetik beklenen değerler iki tarafta da test edilir | `python/tests/test_analiz.py` ve makrodaki **Sentetik hesap testi** |
+| Python Windows başlangıcı, dosya pencereleri ve gerçek tarayıcı yerleşimi | Canlı test bekliyor | [Canlı kontrol listesi](CANLI_KONTROL.md) |
+| VBA derleme, sentetik hesap düğmesi ve Excel rapor çıktısı | Windows masaüstü Excel'de canlı test bekliyor | [Canlı kontrol listesi](CANLI_KONTROL.md) · [VBA doğrulama kaydı](../makro/Dogrulama_Durumu.json) |
 
 Önce [sentetik demoyu](BASLANGIC.md) çalıştırın. Ekim kapanışında beş raporu ve beklenen tutarları karşılaştırın. Ardından yalnız Ocak, Mart ve Mayıs'ı seçip önceki yıl kapsamının da aynı kaldığını kontrol edin.
 

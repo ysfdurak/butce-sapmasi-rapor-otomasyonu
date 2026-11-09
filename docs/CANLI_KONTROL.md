@@ -1,6 +1,33 @@
-# Windows canlı kontrol
+# Windows canlı kabul kontrolü
 
-ZIP'i tamamen çıkarıp Baslat.bat ile aç. Standart başlangıç Ekim 2026, Ocak–Ekim, bütün bölümlerdir.
+Kutular Windows'ta kullanıcı tarafından işaretlenmek üzere bilerek boştur. Örnek `Ayarlar.xlsx`, Ekim 2026 kapanışı ve Ocak–Ekim aylarıyla deneyin; beklenen değerler [Başlangıç](BASLANGIC.md#beklenen-demo-değerleri) sayfasındadır.
+
+## V5 — iki sürüm için ortak
+
+- [ ] Rapor klasöründe beş dosya var; her dosya **Yönetici Özeti** sayfasıyla açılıyor ve tek sayfa (yatay) PDF olarak yazdırılabiliyor.
+- [ ] Genel raporda Önemli Sapmalar 150 satır (75 aleyhte); ilk satır Toplama / Ücret giderleri, −20.764.946,98 TL, **Lehte** (yeşil).
+- [ ] Depolama müdürlük dosyasında Önemli Sapmalar'ın **Açıklama durumu** sütunu `Açıklama gerekli`; Giderler'deki ilgili açıklama hücreleri turuncu. Bir hücreye açıklama yazınca durum `Açıklandı` oluyor.
+- [ ] Yıl Sonu Tahmini direktörlük satırı: yıllık bütçe 4.108.586.425,59; tahmin 4.117.030.835,77; aylık ortalama gidiş 4.139.260.068,37.
+- [ ] Hacim ve Birim Maliyet direktörlük satırında hacim etkisi + birim maliyet etkisi = gerçekleşen − bütçe (8.444.410,18).
+- [ ] Ayarlar.xlsx'te `onemlilik_tutari` 250.000 ve `onemlilik_orani` 0,05 yapınca önemli sapma sayısı artıyor; `onemlilik_orani` 10 yapınca açık hata mesajı çıkıyor.
+- [ ] Bir maliyet dosyasında bir tutarı metin olarak (`'1.234,56`) yazın: Kontrol ve Revizyon › Uyarılar'da hücre adresiyle "sayıya çevrildi" uyarısı var ve toplam değişmiyor.
+- [ ] Maliyet dosyasının en üstüne iki satır ekleyin: uyarıda `BF61` / `EZ60` önerisi görünüyor.
+- [ ] Bir açıklamayı onaylayın: Açıklama Durumu sayfasında Son işlem, İşlemi yapan (Windows kullanıcınız) ve İşlem zamanı dolu.
+- [ ] 21'den fazla rapor üretince girdi arşivinde en fazla 20 çalışma kalıyor.
+
+## Excel makro
+
+- [ ] `Kurulum.vbs` Türkçe mesajlarla `Butce_Kontrol_Makro_V5.xlsm` oluşturuyor. Tekrar çalıştırınca "güncelle" seçeneği yedek alıp modülleri değiştiriyor; panel seçimleri ve yorumlar korunuyor.
+- [ ] Alt+F11 › Debug › Compile VBAProject hatasız; on bir modül (MakroAnaliz dahil) yüklü.
+- [ ] **Sentetik hesap testi** tüm kontrolleri geçiriyor (V5 analiz değerleri dahil).
+- [ ] Türkçe Excel'de Genel Özet ve Giderler'in renkli sapma biçimleri hatasız uygulanıyor.
+- [ ] Rapor sırasında bir hata oluşturun (ör. çıktı klasörünü silin): hata mesajından sonra Excel otomatik hesaplama ve ekran güncellemesi geri gelmiş.
+- [ ] Çalıştırma Geçmişi'nden bir satırı yeniden üretin: paneldeki yıl/ay seçimi değişmeden kalıyor.
+- [ ] Yorum akışı: [Açıklamalar](YORUM_KULLANIMI.md) sayfasındaki 10 yorumluk senaryo; taslak sütunu G. Kaydedip kapatıp açınca onaylar ve geçersiz kararları korunuyor.
+
+## Python dashboard
+
+ZIP'i tamamen çıkarıp Baslat.bat ile açın. Standart başlangıç Ekim 2026, Ocak–Ekim, bütün bölümlerdir. Python kurulu değilken Baslat.bat kurulum seçeneklerini Türkçe açıklıyor.
 
 - [ ] Personel grafik başlıkları kaynak Excel'deki ilk dört adla, işlem tablosu/kart adı beşinci satır başlığıyla eşleşiyor. Aynı satırın bölüm bazında adı farklıysa tek bölüm seçiminde doğru ad görünüyor.
 - [ ] Kaynaklar'da ayar Excel'ini ve üç kaynak konumunu Gözat ile seç. Konumları kaydet ve yenile sonrasında yedek yolu gösteriliyor; kapatıp açınca aynı yollar korunuyor.
@@ -26,4 +53,4 @@ ZIP'i tamamen çıkarıp Baslat.bat ile aç. Standart başlangıç Ekim 2026, Oc
 - [ ] 2027 kaynaklarıyla kapanışı 2027 seçince bütçe 2027, önceki yıl 2026 oluyor; konumları sağa kayan ciro/bütçe/endeks okunuyor.
 - [ ] Pencereyi daraltınca kartlar ve tablolar kullanılabilir; taşan tablolar kendi içinde kayıyor.
 
-Son iki veri senaryosu için tüm kaynakların tarihleri/dosya dönemleri/eşleştirmeleri birbiriyle tutarlı olmalı. Bu dosyadaki kutular Windows'ta kullanıcı tarafından kontrol edilmek üzere bilerek boş bırakıldı.
+Son iki veri senaryosu için tüm kaynakların tarihleri/dosya dönemleri/eşleştirmeleri birbiriyle tutarlı olmalı.

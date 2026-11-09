@@ -110,6 +110,9 @@ def write_notes(paths, notes):
                     "Önceki ay seçimi",
                     "Kaynak",
                     "Açıklama",
+                    "Son işlem",
+                    "İşlemi yapan",
+                    "İşlem zamanı",
                 ]
             )
             for name in members:
@@ -130,9 +133,12 @@ def write_notes(paths, notes):
                                 record.get("previousMonths", ""),
                                 record.get("source", ""),
                                 record["note"],
+                                record.get("lastAction", ""),
+                                record.get("actor", ""),
+                                record.get("actedAt", ""),
                             ]
                         )
-                        for c in (1, 3, 4, 5, 6, 7, 8):
+                        for c in (1, 3, 4, 5, 6, 7, 8, 9, 10, 11):
                             literal(audit.cell(audit.max_row, c), audit.cell(audit.max_row, c).value or "")
                         if record.get("status") == "pending":
                             from openpyxl.styles import Font
@@ -141,6 +147,8 @@ def write_notes(paths, notes):
                                 cell.font = Font(color="C63842")
             audit.column_dimensions["H"].width = 90
             audit.column_dimensions["G"].width = 45
+            for column in ("I", "J", "K"):
+                audit.column_dimensions[column].width = 24
             from openpyxl.styles import Alignment
 
             for row in audit:

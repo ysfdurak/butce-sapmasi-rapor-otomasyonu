@@ -1,2 +1,5 @@
 # Preserve the original Windows VBA import files and their CP1254 bytes.
 makro/vba_elle/*.bas -text whitespace=cr-at-eol
+# Windows komut dosyaları CRLF olmalı (LF ile goto/etiketler bozulabilir).
+*.bat text eol=crlf
+*.vbs text eol=crlf

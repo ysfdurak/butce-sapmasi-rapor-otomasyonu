@@ -6,15 +6,15 @@
 
 Windows masaüstü Excel gerekir. `makro/` altında `Kontrol_Sablonu.xlsx`, `Kurulum.vbs`, `vba_elle/` ve `ornek/` yan yana durur.
 
-1. Kurum ayarları izin veriyorsa `Kurulum.vbs` çalıştırın. Bu adım aynı klasöre `Butce_Kontrol_Makro_V4.xlsm` oluşturur.
-2. Elle kurulum için `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın ve aynı klasöre **Excel Makro İçerebilen Çalışma Kitabı (*.xlsm)** olarak kaydedin. **Alt+F11** tuşlarına basın, ilgili çalışma kitabının projesini seçin ve **File → Import File** ile `vba_elle/` içindeki **10** `.bas` dosyasını ekleyin. Bu kopyalar Türkçe Windows kodlamasıyla hazırlanmıştır.
+1. Kurum ayarları izin veriyorsa `Kurulum.vbs` çalıştırın. Bu adım aynı klasöre `Butce_Kontrol_Makro_V5.xlsm` oluşturur; dosya zaten varsa yedek alıp makro modüllerini günceller.
+2. Elle kurulum için `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın ve aynı klasöre **Excel Makro İçerebilen Çalışma Kitabı (*.xlsm)** olarak kaydedin. **Alt+F11** tuşlarına basın, ilgili çalışma kitabının projesini seçin ve **File → Import File** ile `vba_elle/` içindeki **11** `.bas` dosyasını ekleyin. Bu kopyalar Türkçe Windows kodlamasıyla hazırlanmıştır.
 3. **Debug → Compile VBAProject** ile derleyin ve kaydedin. Excel'de **Alt+F8 → PanelHazirla → Çalıştır** yoluyla paneli açın.
 4. **Sentetik hesap testi** düğmesine basın ve **Test Sonuçları** sayfasına bakın.
 5. Ardından `makro/ornek/Ayarlar.xlsx` dosyasını seçin. Kapanış **2026 / 10**, rapor yılı **2026** ve aylar **Ocak–Ekim** olsun. Bir çıktı klasörü seçip **Kaynakları önizle → Rapor oluştur** adımlarını uygulayın.
 
 Kurulum betiği için Excel'in VBA proje erişimine, elle kurulum için VBA düzenleyicisine ve çalışma kitabı makrolarını çalıştırma iznine ihtiyaç vardır. Kurumsal kısıtlarla karşılaştığınızda şirketinizin BT prosedürünü izleyin.
 
-[Excel VBA ayrıntılı kullanım](../makro/KULLANIM.md) · [Makro yorum senaryosu](../makro/V4_YORUM_KULLANIMI.md)
+[Excel VBA ayrıntılı kullanım](../makro/KULLANIM.md) · [Açıklamalar ve yorum senaryosu](YORUM_KULLANIMI.md)
 
 ## Python
 
@@ -25,7 +25,7 @@ Kurulum betiği için Excel'in VBA proje erişimine, elle kurulum için VBA düz
 
 Paketin `wheels/` klasöründe openpyxl ve et_xmlfile bulunur. Başlatıcı bunları doğrudan kullanır. Masaüstü Excel, pip ve PowerShell başlangıç için gerekmez. Formüllü gerçek Excel kaynaklarıyla çalışırken kaynak formüllerinin sonuçlarını önceden Excel'de hesaplayıp kaydedin.
 
-[Python ayrıntılı kullanım](../python/KULLANIM.md) · [Python yorum senaryosu](../python/V4_YORUM_KULLANIMI.md)
+[Python ayrıntılı kullanım](../python/KULLANIM.md) · [Açıklamalar ve yorum senaryosu](YORUM_KULLANIMI.md)
 
 ## Beklenen demo değerleri
 
@@ -34,5 +34,16 @@ Paketin `wheels/` klasöründe openpyxl ve et_xmlfile bulunur. Başlatıcı bunl
 | Gerçekleşen gider | 3.449.383.390,31 TL | 913.186.126,67 TL |
 | Bütçe gideri | 3.440.938.980,13 TL | 1.094.635.989,61 TL |
 | Bütçe − gerçekleşen | −8.444.410,18 TL | 181.449.862,94 TL |
+
+V5 analizleri (Ocak–Ekim, varsayılan eşik ≥ 1.000.000 TL ve ≥ %10):
+
+| Ölçüm | Değer |
+| --- | ---: |
+| Önemli sapma | 150 kalem (75 aleyhte) |
+| En büyük önemli sapma | Toplama / Ücret giderleri, −20.764.946,98 TL (lehte) |
+| Yıllık bütçe | 4.108.586.425,59 TL |
+| Yıl sonu tahmini (gerçekleşen + kalan bütçe) | 4.117.030.835,77 TL |
+| Yıl sonu tahmini (aylık ortalama gidiş) | 4.139.260.068,37 TL |
+| Hacim etkisi / birim maliyet etkisi | 55.686.819,31 TL / −47.242.409,13 TL |
 
 Eylül ve Ekim dosyalarıyla 26 geçmiş gider/bütçe revizyonu beklenir. Önceki kapanış geçişleri için örnek dosyalar bulunmadığından ilgili eksik kaynak uyarıları beklenir. [Referans çalışma kitabı](../makro/Sentetik_Beklenen_Sonuclar.xlsx)

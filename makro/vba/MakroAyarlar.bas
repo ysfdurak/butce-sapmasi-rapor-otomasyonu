@@ -1,10 +1,21 @@
 Attribute VB_Name = "MakroAyarlar"
 Option Explicit
 
+Private SignatureCache As Object
+
 Public Function SettingsSignature(ByVal path As String) As String
     ' Adler checksum + exact byte length detects accidental changes since preview.
+    ' Aynı dosya (yol + boyut + değişiklik zamanı) bir çalışmada birçok kez imzalandığından sonuç önbelleğe alınır;
+    ' dosya değişirse boyut/zaman anahtarı değişir ve imza yeniden hesaplanır.
     Dim handle As Integer, raw() As Byte, length As Long, i As Long, a As Double, b As Double, opened As Boolean, message As String
+    Dim cacheKey As String, fso As Object
     On Error GoTo Failed
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If SignatureCache Is Nothing Then Set SignatureCache = CreateObject("Scripting.Dictionary")
+    If fso.FileExists(path) Then
+        cacheKey = LCase$(fso.GetAbsolutePathName(path)) & "|" & fso.GetFile(path).Size & "|" & Format$(fso.GetFile(path).DateLastModified, "yyyymmddhhnnss")
+        If SignatureCache.Exists(cacheKey) Then SettingsSignature = SignatureCache(cacheKey): Exit Function
+    End If
     handle = FreeFile
     Open path For Binary Access Read As #handle
     opened = True: length = LOF(handle)
@@ -18,6 +29,7 @@ Public Function SettingsSignature(ByVal path As String) As String
         b = (b + a) Mod 65521
     Next i
     SettingsSignature = CStr(length) & ":" & Format$(a, "0") & ":" & Format$(b, "0")
+    If cacheKey <> "" Then SignatureCache(cacheKey) = SettingsSignature
     Exit Function
 Failed:
     message = Err.Description

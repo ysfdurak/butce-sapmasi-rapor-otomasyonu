@@ -35,7 +35,7 @@ def inventory(data):
             p = butce.filename_period(path)
         except ValueError:
             continue
-        if p[0] == data.budget_year and p <= data.closing:
+        if butce.in_closing_scope(p, data.closing):
             paths.append(("cost", path))
     return [
         {
@@ -353,6 +353,7 @@ class Workspace:
                     "jobs.py",
                     "notes.py",
                     "note_review.py",
+                    "analiz.py",
                 )
             },
         }
@@ -393,6 +394,27 @@ class Workspace:
         value = json.loads(path.read_text(encoding="utf-8"))
         value.update(state=state, finished=datetime.now().isoformat(timespec="seconds"), result=result)
         write_json(path, value)
+        if state == "done":
+            self.prune(keep=run_id)
+
+    def prune(self, keep=None):
+        """Girdi arşivinde yalnız son N çalışmayı tutar (Rapor › arsiv_saklama_adedi, 0 = sınırsız).
+
+        Kaynak kopyaları gizli mali veri içerir; sınırsız birikmesini önler. VBA: MakroMerkez.ArchivePrune.
+        """
+        import analiz
+
+        limit = analiz.settings(self.app.data.config)["arsiv_saklama_adedi"]
+        if limit <= 0:
+            return []
+        runs = sorted((p for p in self.folder.iterdir() if (p / "manifest.json").is_file()), reverse=True)
+        removed = []
+        for folder in runs[limit:]:
+            if folder.name == keep:
+                continue
+            shutil.rmtree(folder, ignore_errors=True)
+            removed.append(folder.name)
+        return removed
 
     def replay_settings(self, run_id):
         if (
@@ -416,6 +438,7 @@ class Workspace:
                     "jobs.py",
                     "notes.py",
                     "note_review.py",
+                    "analiz.py",
                 )
                 or configuration.digest(Path(__file__).parent / name) != checksum
             ):

@@ -1,4 +1,4 @@
-# V4 — Önceki ayın yorumlarını topluca inceleme
+# Açıklamalar: önceki ayın yorumları, toplu inceleme ve onay izi
 
 Bu sürüm önceki rapor kapanışının yorumlarını kontrol bekleyen taslaklar olarak getirir. Yeni gider nedeni veya fatura yorumu uydurmaz. Fatura detayı çıkarma ikinci aşamada ele alınacaktır.
 
@@ -17,7 +17,7 @@ Bu dönemde zaten girilmiş açıklamalar korunur; geçmiş dosyayı yeniden get
 
 ## Makro: günlük akış
 
-Kurulum.vbs V4 xlsm dosyasını oluşturur. Elle kurulumda **10 modülün tamamını** (MakroYorum dahil) yükleyin. PanelHazirla ile Çalışma Merkezi açılır.
+Kurulum.vbs `Butce_Kontrol_Makro_V5.xlsm` dosyasını oluşturur veya günceller. Elle kurulumda **11 modülün tamamını** (MakroYorum ve MakroAnaliz dahil) yükleyin. PanelHazirla ile Çalışma Merkezi açılır.
 
 - **Önceki ayın yorumlarını getir:** kontrol dosyasına kaydedilmiş önceki kapanış yorumlarını getirir.
 - **Açıklamaları toplu düzenle:** Yorum İnceleme tablosunu açar. Dosyalardan ilk yükleme için **Önceki dosyaları seç** düğmesini kullanın.
@@ -26,6 +26,18 @@ Kurulum.vbs V4 xlsm dosyasını oluşturur. Elle kurulumda **10 modülün tamam�
 - Ortak metni B3 alanına yazıp seçili satırlara uygulayın. Bu işlem onay vermez. Taslakları kaydet düğmesi değişen taslakları onaysız saklar.
 - Excel çıktısına elle yazdığınız **bu dönem** açıklamalarını korumak için önce **Bu dönem yorumlarını yükle** düğmesiyle aynı kapanış ve aynı ay kümesindeki müdürlük raporlarını alın. Uygulamanın okumadığı dış dosyadaki elle yazılmış metni kontrol dosyası kendiliğinden bilemez.
 - Kaydedilmemiş G sütunu değişiklikleri varken rapor üretimi durur. Kontrol dosyasını kaydedin; geçmiş yorumlar ve inceleme kararları bu xlsm içinde tutulur.
+
+## Önemli sapmalarda açıklama zorunluluğu
+
+Ayarlar.xlsx › **Dosya ve Konum Ayarları** sayfasındaki `Rapor` satırları önemlilik eşiğini belirler (varsayılan **1.000.000 TL ve %10**, ikisi birlikte aşılmalı). Eşiği aşan her bölüm/alt gider:
+
+- **Önemli Sapmalar** sayfasında Lehte/Aleyhte yönüyle listelenir.
+- Müdürlük dosyasının **Giderler** sayfasında açıklama hücresi turuncu boyanır.
+- Önemli Sapmalar sayfasındaki **Açıklama durumu** sütunu hücre doluysa `Açıklandı`, boşsa `Açıklama gerekli` gösterir; açıklamalar toplanırken eksikler bu sütunla takip edilir.
+
+## Onay izi
+
+Her açıklama işleminde işlemi yapan Windows kullanıcısı ve zaman saklanır (Python: yerel kayıt veritabanındaki `note_audit` tablosu; makro: gizli **Yorum Günlüğü** sayfası). Raporun **Açıklama Durumu** sayfasında her açıklama için **Son işlem**, **İşlemi yapan** ve **İşlem zamanı** sütunları bulunur. Kayıtlar silinmez; aynı açıklama sonradan değiştirilse de önceki işlemler günlükte kalır.
 
 ## Raporda görünüm
 
@@ -51,4 +63,4 @@ Ayrıca iki satırı geçersiz sayma, taslakları onaysız kaydetme, farklı ay 
 
 ## Test sınırı
 
-Python hesap/servis testleri ve JavaScript etkileşim/API simülasyonları otomatik çalıştırılmıştır. Gerçek tarayıcı düzeni ve Windows dosya pencereleri burada canlı test edilmemiştir. VBA kaynak/paket kontrolleri yapılmıştır; Windows Excel'de derleme ve makroların çalıştırılması henüz doğrulanmamıştır. `Dogrulama_Durumu.json` ayrıntıları içerir.
+Python hesap/servis testleri otomatik çalışır. Gerçek tarayıcı düzeni, Windows dosya pencereleri ve Windows Excel'de makroların derlenip çalıştırılması [canlı kontrol listesindeki](CANLI_KONTROL.md) adımlarla doğrulanır.

@@ -21,7 +21,18 @@ if not errorlevel 1 (
   python bootstrap.py
   goto done
 )
-echo Python 3.9 veya uzeri bulunamadi. Python 3.13 / 3.14 kurulumunu kontrol edin.
+echo.
+echo  Python bulunamadi. Uygulama icin Python 3.9 veya uzeri gerekir (onerilen 3.13).
+echo.
+echo  Kurulum secenekleri:
+echo    1) Sirket yazilim merkezinde (Software Center / Sirket Portali) "Python" arayin.
+echo    2) Yonetici izniniz varsa komut isteminde:  winget install Python.Python.3.13
+echo    3) https://www.python.org/downloads/ adresinden indirin; kurulumda
+echo       "Add python.exe to PATH" kutusunu isaretleyin.
+echo.
+echo  Kurulumdan sonra bu dosyayi yeniden calistirin. Ek paket kurmaniz gerekmez.
+echo  Python kurulamiyorsa ayni raporlari makro\ klasorundeki Excel surumuyle uretebilirsiniz.
+echo.
 pause
 exit /b 1
 :done

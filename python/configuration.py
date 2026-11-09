@@ -144,7 +144,7 @@ def layout_preview(settings, department=None):
     book = load_workbook(path, data_only=False)
     try:
         for r in book["Dosya ve Konum Ayarları"].iter_rows(min_row=5, max_col=3):
-            if r[0].value in ("Maliyet", "Kontrol", "Endeks"):
+            if r[0].value in ("Maliyet", "Kontrol", "Endeks", "Rapor"):
                 rows.append([r[0].value, r[1].value, r[2].value])
     finally:
         book.close()
@@ -156,10 +156,11 @@ def layout_preview(settings, department=None):
             continue
         book = load_workbook(f, data_only=True)
         try:
-            name = department or next((n for n in cfg["bolumler"] if n in book.sheetnames), None)
-            if name not in book.sheetnames:
+            titles = {butce.key(t): t for t in book.sheetnames}
+            name = department or next((n for n in cfg["bolumler"] if butce.key(n) in titles), None)
+            if name is None or butce.key(name) not in titles:
                 continue
-            ws = book[name]
+            ws = book[titles[butce.key(name)]]
             first = cfg["maliyet"]["islem_adedi_satiri"] - 4
             from openpyxl.utils.cell import coordinate_to_tuple
 
@@ -199,7 +200,7 @@ def update_layout(settings, fingerprint, parameters, closing, factory):
         cells = {
             (r[0].value, r[1].value): r[2]
             for r in book["Dosya ve Konum Ayarları"].iter_rows(min_row=5, max_col=3)
-            if r[0].value in ("Maliyet", "Kontrol", "Endeks")
+            if r[0].value in ("Maliyet", "Kontrol", "Endeks", "Rapor")
         }
         seen = set()
         for section, code, value in parameters:

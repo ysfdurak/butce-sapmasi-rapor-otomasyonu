@@ -9,8 +9,21 @@ Private Function MemoStore() As Worksheet
     If MemoStore.Range("A1").Value2 = "" Then
         RowValues MemoStore, 1, Array("Ayar yolu", "Kapanış", "Ay seçimi", "Bölüm anahtarı", "Gider kodu", "Önceki kapanış", "Önceki ay seçimi", "Önceki yorum", "Taslak", "Durum", "Önceki gerçekleşen", "Önceki bütçe", "Güncel gerçekleşen", "Güncel bütçe", "Kaynak", "Son işlem", "Gider", "Müdürlük")
     End If
+    ' V5: onay izi sütunları (eski kayıtlara da eklenir).
+    If MemoStore.Range("S1").Value2 = "" Then MemoStore.Range("S1:T1").Value2 = Array("İşlemi yapan", "Son işlem türü")
     MemoStore.Visible = xlSheetVeryHidden
 End Function
+
+' Açıklama işlemlerinin silinmeyen kaydı: kim, ne zaman, hangi işlem. Python: note_review.audit
+Private Sub LogMemo(ByVal dept As String, ByVal code As String, ByVal action As String, ByVal text As String)
+    Dim ws As Worksheet, r As Long
+    Set ws = WorkspaceSheet("Yorum Günlüğü")
+    If ws.Range("A1").Value2 = "" Then RowValues ws, 1, Array("Ayar yolu", "Kapanış", "Ay seçimi", "Bölüm", "Gider kodu", "İşlem", "İşlemi yapan", "Zaman", "Metin")
+    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    ws.Range(ws.Cells(r, 9), ws.Cells(r, 9)).NumberFormat = "@"
+    RowValues ws, r, Array(MemoDataset(), P(CloseYear, CloseMonth), Signature(), dept, CLng(code), action, CurrentUser(), Format$(Now, "yyyy-mm-dd hh:nn:ss"), text)
+    ws.Visible = xlSheetVeryHidden
+End Sub
 
 Private Function MemoDataset() As String
     MemoDataset = AbsPath(CStr(ThisWorkbook.Worksheets("Kontrol Paneli").Range("D7").Value2), ThisWorkbook.Path)
@@ -59,6 +72,13 @@ Private Sub NewMemo(ByVal ws As Worksheet, ByVal dept As String, ByVal code As S
     RowValues ws, r, Array(MemoDataset(), P(CloseYear, CloseMonth), Signature(), dept, CLng(code), IIf(status = "Bu dönem", P(CloseYear, CloseMonth), PrevClose()), oldmonths, text, text, status, olda, oldb, MemoAmount(dept, code, "A"), MemoAmount(dept, code, "B"), source, Format$(Now, "yyyy-mm-dd hh:nn:ss"), names(code), meta(1))
     ws.Cells(r, 8).NumberFormat = "@": ws.Cells(r, 9).NumberFormat = "@"
     ws.Cells(r, 8).Value2 = text: ws.Cells(r, 9).Value2 = text
+    If status = "Bu dönem" Then
+        ws.Cells(r, 20).Value2 = "Kaydedildi: " & source
+    Else
+        ws.Cells(r, 20).Value2 = "Önceki dönemden getirildi (" & PrevClose() & ")"
+    End If
+    ws.Cells(r, 19).Value2 = CurrentUser()
+    LogMemo dept, code, CStr(ws.Cells(r, 20).Value2), text
 End Sub
 
 Public Sub YorumGetir()
@@ -377,8 +397,15 @@ Private Sub ApplyMemos(ByVal action As String)
         entry = staged(n): target = entry(0): touched = True
         store.Cells(target, 9).NumberFormat = "@": store.Cells(target, 9).Value2 = entry(1)
         store.Cells(target, 10).Value2 = action
-        Put store.Cells(target, 13), entry(2): Put store.Cells(target, 14), entry(3)
+        SetCell store.Cells(target, 13), entry(2): SetCell store.Cells(target, 14), entry(3)
         store.Cells(target, 16).Value2 = Format$(Now, "yyyy-mm-dd hh:nn:ss")
+        store.Cells(target, 19).Value2 = CurrentUser()
+        Select Case action
+            Case "Onaylı": store.Cells(target, 20).Value2 = "Onaylandı"
+            Case "Geçersiz": store.Cells(target, 20).Value2 = "Geçersiz sayıldı"
+            Case Else: store.Cells(target, 20).Value2 = "Taslak kaydedildi"
+        End Select
+        LogMemo CStr(store.Cells(target, 4).Value2), CStr(store.Cells(target, 5).Value2), CStr(store.Cells(target, 20).Value2), CStr(entry(1))
     Next n
     ' Keep other unsaved grid drafts in place; only committed rows get fresh tokens.
     For r = ReviewStart To ws.Cells(ws.Rows.Count, 4).End(xlUp).Row
@@ -422,7 +449,7 @@ Public Sub WriteMemoReport(ByVal wb As Workbook, ByVal scope As Object, ByVal ge
     Next dept
     If Not hasComment Then Exit Sub
     Set audit = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count)): audit.Name = "Açıklama Durumu"
-    RowValues audit, 1, Array("Bölüm", "Gider kodu", "Gider", "Durum", "Önceki kapanış", "Önceki ay seçimi", "Kaynak", "Açıklama")
+    RowValues audit, 1, Array("Bölüm", "Gider kodu", "Gider", "Durum", "Önceki kapanış", "Önceki ay seçimi", "Kaynak", "Açıklama", "Son işlem", "İşlemi yapan", "İşlem zamanı")
     Set exp = ExpensePositions(wb, rows, cols, noteCols): Set names = ItemNames()
     If general Then
         Set summary = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count)): summary.Name = "Alt Gider Açıklamaları"
@@ -457,6 +484,7 @@ Public Sub WriteMemoReport(ByVal wb As Workbook, ByVal scope As Object, ByVal ge
                     audit.Cells(out, 8).NumberFormat = "@"
                     RowValues audit, out, Array(Depts(dept)(0), CLng(code), names(code), IIf(isPending, "Kontrol bekliyor", "Onaylı / bu dönem"), store.Cells(r, 6).Value2, store.Cells(r, 7).Value2, store.Cells(r, 15).Value2, text)
                     audit.Cells(out, 8).NumberFormat = "@": audit.Cells(out, 8).Value2 = text
+                    RowValues audit, out, Array(store.Cells(r, 20).Value2, store.Cells(r, 19).Value2, store.Cells(r, 16).Value2), 9
                     If isPending Then audit.Rows(out).Font.Color = RGB(190, 48, 58)
                     out = out + 1
                 End If
@@ -471,7 +499,7 @@ Public Sub WriteMemoReport(ByVal wb As Workbook, ByVal scope As Object, ByVal ge
             If pending Then summary.Cells(r, 4).Font.Color = RGB(190, 48, 58)
         End If
     Next code
-    Header audit.Range("A1:H1"): audit.Columns("A:G").ColumnWidth = 24: audit.Columns("H").ColumnWidth = 80: audit.UsedRange.WrapText = True: audit.UsedRange.Rows.AutoFit
+    Header audit.Range("A1:K1"): audit.Columns("A:G").ColumnWidth = 24: audit.Columns("H").ColumnWidth = 80: audit.Columns("I:K").ColumnWidth = 24: audit.UsedRange.WrapText = True: audit.UsedRange.Rows.AutoFit
     If general Then
         Header summary.Range("A1:D1"): summary.Columns("A:C").ColumnWidth = 30: summary.Columns("D").ColumnWidth = 90
         summary.UsedRange.WrapText = True: summary.UsedRange.Rows.AutoFit

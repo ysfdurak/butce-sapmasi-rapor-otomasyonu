@@ -160,6 +160,8 @@ Public Sub RaporOlustur()
     ArchiveEnd True, ""
     If Not SaveController() Then ws.Range("B34").Value2 = ws.Range("B34").Value2 & " Kontrol dosyasýný Ctrl+S ile kaydedin."
 Done:
+    ' Geri yükleme adýmlarý hata verse bile Excel ayarlarý mutlaka eski hâline döner.
+    On Error Resume Next
     If Not success Then ArchiveEnd False, errText
     WorkRunning = False
     Application.StatusBar = False: Application.Calculation = calc: Application.EnableEvents = events
@@ -173,8 +175,11 @@ Done:
     Exit Sub
 Bad:
     errText = Err.Description
+    ' Resume hata durumunu temizler; GoTo ile çýkýlsaydý Done içindeki ikinci bir hata
+    ' yakalanmaz ve hesaplama/ekran ayarlarý kapalý kalabilirdi.
+    Resume Failed
+Failed:
     On Error Resume Next
     ThisWorkbook.Worksheets("Kontrol Paneli").Range("B34").Value2 = "Hata: " & errText
-    On Error GoTo 0
     GoTo Done
 End Sub

@@ -6,7 +6,7 @@ from pathlib import Path
 from decimal import Decimal
 from openpyxl import load_workbook
 import butce
-from note_review import Review, PENDING
+from note_review import Review, PENDING, audit, AUDIT_TABLE
 
 
 class Notes:
@@ -17,6 +17,7 @@ class Notes:
             c.execute(
                 "CREATE TABLE IF NOT EXISTS notes (dataset TEXT, closing TEXT, months TEXT, department TEXT, code INTEGER, note TEXT, actual TEXT, budget TEXT, source TEXT, updated TEXT, PRIMARY KEY(dataset,closing,months,department,code))"
             )
+            c.execute(AUDIT_TABLE)
         self.review = Review(self)
 
     def connect(self):
@@ -53,6 +54,11 @@ class Notes:
         for key, value in self.review.effective(data, months).items():
             if key not in result or result[key].get("stale"):
                 result[key] = value
+        trail = self.trail(data, months)
+        for key, value in result.items():
+            last = trail.get(key)
+            if last:
+                value.update(lastAction=last["action"], actor=last["user"], actedAt=last["at"])
         return result
 
     def save(self, data, months, rows, source="Uygulamada girildi"):
@@ -88,7 +94,21 @@ class Notes:
             )
         with self.connect() as c:
             c.executemany("INSERT OR REPLACE INTO notes VALUES (?,?,?,?,?,?,?,?,?,?)", staged)
+            for row in staged:
+                audit(c, row[:5], "Kaydedildi: " + source, row[5])
         return len(staged)
+
+    def trail(self, data, months):
+        """(bölüm, gider kodu) → son işlem, işlemi yapan ve zamanı (onay izi)."""
+        with self.connect() as c:
+            rows = c.execute(
+                "SELECT department,code,action,user,at FROM note_audit WHERE dataset=? AND closing=? AND months=?"
+                " ORDER BY at,rowid",
+                self.key(data, months),
+            ).fetchall()
+        return {
+            (name, code): {"action": action, "user": user, "at": at} for name, code, action, user, at in rows
+        }
 
     def import_files(self, data, months, paths):
         staged = {}

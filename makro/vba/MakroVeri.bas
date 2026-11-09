@@ -47,6 +47,7 @@ Public Sub LoadSettings()
             For i = 1 To 3
                 If ws.Cells(r, i).HasFormula Or IsError(ws.Cells(r, i).Value2) Then Fail "Gider gruplarında sabit değer kullanın: " & r
             Next i
+            If Not IsNumeric(ws.Cells(r, 1).Value2) Or Not IsNumeric(ws.Cells(r, 2).Value2) Or IsEmpty(ws.Cells(r, 1).Value2) Or IsEmpty(ws.Cells(r, 2).Value2) Then Fail "Gider Grupları, satır " & r & ": ilk ve son indeks tam sayı olmalı."
             lo = CLng(ws.Cells(r, 1).Value2): hi = CLng(ws.Cells(r, 2).Value2)
             If lo < 0 Or hi < lo Or lo <> ws.Cells(r, 1).Value2 Or hi <> ws.Cells(r, 2).Value2 Then Fail "Geçersiz gider aralığı: " & r
             For Each g In Groups
@@ -55,12 +56,17 @@ Public Sub LoadSettings()
             Groups.Add Array(lo, hi, CStr(ws.Cells(r, 3).Value2))
         End If
     Next r
+    Set ws = Nothing
+    On Error Resume Next
     Set ws = wb.Worksheets("Gider Eşleştirme")
+    On Error GoTo Bad
+    If Not ws Is Nothing Then
     For r = 5 To ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
         If Application.CountA(ws.Range(ws.Cells(r, 1), ws.Cells(r, 3))) > 0 Then
             For i = 1 To 3
                 If ws.Cells(r, i).HasFormula Or IsError(ws.Cells(r, i).Value2) Then Fail "Gider eşleştirmede sabit değer kullanın: " & r
             Next i
+            If Not IsNumeric(ws.Cells(r, 1).Value2) Or Not IsNumeric(ws.Cells(r, 2).Value2) Or IsEmpty(ws.Cells(r, 1).Value2) Or IsEmpty(ws.Cells(r, 2).Value2) Then Fail "Gider Eşleştirme, satır " & r & ": kaynak ve rapor indeksi tam sayı olmalı."
             id = CStr(CLng(ws.Cells(r, 1).Value2)): target = CStr(CLng(ws.Cells(r, 2).Value2))
             If ExpenseMap.Exists(id) Then Fail "Mükerrer kaynak gider: " & id
             groupName = CStr(ws.Cells(r, 3).Value2)
@@ -68,10 +74,12 @@ Public Sub LoadSettings()
             ExpenseMap.Add id, Array(target, groupName)
         End If
     Next r
+    End If
     wb.Close False: Set wb = Nothing
     For Each meta In Array("Dosyalar|maliyet_klasoru", "Dosyalar|kontrol_dosyasi", "Dosyalar|endeks_dosyasi", "Maliyet|ilk_gider_satiri", "Maliyet|gider_sutunu", "Maliyet|islem_adedi_satiri", "Kontrol|sayfa", "Endeks|sayfa")
         If Not Cfg.Exists(CStr(meta)) Then Fail "Eksik ayar: " & CStr(meta)
     Next meta
+    ValidateReportSettings
     For Each meta In Cfg.Keys
         n = CStr(meta)
         If Left$(n, 8) = "Maliyet|" Or Left$(n, 8) = "Kontrol|" Or Left$(n, 7) = "Endeks|" Then
@@ -97,15 +105,16 @@ End Sub
 
 Public Sub CostColumns(ByVal ws As Worksheet, ByVal closing As String, ByRef actual As Object, ByRef budget As Object)
     Dim marker As Range, c As Long, endCol As Long, firstMarker As Long, b As Object, valid As Long
-    Dim area As Range, v As Variant, pkey As String, block As Variant, y As Long, m As Long
+    Dim area As Range, v As Variant, pkey As String, block As Variant, y As Long, m As Long, fileYear As Long
+    fileYear = CLng(Left$(closing, 4))  ' kaynak dosyanın kendi kapanış yılı (Python: positioned_columns)
     If CStr(Opt("Maliyet", "tarih_baslangici")) <> "" Then
         Set marker = ws.Range(CStr(Opt("Maliyet", "butce_etiketi")))
         endCol = ws.Cells(marker.Row, ws.Columns.Count).End(xlToLeft).Column
         For c = marker.Column To endCol
             If K(ws.Cells(marker.Row, c).Value2) = "butce" Then
                 If firstMarker = 0 Then firstMarker = c
-                Set b = ReadCols(ws, ws.Cells(marker.Row + 1, c).Address, c + 11, CloseYear)
-                If FullBudget(b) Then valid = valid + 1: Set budget = b
+                Set b = ReadCols(ws, ws.Cells(marker.Row + 1, c).Address, c + 11, fileYear)
+                If FullBudget(b, fileYear) Then valid = valid + 1: Set budget = b
             End If
         Next c
         If valid <> 1 Or firstMarker = 0 Then Fail "Tek 12 aylık kapanış yılı bütçe bloğu bulunamadı: " & ws.Name
@@ -118,6 +127,7 @@ Public Sub CostColumns(ByVal ws As Worksheet, ByVal closing As String, ByRef act
                 v = ws.Cells(CLng(Opt("Maliyet", "yil_satiri")), c).Value2
                 pkey = PeriodOf(v)
                 If pkey = "" Then
+                    If IsEmpty(v) Or Not IsNumeric(v) Then Fail "Yıl başlığı geçersiz: " & ws.Name & "!" & ws.Cells(CLng(Opt("Maliyet", "yil_satiri")), c).Address(False, False)
                     y = CLng(v): m = MonthNum(ws.Cells(CLng(Opt("Maliyet", "ay_satiri")), c).Value2)
                     If m = 0 Then Fail "Ay başlığı geçersiz: " & ws.Name
                     pkey = P(y, m)
@@ -131,21 +141,35 @@ Public Sub CostColumns(ByVal ws As Worksheet, ByVal closing As String, ByRef act
                 End If
             Next c
         Next block
-        If Not FullBudget(budget) Then Fail "Bütçe yılı/ayları eksik: " & ws.Name
+        If Not FullBudget(budget, fileYear) Then Fail "Bütçe yılı/ayları eksik: " & ws.Name
     End If
     If Not actual.Exists(closing) Then Fail "Kaynak dosya kapanışı gerçekleşen başlıklarında yok: " & ws.Name
 End Sub
 
 Private Function ReadCost(ByVal ws As Worksheet, ByVal closing As String, ByVal source As String) As Object
-    Dim d As Object, names As Object, actual As Object, budget As Object, raw As Object
-    Dim c As Variant, id As Variant, code As Long, target As String, item As String, mapping As Variant
+    Dim d As Object, names As Object, actual As Object, budget As Object, issues As Object
+    Dim id As Variant, code As Long, target As String, item As String, mapping As Variant
     Dim r As Long, first As Long, cnt As Long, slot As Variant, cols As Object, x As String, value As Variant
-    Dim indicatorNames As Object, indicatorRow As Long, labelColumn As Long, indicator As Long, title As String
-    Set d = Dict(): Set names = Dict(): Set raw = Dict()
+    Dim indicatorNames As Object, indicatorRow As Long, indicator As Long, title As String, nameCol As Long
+    Dim data As Variant, top As Long, lastRow As Long, leftCol As Long, rightCol As Long, message As Variant
+    Set d = Dict(): Set names = Dict(): Set issues = Dict()
+    issues.Add "converted", New Collection: issues.Add "unreadable", New Collection: issues.Add "uncached", New Collection
     CostColumns ws, closing, actual, budget
+    first = CLng(Opt("Maliyet", "ilk_gider_satiri")): cnt = ItemCount()
+    indicatorRow = CLng(Opt("Maliyet", "islem_adedi_satiri")): nameCol = CLng(Opt("Maliyet", "gider_sutunu"))
+    If cnt < 1 Then Fail "Gider kalem sayısı sıfır olamaz."
+    If indicatorRow >= first Then Fail "Personel/işlem adetleri gider aralığında olamaz."
+    ' Tüm sayısal blok tek seferde okunur; hücre hücre okumaya göre çok daha hızlıdır.
+    top = indicatorRow - 4: lastRow = first + cnt - 1: leftCol = ws.Columns.Count: rightCol = 1
+    For Each slot In Array("A", "B")
+        If slot = "A" Then Set cols = actual Else Set cols = budget
+        For Each id In cols.Keys
+            If cols(id) < leftCol Then leftCol = cols(id)
+            If cols(id) > rightCol Then rightCol = cols(id)
+        Next id
+    Next slot
+    data = ws.Range(ws.Cells(top, leftCol), ws.Cells(lastRow, rightCol)).Value2
     Set indicatorNames = Dict()
-    indicatorRow = CLng(Opt("Maliyet", "islem_adedi_satiri"))
-    labelColumn = CLng(Opt("Maliyet", "gosterge_adi_sutunu", Opt("Maliyet", "gider_sutunu")))
     For indicator = 1 To 5
         r = indicatorRow - 5 + indicator
         title = SourceIndicatorTitle(ws, indicator)
@@ -154,18 +178,15 @@ Private Function ReadCost(ByVal ws As Worksheet, ByVal closing As String, ByVal 
         For Each slot In Array("A", "B")
             If slot = "A" Then Set cols = actual Else Set cols = budget
             For Each id In cols.Keys
-                d(slot & "P" & indicator & Sep & id) = Num(ws.Cells(r, cols(id)).Value2)
+                d(slot & "P" & indicator & Sep & id) = Num(data(r - top + 1, cols(id) - leftCol + 1))
             Next id
         Next slot
     Next indicator
     d.Add "IndicatorNames", indicatorNames
-    first = CLng(Opt("Maliyet", "ilk_gider_satiri")): cnt = CLng(Opt("Maliyet", "gider_kalem_sayisi", CLng(Opt("Maliyet", "dip_toplam_satiri")) - first))
-    If cnt < 1 Then Fail "Gider kalem sayısı sıfır olamaz."
-    If CLng(Opt("Maliyet", "islem_adedi_satiri")) >= first Then Fail "Personel/işlem adetleri gider aralığında olamaz."
     For code = 1 To cnt
         r = first + code - 1: target = CStr(code)
-        item = Trim$(CStr(ws.Cells(r, CLng(Opt("Maliyet", "gider_sutunu"))).Value2))
-        If item = "" Then Fail "Gider adı eksik: " & ws.Name & " / " & r
+        item = Trim$(CStr(ws.Cells(r, nameCol).Value2))
+        If item = "" Then Fail "Gider adı bulunamadı: " & ws.Name & "!" & ws.Cells(r, nameCol).Address(False, False)
         If ExpenseMap.Exists(CStr(code)) Then
             mapping = ExpenseMap(CStr(code)): target = mapping(0): item = mapping(1)
         End If
@@ -177,25 +198,109 @@ Private Function ReadCost(ByVal ws As Worksheet, ByVal closing As String, ByVal 
         For Each slot In Array("A", "B")
             If slot = "A" Then Set cols = actual Else Set cols = budget
             For Each id In cols.Keys
-                x = slot & Sep & id & Sep & target: value = Num(ws.Cells(r, cols(id)).Value2)
-                If d.Exists(x) Then value = Plus(d(x), value)
-                d(x) = value
+                value = SourceNum(ws, data, top, leftCol, r, cols(id), issues)
+                x = slot & Sep & id & Sep & target
+                If d.Exists(x) Then d(x) = Plus(d(x), value) Else d(x) = value
                 x = slot & "T" & Sep & id
-                value = Num(ws.Cells(r, cols(id)).Value2)
-                If d.Exists(x) Then value = Plus(d(x), value)
-                d(x) = value
+                If d.Exists(x) Then d(x) = Plus(d(x), value) Else d(x) = value
             Next id
         Next slot
     Next code
-    For Each slot In Array("A", "B")
-        If slot = "A" Then Set cols = actual Else Set cols = budget
-        For Each id In cols.Keys
-            d(slot & "C" & Sep & id) = Num(ws.Cells(CLng(Opt("Maliyet", "islem_adedi_satiri")), cols(id)).Value2)
-        Next id
-    Next slot
-    d.Add "names", names: d("file") = source
+    For Each id In actual.Keys
+        d("AC" & Sep & id) = SourceNum(ws, data, top, leftCol, indicatorRow, actual(id), issues)
+    Next id
+    For Each id In budget.Keys
+        d("BC" & Sep & id) = Num(data(indicatorRow - top + 1, budget(id) - leftCol + 1))
+    Next id
+    For Each message In IssueMessages(ws.Name, issues)
+        Warn ws.Name, source, CStr(message)
+    Next message
+    d.Add "names", names: d("file") = source: d("sheet") = ws.Name
     Set ReadCost = d
 End Function
+
+' Kaynak tutarı: sayı; metin sayıysa çevrilir; boş formül (kayıtlı sonucu yok) ayrıca not edilir.
+Private Function SourceNum(ByVal ws As Worksheet, ByRef data As Variant, ByVal top As Long, ByVal leftCol As Long, ByVal r As Long, ByVal c As Long, ByVal issues As Object) As Variant
+    Dim v As Variant, address As String
+    v = data(r - top + 1, c - leftCol + 1)
+    SourceNum = Num(v)
+    If Not IsNull(SourceNum) Then Exit Function
+    address = Replace(ws.Cells(r, c).Address(False, False), "$", "")
+    If VarType(v) = vbString Then
+        If Trim$(CStr(v)) <> "" Then
+            SourceNum = TextNumber(v)
+            If IsNull(SourceNum) Then issues("unreadable").Add address Else issues("converted").Add address
+        End If
+    ElseIf IsEmpty(v) Then
+        If ws.Cells(r, c).HasFormula Then issues("uncached").Add address
+    End If
+End Function
+
+Public Function SampleCells(ByVal cells As Collection) As String
+    Dim i As Long
+    For i = 1 To cells.Count
+        If i > 5 Then SampleCells = SampleCells & " …": Exit Function
+        If i > 1 Then SampleCells = SampleCells & ", "
+        SampleCells = SampleCells & cells(i)
+    Next i
+End Function
+
+Private Function IssueMessages(ByVal sheetName As String, ByVal issues As Object) As Collection
+    Dim result As Collection
+    Set result = New Collection
+    If issues("converted").Count > 0 Then result.Add "Metin olarak girilmiş " & issues("converted").Count & " tutar sayıya çevrildi (" & sheetName & ": " & SampleCells(issues("converted")) & "). Kaynakta sayı biçimine çevirin."
+    If issues("unreadable").Count > 0 Then result.Add "Sayıya çevrilemeyen " & issues("unreadable").Count & " hücre boş sayıldı (" & sheetName & ": " & SampleCells(issues("unreadable")) & ")."
+    If issues("uncached").Count > 0 Then result.Add issues("uncached").Count & " formül hücresinin sonucu dosyada kayıtlı değil (" & sheetName & ": " & SampleCells(issues("uncached")) & "). Dosyayı Excel'de açıp kaydedin; bu hücreler boş okundu."
+    Set IssueMessages = result
+End Function
+
+' Tarih ve Bütçe başlığı ayardaki hücrede değilse yakın bir kaymayı arar ve önerir. Python: butce.layout_hint.
+Public Function LayoutHint(ByVal ws As Worksheet) As String
+    Dim start As Range, marker As Range, dist As Long, dr As Long, dc As Long
+    If CStr(Opt("Maliyet", "tarih_baslangici")) = "" Or CStr(Opt("Maliyet", "butce_etiketi")) = "" Then Exit Function
+    Set start = ws.Range(CStr(Opt("Maliyet", "tarih_baslangici"))).Cells(1, 1)
+    Set marker = ws.Range(CStr(Opt("Maliyet", "butce_etiketi"))).Cells(1, 1)
+    If PeriodOf(start.Value2) <> "" And K(marker.Value2) = "butce" Then Exit Function
+    For dist = 1 To 12
+        For dr = -6 To 6
+            For dc = -6 To 6
+                If Abs(dr) + Abs(dc) = dist Then
+                    If start.Row + dr >= 1 And marker.Row + dr >= 1 And start.Column + dc >= 1 And marker.Column + dc >= 1 Then
+                        If PeriodOf(ws.Cells(start.Row + dr, start.Column + dc).Value2) <> "" And K(ws.Cells(marker.Row + dr, marker.Column + dc).Value2) = "butce" Then
+                            LayoutHint = "Kaynak düzeni kaymış görünüyor (" & ws.Name & "): tarih_baslangici " & Opt("Maliyet", "tarih_baslangici") & " yerine " & ws.Cells(start.Row + dr, start.Column + dc).Address(False, False) & _
+                                ", butce_etiketi " & Opt("Maliyet", "butce_etiketi") & " yerine " & ws.Cells(marker.Row + dr, marker.Column + dc).Address(False, False) & " olabilir; satır ayarları da " & Format$(dr, "+0;-0;+0") & " kaymış olabilir. Tablo düzeni ekranından kontrol edip güncelleyin."
+                            Exit Function
+                        End If
+                    End If
+                End If
+            Next dc
+        Next dr
+    Next dist
+End Function
+
+Public Sub ValidateReportSettings()
+    Dim v As Variant
+    v = Opt("Rapor", "onemlilik_tutari", 1000000)
+    If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|onemlilik_tutari: sıfır veya pozitif TL olmalı."
+    If CDbl(v) < 0 Then Fail "Rapor|onemlilik_tutari: sıfır veya pozitif TL olmalı."
+    v = Opt("Rapor", "onemlilik_orani", 0.1)
+    If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|onemlilik_orani: 0 ile 1 arasında olmalı (örnek: 0,10 = %10)."
+    If CDbl(v) < 0 Or CDbl(v) > 1 Then Fail "Rapor|onemlilik_orani: 0 ile 1 arasında olmalı (örnek: 0,10 = %10)."
+    v = Opt("Rapor", "ozet_kalem_sayisi", 5)
+    If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|ozet_kalem_sayisi: 1 ile 200 arasında tam sayı girin."
+    If CDbl(v) < 1 Or CDbl(v) > 200 Or CDbl(v) <> Fix(CDbl(v)) Then Fail "Rapor|ozet_kalem_sayisi: 1 ile 200 arasında tam sayı girin."
+    v = Opt("Rapor", "arsiv_saklama_adedi", 20)
+    If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|arsiv_saklama_adedi: 0 ile 200 arasında tam sayı girin."
+    If CDbl(v) < 0 Or CDbl(v) > 200 Or CDbl(v) <> Fix(CDbl(v)) Then Fail "Rapor|arsiv_saklama_adedi: 0 ile 200 arasında tam sayı girin."
+    For Each v In Cfg.Keys
+        If Left$(CStr(v), 6) = "Rapor|" Then
+            Select Case Mid$(CStr(v), 7)
+                Case "onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi"
+                Case Else: Fail "Tanımsız rapor ayarı: " & CStr(v)
+            End Select
+        End If
+    Next v
+End Sub
 
 Public Sub LoadSnapshots()
     Dim files As Collection, file As Variant, name As String, folder As String, period As String
@@ -213,7 +318,7 @@ Public Sub LoadSnapshots()
         period = FilenamePeriod(CStr(file))
         If period = "" Then
             Warn "", CStr(file), "Dosya adında tek yıl ve ay bulunamadı; okunmadı."
-        ElseIf Left$(period, 4) = CStr(CloseYear) And period <= P(CloseYear, CloseMonth) Then
+        ElseIf InClosingScope(period) Then
             Application.StatusBar = "Kaynak okunuyor: " & file
             ReadSnapshotFile CStr(file), period, bad
         End If
@@ -263,11 +368,18 @@ Failed:
 End Sub
 
 Private Function TryCost(ByVal ws As Worksheet, ByVal closing As String, ByVal file As String) As Object
+    Dim message As String, hint As String
     On Error GoTo Failed
     Set TryCost = ReadCost(ws, closing, file)
     Exit Function
 Failed:
-    Warn ws.Name, file, "Kaynak okunamadı: " & Err.Description
+    message = Err.Description
+    On Error GoTo -1  ' etkin hata işleyicisini kapatır; LayoutHint hatası da yutulabilsin
+    On Error Resume Next
+    hint = LayoutHint(ws)
+    On Error GoTo 0
+    If hint <> "" Then message = message & ". " & hint
+    Warn ws.Name, file, "Kaynak okunamadı: " & message
 End Function
 
 Public Sub LoadControl()

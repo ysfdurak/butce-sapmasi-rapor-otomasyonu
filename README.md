@@ -11,7 +11,7 @@ Uygulama, farklı dosyalardaki bölüm giderlerini tek bir kapanışta toplar. G
 | Excel VBA | Excel kontrol paneli, direktörlük ve müdürlük raporları | [Windows Excel kurulumu](docs/BASLANGIC.md#excel-vba) |
 | Python | Yedi sayfalık yerel dashboard ve Excel raporları | [Python kurulumu](docs/BASLANGIC.md#python) |
 
-Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri Excel'deki ayar dosyasından yönetilir. Python arayüzü tarayıcıda kendi bilgisayarınızda açılır. VBA paketi masaüstü Excel'de rapor üretir.
+Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri ve rapor eşikleri Excel'deki ayar dosyasından yönetilir. İki sürüm aynı hesap kurallarıyla aynı rapor sayfalarını üretir ([Veri ve hesap](docs/VERI_VE_HESAP.md)). Python arayüzü tarayıcıda kendi bilgisayarınızda açılır. VBA paketi masaüstü Excel'de rapor üretir.
 
 ## Uygulama akışı
 
@@ -22,11 +22,14 @@ Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri Excel'deki 
 
 ## Neleri gösterir?
 
+- **Yönetici özeti** — Raporun ilk sayfası; toplam sapma ve yönü (Lehte/Aleyhte), yıl sonu tahmini, veri kontrolü ve en büyük önemli sapmalar. Tek sayfaya yazdırılır.
 - **Bütçe sapması ve gider yapısı** — Gerçekleşen, bütçe, bütçe eksi gerçekleşen, yüzde sapma ve ana/alt gider kırılımı.
+- **Önemli sapmalar** — TL ve yüzde eşiğini birlikte aşan kalemler; müdürlük dosyalarında açıklanması gereken hücreler işaretlenir ve açıklama durumu izlenir.
+- **Yıl sonu tahmini ve hacim/birim maliyet etkisi** — Gerçekleşen + kalan bütçe ve aylık ortalama gidiş tahmini; bütçe farkının işlem adedi (hacim) ve birim maliyet etkisine ayrıştırılması.
 - **Operasyon göstergeleri** — Kaynaktaki başlıklarıyla personel ve işlem adetleri. Bu adet satırları gider toplamının dışında tutulur.
 - **Birim maliyet ve OPEX/ciro** — Endekslenmiş önceki yıl birim maliyeti, gider ağırlıklı reel iyileşme ve şirket cirosu üzerinden OPEX oranı.
 - **Kapanış kontrolleri** — Bölüm dip toplamı mutabakatı, geçmiş ay gider/bütçe değişiklikleri ve eksik eşleştirme uyarıları.
-- **Açıklama takibi** — Önceki dönem metinlerini inceleme kuyruğuna alma, toplu onay ve müdürlük metinlerini bölüm adlarıyla genel raporda birleştirme.
+- **Açıklama takibi** — Önceki dönem metinlerini inceleme kuyruğuna alma, toplu onay, onay izi (kim, ne zaman) ve müdürlük metinlerini bölüm adlarıyla genel raporda birleştirme.
 
 Python dashboard sayfaları Genel Durum, Personel, İşlem Adedi, Detay Durum, Bölüm Analizi, Birim Maliyet ve Sapma Öncelikleri. Altı ortak seçim müdürlük, müdürlük altı, lokasyon, bölüm, yıl ve ay kapsamını sayfalar arasında taşır.
 
@@ -45,10 +48,11 @@ Görsel, kontrol paneli tasarım önizlemesidir.
 
 ## Doğrulama durumu
 
-- Python'un paket içindeki **77 otomatik testi** bu paket hazırlanırken yeniden çalıştırıldı.
-- V4'te kaydedilen **72 JavaScript/API kontrolü**, arayüzün çizim ve olay mantığının benzetimini ve canlı yerel API'yi kapsar. Gerçek tarayıcı yerleşimi ve Windows dosya diyalogları canlı kabul adımıdır.
-- Excel VBA için kaynak, modül ve dağıtım paketi kontrolleri yapıldı. Windows Excel'de derleme ve rapor üretimi canlı kabul adımıdır.
+- Python'un **93 otomatik testi** ve VBA kaynak denetimi (`tools/vba_araclari.py`) GitHub Actions'ta her gönderimde çalışır.
+- Aynı sentetik beklenen değerler Python testlerinde ve makrodaki **Sentetik hesap testi**nde kontrol edilir.
+- V4'te kaydedilen **72 JavaScript/API kontrolü**, arayüzün çizim ve olay mantığının benzetimini ve canlı yerel API'yi kapsar.
+- Windows Excel'de VBA derlemesi, gerçek tarayıcı yerleşimi ve Windows dosya pencereleri [canlı kabul listesiyle](docs/CANLI_KONTROL.md) doğrulanır.
 
-[Hesap ve veri akışı](docs/VERI_VE_HESAP.md) · [Doğrulama ve canlı kontrol](docs/DOGRULAMA.md) · [Sürüm notları](docs/SURUM_NOTLARI.md)
+[Hesap ve veri akışı](docs/VERI_VE_HESAP.md) · [Açıklamalar](docs/YORUM_KULLANIMI.md) · [Doğrulama](docs/DOGRULAMA.md) · [Canlı kontrol](docs/CANLI_KONTROL.md) · [Sürüm notları](docs/SURUM_NOTLARI.md) · [Ortak kararlar](docs/ORTAK_KARARLAR.md)
 
 Depodaki çalışma kitapları sentetik örnekler ve şablonlardır. Gerçek kaynakları, ayar kopyalarını, raporları, günlükleri ve yerel kayıtları kendi bilgisayarınızda veya kurumunuzun onaylı depolama alanında tutun.

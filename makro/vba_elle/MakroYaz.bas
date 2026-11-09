@@ -1,7 +1,8 @@
 Attribute VB_Name = "MakroYaz"
 Option Explicit
 
-Public Sub Put(ByVal cell As Range, ByVal value As Variant)
+' "Put" VBA'nýn ayrýlmýþ dosya komutu olduðundan prosedür adý SetCell'dir.
+Public Sub SetCell(ByVal cell As Range, ByVal value As Variant)
     If IsNull(value) Or IsEmpty(value) Then
         cell.ClearContents
     Else
@@ -10,10 +11,21 @@ Public Sub Put(ByVal cell As Range, ByVal value As Variant)
 End Sub
 
 Public Sub RowValues(ByVal ws As Worksheet, ByVal row As Long, ByVal values As Variant, Optional ByVal firstCol As Long = 1)
-    Dim i As Long
+    ' Satýr tek seferde yazýlýr (hücre hücre yazmaya göre çok daha hýzlý). Boþ (Null) deðer hücreyi boþaltýr.
+    Dim i As Long, buffer() As Variant, width As Long
+    width = UBound(values) - LBound(values) + 1
+    If width < 1 Then Exit Sub
+    ReDim buffer(1 To 1, 1 To width)
     For i = LBound(values) To UBound(values)
-        Put ws.Cells(row, firstCol + i - LBound(values)), values(i)
+        If IsNull(values(i)) Then
+            buffer(1, i - LBound(values) + 1) = Empty
+        ElseIf VarType(values(i)) = vbDecimal Then
+            buffer(1, i - LBound(values) + 1) = CDbl(values(i))
+        Else
+            buffer(1, i - LBound(values) + 1) = values(i)
+        End If
     Next i
+    ws.Range(ws.Cells(row, firstCol), ws.Cells(row, firstCol + width - 1)).Value2 = buffer
 End Sub
 
 Public Function NewSheet(ByVal wb As Workbook, ByVal name As String, ByVal title As String) As Worksheet
@@ -57,14 +69,14 @@ Public Sub Finish(ByVal ws As Worksheet, ByVal lastRow As Long, ByVal lastCol As
 End Sub
 
 Public Sub VarianceColors(ByVal area As Range, Optional ByVal positiveGood As Boolean = True)
-    Dim rule As FormatCondition, good As Long, bad As Long, formula As String
+    ' Hücre deðeri kuralý ve "0" eþiði dil baðýmsýzdýr; Ýngilizce formül metni Türkçe Excel'de hata verebilirdi.
+    ' Boþ metin ("") hücreleri renklense de görünür bir þey yazmadýðýndan etkisizdir.
+    Dim rule As FormatCondition, good As Long, bad As Long
     good = RGB(27, 117, 76): bad = RGB(190, 48, 58)
     area.FormatConditions.Delete
-    formula = "AND(ISNUMBER(" & area.Cells(1, 1).Address(False, False) & ")," & area.Cells(1, 1).Address(False, False) & ">0)"
-    Set rule = area.FormatConditions.Add(xlExpression, Formula1:="=" & formula)
+    Set rule = area.FormatConditions.Add(Type:=xlCellValue, Operator:=xlGreater, Formula1:="0")
     If positiveGood Then rule.Font.Color = good Else rule.Font.Color = bad
-    formula = "AND(ISNUMBER(" & area.Cells(1, 1).Address(False, False) & ")," & area.Cells(1, 1).Address(False, False) & "<0)"
-    Set rule = area.FormatConditions.Add(xlExpression, Formula1:="=" & formula)
+    Set rule = area.FormatConditions.Add(Type:=xlCellValue, Operator:=xlLess, Formula1:="0")
     If positiveGood Then rule.Font.Color = bad Else rule.Font.Color = good
 End Sub
 
@@ -102,7 +114,7 @@ Public Sub WriteSummary(ByVal wb As Workbook, ByVal scope As Object, ByVal gener
         Set local = Dict()
         For Each n In scope.Keys
             meta = Depts(n)
-            If meta(1) = manager Then
+            If K(meta(1)) = K(manager) Then
                 local(n) = True
                 SummaryRow ws, row, CStr(meta(0)), "Bölüm", SingleScope(CStr(n))
                 row = row + 1
@@ -126,7 +138,7 @@ Public Function SingleScope(ByVal n As String) As Object
 End Function
 
 Private Sub FourValues(ByVal ws As Worksheet, ByVal row As Long, ByVal col As Long, ByVal a As Variant, ByVal b As Variant)
-    Put ws.Cells(row, col), a: Put ws.Cells(row, col + 1), b
+    SetCell ws.Cells(row, col), a: SetCell ws.Cells(row, col + 1), b
     ws.Cells(row, col + 2).FormulaR1C1 = "=IF(COUNT(RC[-2]:RC[-1])=2,RC[-1]-RC[-2]," & Chr$(34) & Chr$(34) & ")"
     ws.Cells(row, col + 3).FormulaR1C1 = "=IF(AND(COUNT(RC[-3]:RC[-2])=2,RC[-2]<>0),(RC[-3]-RC[-2])/RC[-2]," & Chr$(34) & Chr$(34) & ")"
     ws.Range(ws.Cells(row, col), ws.Cells(row, col + 2)).NumberFormat = MoneyFmt
@@ -245,7 +257,7 @@ Public Sub WriteUnits(ByVal wb As Workbook, ByVal scope As Object, ByVal general
         Set local = Dict()
         For Each n In scope.Keys
             meta = Depts(n)
-            If meta(1) = manager And Units.Exists(n) Then
+            If K(meta(1)) = K(manager) And Units.Exists(n) Then
                 local(n) = True
                 UnitRow ws, r, CStr(meta(0)), "Bölüm", SingleScope(CStr(n)): r = r + 1
             End If
@@ -277,7 +289,7 @@ Public Sub WriteAudit(ByVal wb As Workbook, ByVal scope As Object)
         Next n
         If include Then
             For i = 0 To 8
-                Put ws.Cells(r, i + 1), row(i)
+                SetCell ws.Cells(r, i + 1), row(i)
             Next i
             If row(7) <> "Doðrulandý" Then ws.Range(ws.Cells(r, 1), ws.Cells(r, 9)).Font.Color = RGB(190, 48, 58)
             r = r + 1
@@ -290,7 +302,7 @@ Public Sub WriteAudit(ByVal wb As Workbook, ByVal scope As Object)
     For Each row In Revisions
         If scope.Exists(CStr(row(12))) Then
             For i = 0 To 11
-                Put ws.Cells(r, i + 1), row(i)
+                SetCell ws.Cells(r, i + 1), row(i)
             Next i
             ws.Range(ws.Cells(r, 8), ws.Cells(r, 10)).NumberFormat = MoneyFmt: r = r + 1
         End If
@@ -361,21 +373,28 @@ Public Sub WriteIdentity(ByVal wb As Workbook, ByVal scope As Object, ByVal gene
 End Sub
 
 Public Sub WriteOneReport(ByVal path As String, ByVal scope As Object, ByVal general As Boolean)
-    Dim wb As Workbook, placeholder As Worksheet, errText As String, previousCalc As XlCalculation
+    Dim wb As Workbook, placeholder As Worksheet, errText As String, previousCalc As XlCalculation, sheet As Worksheet
     previousCalc = Application.Calculation
     On Error GoTo Bad
     Set wb = Application.Workbooks.Add(xlWBATWorksheet): Set placeholder = wb.Worksheets(1)
     WriteSummary wb, scope, general
     WriteExpenses wb, scope, general
     WriteUnits wb, scope, general
+    WriteMaterial wb, scope, general
+    WriteForecast wb, scope, general
+    WriteVolume wb, scope, general
     WriteAudit wb, scope
     WriteIdentity wb, scope, general
     WriteMemoReport wb, scope, general
     placeholder.Delete
-    wb.Worksheets("Genel Özet").Activate
+    WriteExecutive wb, scope, general
     wb.CheckCompatibility = False
     Application.Calculation = xlCalculationAutomatic
-    Application.CalculateFull
+    ' Yalnýz bu rapor hesaplanýr; açýk tüm kitaplarý tam yeniden hesaplamak gereksiz yavaþtý.
+    For Each sheet In wb.Worksheets
+        sheet.Calculate
+    Next sheet
+    wb.Worksheets(1).Activate
     wb.SaveAs Filename:=path, FileFormat:=xlOpenXMLWorkbook
     Application.Calculation = previousCalc
     wb.Close False

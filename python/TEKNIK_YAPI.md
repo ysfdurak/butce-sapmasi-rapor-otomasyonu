@@ -1,5 +1,3 @@
-> V3: çalışma merkezi ve teknik/test sınırları için V3_YENILIKLER.md ve Dogrulama_Durumu.json geçerlidir.
-
 # Teknik yapı ve geliştirme noktaları
 
 Bu uygulama önceki V11 rapor motorundan ayrı bir dağıtım olarak hazırlanmıştır. Mevcut Python/Excel ve bağımsız VBA rapor sürümleri değiştirilmez.
@@ -9,17 +7,19 @@ Bu uygulama önceki V11 rapor motorundan ayrı bir dağıtım olarak hazırlanm�
 | bootstrap.py | Paket içindeki saf Python wheel bağımlılıklarını kurulum yapmadan yükleme |
 | app.py | Yalnız loopback üzerinde HTTP arayüzü, oturum, kaynak yenileme, iş kuyruğu, dosya indirme |
 | model.py | Decimal ile ortak seçimler ve yedi sayfanın hesapları; Excel ekranından bağımsız |
-| notes.py | SQLite açıklama kaydı, aynı ay/dönem/tutar eşleştirmesi, atomik dosya içe alma |
+| notes.py | SQLite açıklama kaydı, aynı ay/dönem/tutar eşleştirmesi, atomik dosya içe alma, onay izi (note_audit) |
 | configuration.py | Kaynak konumu önizleme, tüm eşleştirmeleri gösterme, doğrulanmış/yedekli/atomik ayar Excel'i güncelleme; eski Tümü seçimlerinin yeni kayıtlarla uzlaştırılması |
 | jobs.py | Mevcut rapor motorunu çalıştırma, klasör olarak tamamlanmış çıktı yayımlama, açıklama taşıma |
 | butce.py | V11 kaynak okuma, ayar okuma, kontrol/endeks, revizyon ve Excel rapor motoru |
-| birim.py | Rapor motorunun birim maliyet hesapları ve bütçe işlem adedi okuması |
-| personel.py | Personel bütçe tamamlama kuralı; rapor/dashbord eski fonksiyonları da korunur |
+| birim.py | Bütçe işlem adedi okuması |
+| analiz.py | V5: önemli sapma, yıl sonu tahmini, hacim/birim maliyet ayrıştırması ve yönetici özeti sayfaları |
+| personel.py | Personel bütçe tamamlama kuralı |
 | web/index.html | Tek uygulama kabuğu |
 | web/style.css | Ortak tasarım, duyarlı yerleşim, kaydırılabilir listeler ve tablolar |
 | web/app.js | Gezinme, senkronize listbox'lar, SVG grafikler, görünüm modları, tooltip ve form etkileşimleri |
 | dialog.py | Windows dosya/klasör seçimi; ayrı Python UI işlemi |
 | tests/test_dashboard.py | Hesap, dönem, kapsam, kayıt, dosya üretimi ve HTTP testleri |
+| tests/test_analiz.py | V5 analizleri, metin tutarlar, formül sonucu, düzen kayması, yıl dönümü ve onay izi testleri |
 | tests/test_configuration.py | Kaynak başlıkları, yeni/silinen/değişen bölüm, konum kaydı, ayar yedeği, başarısız yazma koruması ve yeniden başlatma testleri |
 
 Hesap doğruluğunun kaynağı Python `model.py` katmanıdır. JavaScript tutar hesabı yapmaz; Python'dan aldığı sonuçları biçimlendirir ve grafikleri çizer. Yalnız grafik eksen aralığı/yüzde dağılımının görsel yerleşimi tarayıcıda hesaplanır. Tutarlar sunucuda Decimal, JSON aktarımında sayıdır. Grafik, CSS ve JavaScript dosyaları yereldir; CDN yoktur.
@@ -36,4 +36,4 @@ Kayıt anahtarı kaynak ayar yolunun kimliği, kapanış ve tam seçili ay küme
 
 Paket klasöründe `python run_tests.py` veya uygun Python sürümüyle `py -3.13 run_tests.py` çalıştırılır. Bağımlılıklar yine wheels klasöründen gelir. Testler sentetik veriyi okur; rapor çıktıları geçici klasörde oluşturulur ve temizlenir. Şirket kaynakları kullanılmaz. Ayrıntılı son test durumu `Dogrulama_Durumu.json` dosyasındadır.
 
-JavaScript testleri teslimat sırasında Node V8 üzerinde belge taklidiyle ve gerçek yerel Python API'siyle çalıştırılmıştır. Gerçek tarayıcı görsel doğrulaması ve Windows dosya pencereleri için CANLI_KONTROL.md kullanılmalıdır. Bu ayrım test durumuna açıkça yazılmıştır.
+JavaScript testleri teslimat sırasında Node V8 üzerinde belge taklidiyle ve gerçek yerel Python API'siyle çalıştırılmıştır. Gerçek tarayıcı görsel doğrulaması ve Windows dosya pencereleri için [canlı kontrol listesi](../docs/CANLI_KONTROL.md) kullanılmalıdır. Bu ayrım test durumuna açıkça yazılmıştır.

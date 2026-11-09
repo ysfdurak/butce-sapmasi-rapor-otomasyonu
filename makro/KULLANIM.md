@@ -1,8 +1,6 @@
-> **V4:** Önce [Önceki yorumları toplu inceleme](V4_YORUM_KULLANIMI.md) belgesini okuyun. Yeni kurulum adı V4, makro modül sayısı 10’dur. Önceki kaynak, rapor ve dashboard kuralları korunur.
+# Bütçe raporu — Excel makro sürümü V5
 
-> **V3 güncellemesi:** Önce [V3_YENILIKLER.md](V3_YENILIKLER.md) ve [V3_CANLI_KONTROL.md](V3_CANLI_KONTROL.md) dosyalarını okuyun. Aşağıdaki V2 akışı korunur; sürüm dosya adlarında V3 kullanılır. Yeni özellikler ve sınırları yukarıdaki belgede açıklanır.
-
-# Bütçe raporu — bağımsız makro sürümü V2
+> **V5:** Kurulum adı `Butce_Kontrol_Makro_V5.xlsm`, makro modül sayısı **11** (yeni: MakroAnaliz). Raporlara Yönetici Özeti, Önemli Sapmalar, Yıl Sonu Tahmini ve Hacim ve Birim Maliyet sayfaları eklendi. Hesap kuralları: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı: [Açıklamalar ve onay izi](../docs/YORUM_KULLANIMI.md). Önceki sürüm notları [docs/arsiv](../docs/arsiv/) klasöründedir.
 
 Bu paket **ilk raporlama motorunun VBA karşılığıdır**. Mevcut Python / dashboard V11 paketinden ayrıdır; onu değiştirmez. Veri okuma, hesaplama, rapor kaydetme ve açıklama birleştirme Windows masaüstü Excel içinde çalışır. Çalıştırmak için Python, pip, openpyxl veya PowerShell gerekmez. İnternet bağlantısı ve veri yükleme işlemi yoktur.
 
@@ -10,20 +8,20 @@ Bu paket **ilk raporlama motorunun VBA karşılığıdır**. Mevcut Python / das
 
 VBA kaynak kodu, kurulum aracı, ayar Excel'i ve sentetik kaynaklar hazırdır. Bu ortamda Windows Excel bulunmadığından **VBA derleme, düğme/listbox etkileşimi ve gerçek dosya üretimi henüz Windows Excel üzerinde doğrulanmadı**. Bu paket canlı kullanım öncesi sentetik pilot sürümdür. Sentetik beklenen sonuçlar mevcut hesap motorundan doğrulandı; bu, VBA'nın çalıştırılmış olduğu anlamına gelmez.
 
-Paketin içinde önceden derlenmiş, hazır `.xlsm` bulunmaz. `Kurulum.vbs`, gerçek Excel'i kullanarak `Kontrol_Sablonu.xlsx` ve on VBA modülünden **Butce_Kontrol_Makro_V4.xlsm** oluşturur. Şablonu doğrudan açınca çalışan makro veya listbox beklemeyin.
+Paketin içinde önceden derlenmiş, hazır `.xlsm` bulunmaz. `Kurulum.vbs`, gerçek Excel'i kullanarak `Kontrol_Sablonu.xlsx` ve on bir VBA modülünden **Butce_Kontrol_Makro_V4.xlsm** oluşturur. Şablonu doğrudan açınca çalışan makro veya listbox beklemeyin.
 
 ## 1. İlk kurulum
 
 1. ZIP'i yeni bir klasöre **tamamen çıkarın**. ZIP'in içinden çalıştırmayın.
 2. `Kurulum.vbs` dosyasına çift tıklayın.
-3. Windows masaüstü Excel açılır; modüller eklenir ve aynı klasöre `Butce_Kontrol_Makro_V4.xlsm` kaydedilir. Ay listesi ve düğmeler oluşturulur.
+3. Windows masaüstü Excel açılır; modüller eklenir ve aynı klasöre `Butce_Kontrol_Makro_V5.xlsm` kaydedilir. Dosya zaten varsa kurulum modülleri güncellemeyi önerir: önce `Kurulum_Yedekleri` klasörüne yedek alınır, eski Makro* modülleri yenileriyle değiştirilir; panel seçimleri, yorumlar ve çalışma geçmişi korunur. Klasörde yalnız V4 dosyası varsa onun kopyası V5 olarak güncellenir. Windows kod sayfası Türkçe (1254) değilse kurulum uyarır. Ay listesi ve düğmeler oluşturulur.
 4. Sonraki açılışlarda yalnız bu `.xlsm` dosyasını açmanız yeterli olur. Kurulum, var olan kontrol dosyasını değiştirmez.
 
 Kurumsal makro politikası geçerlidir. Kurulum güvenlik ayarı değiştirmez. VBA proje erişimi veya Windows betikleri şirket politikasınca engellenirse aşağıdaki elle kurulum kullanılabilir; makro çalıştırmanın da engelli olduğu ortamda BT desteği gerekir.
 
 ### Elle kurulum — VBS veya VBA proje erişimi engelliyse
 
-1. `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın; **Farklı Kaydet → Excel Makro İçerebilen Çalışma Kitabı (.xlsm)** ile `Butce_Kontrol_Makro_V4.xlsm` olarak aynı klasöre kaydedin.
+1. `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın; **Farklı Kaydet → Excel Makro İçerebilen Çalışma Kitabı (.xlsm)** ile `Butce_Kontrol_Makro_V5.xlsm` olarak aynı klasöre kaydedin.
 2. `Alt+F11` ile VBA editörünü açın. Bu çalışma kitabının projesini seçin.
 3. **File → Import File** yoluyla `vba_elle` klasöründeki on `.bas` modülünün tamamını içeri alın. Bu kopyalar Türkçe Windows (1254) içindir. Türkçe harfler bozulursa UTF-8 `vba` kopyalarını bir metin editöründe açıp metni yeni standart modüllere yapıştırın; `Attribute VB_Name` satırını yapıştırmayın ve modül adlarını dosya adlarıyla aynı yapın.
 4. **Debug → Compile VBAProject** seçin. Hata varsa hata metnini ve işaretlenen satırı kaydedin.
@@ -46,7 +44,7 @@ Bu yöntem programatik VBA proje erişimi gerektirmez. İmzalı dağıtım gerek
 
 Bu güncelleme bağımsız **makro rapor motoruna** uygulanmıştır. Mevcut yedi sayfalık Excel dashboard'unu bu paket sıfırdan oluşturan bir üreticiye dönüştürmez; Python dashboard ayrı sürümdür.
 
-V1'den geçişte ZIP'i yeni klasöre çıkar ve yeni `Butce_Kontrol_Makro_V4.xlsm` dosyasını oluştur. Kendi mevcut Ayarlar Excel'ini yeniden seçebilirsin; maliyet ve açıklama kaynakların değiştirilmez. Eski `.xlsm` içine yeni/eskileri karıştırarak modül ekleme.
+Eski sürümden geçişte `Kurulum.vbs` güncelleme yolunu kullanın. Elle güncellemede önce mevcut tüm `Makro*` modüllerini kaldırın (sağ tık › Remove), sonra `vba_elle/` içindeki 11 dosyanın tamamını ekleyin; yeni ve eski modülleri karıştırmayın. Kendi Ayarlar Excel'inizi yeniden seçebilirsiniz; maliyet ve açıklama kaynakları değiştirilmez. V5 rapor eşiklerini kullanmak için Ayarlar.xlsx'e `Rapor` satırlarını ekleyin (örnek: `ornek/Ayarlar.xlsx`); satır yoksa varsayılanlar kullanılır.
 
 ## 2. İlk deneme
 
@@ -126,7 +124,7 @@ Tartım: Diğer açıklama
 
 ## 6. Windows canlı kabul kontrolü
 
-- [ ] VBA editöründe Compile VBAProject hatasız; on modül yüklü.
+- [ ] VBA editöründe Compile VBAProject hatasız; on bir modül yüklü. Ayrıntılı V5 listesi: [canlı kontrol](../docs/CANLI_KONTROL.md).
 - [ ] Kaynakları seçip Konumları kaydet çalıştır; üç yol ayar Excel'inde güncellenmiş, diğer eşleştirmeler aynı ve yedek dosyası oluşmuş.
 - [ ] Kontrol dosyasını kapat/aç; ayar yolu, çıktı yolu ve çoklu ay seçimi korunmuş.
 - [ ] Kaynak önizlemesinde personel/işlem adları gerçek kaynak hücreleriyle aynı; kontrol raporunun sonundaki gösterge tablosunda da bunlar var.

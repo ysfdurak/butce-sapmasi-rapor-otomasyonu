@@ -196,8 +196,15 @@ Public Sub CalculateChecks()
     Next cluster
     For Each n In Depts.Keys
         meta = Depts(n)
-        For cm = 2 To CloseMonth
-            Set old = CurrentSnap(CStr(n), cm - 1): Set fresh = CurrentSnap(CStr(n), cm)
+        ' Ocak kapanýþýnda önceki yýlýn Aralýk dosyasýyla geçen yýlýn 12 ayýnýn gerçekleþenleri karþýlaþtýrýlýr.
+        For cm = IIf(CloseMonth = 1, 1, 2) To CloseMonth
+            If cm = 1 Then
+                Set old = Nothing
+                If Snaps.Exists(K(CStr(n)) & Sep & P(CloseYear - 1, 12)) Then Set old = Snaps(K(CStr(n)) & Sep & P(CloseYear - 1, 12))
+            Else
+                Set old = CurrentSnap(CStr(n), cm - 1)
+            End If
+            Set fresh = CurrentSnap(CStr(n), cm)
             If old Is Nothing Or fresh Is Nothing Then
                 Warn CStr(meta(0)), "", P(CloseYear, cm) & ": Ardýþýk kaynak eksik; revizyon karþýlaþtýrýlamadý."
             Else
@@ -211,13 +218,22 @@ Public Sub CalculateChecks()
                 Next code
                 For Each code In codes.Keys
                     For Each slot In Array("A", "B")
-                        If slot = "A" Then last = cm - 1 Else last = 12
+                        If cm = 1 And slot = "B" Then Exit For
+                        If cm = 1 Or slot = "B" Then
+                            last = 12
+                        Else
+                            last = cm - 1
+                        End If
                         For affected = 1 To last
-                            id = slot & Sep & P(CloseYear, affected) & Sep & code
+                            If cm = 1 Then
+                                id = slot & Sep & P(CloseYear - 1, affected) & Sep & code
+                            Else
+                                id = slot & Sep & P(CloseYear, affected) & Sep & code
+                            End If
                             before = ValAt(old, id): after = ValAt(fresh, id)
                             If Changed(before, after) Then
                                 If slot = "A" Then state = "Gerçekleþen" Else state = "Bütçe"
-                                Revisions.Add Array(P(CloseYear, cm), P(CloseYear, affected), meta(1), meta(0), CLng(code), codes(code), state, before, after, Minus(after, before), old("file"), fresh("file"), CStr(n))
+                                Revisions.Add Array(P(CloseYear, cm), Split(id, Sep)(1), meta(1), meta(0), CLng(code), codes(code), state, before, after, Minus(after, before), old("file"), fresh("file"), CStr(n))
                             End If
                         Next affected
                     Next slot

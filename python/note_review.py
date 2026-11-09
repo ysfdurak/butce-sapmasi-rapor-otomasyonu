@@ -3,7 +3,7 @@
 from pathlib import Path
 from datetime import datetime
 from decimal import Decimal
-import json, hashlib
+import json, hashlib, os
 from openpyxl import load_workbook
 import butce
 
@@ -23,6 +23,31 @@ def checksum(value):
     return hashlib.sha256(
         json.dumps(value, ensure_ascii=False, sort_keys=True, default=str).encode()
     ).hexdigest()
+
+
+AUDIT_TABLE = (
+    "CREATE TABLE IF NOT EXISTS note_audit (dataset TEXT, closing TEXT, months TEXT, department TEXT, "
+    "code INTEGER, action TEXT, user TEXT, at TEXT, text TEXT)"
+)
+
+
+def current_user():
+    """Windows oturum kullanıcısı; VBA tarafında Environ("USERNAME") karşılığı."""
+    import getpass
+
+    try:
+        return os.environ.get("USERNAME") or getpass.getuser()
+    except Exception:  # getpass bazı ortamlarda kullanıcı adı bulamaz
+        return "Bilinmiyor"
+
+
+def audit(connection, key, action, text):
+    """Açıklama işlemlerinin silinmeyen kaydı: kim, ne zaman, hangi işlem."""
+    connection.execute(AUDIT_TABLE)
+    connection.execute(
+        "INSERT INTO note_audit VALUES (?,?,?,?,?,?,?,?,?)",
+        (*key, action, current_user(), datetime.now().isoformat(timespec="seconds"), text),
+    )
 
 
 def literal(cell, value):
@@ -284,6 +309,7 @@ class Review:
                         stamp(),
                     ),
                 )
+                audit(c, key, "Önceki dönemden getirildi (" + oldclose + ")", record["text"])
                 created += 1
         if not candidates and not paths:
             issues.append(
@@ -338,6 +364,14 @@ class Review:
                 c.execute(
                     "UPDATE note_review SET draft=?,status=?,updated=? WHERE dataset=? AND closing=? AND months=? AND department=? AND code=?",
                     (text, status, when, *key),
+                )
+                audit(
+                    c,
+                    key,
+                    {"draft": "Taslak kaydedildi", "approve": "Onaylandı", "reject": "Geçersiz sayıldı"}[
+                        action
+                    ],
+                    text,
                 )
                 if action == "approve":
                     c.execute(

@@ -1,5 +1,5 @@
 {
-  "version": "Makro Rapor V4",
+  "version": "Makro Rapor V5",
   "source_and_package_checks": "passed",
   "checks": [
     "MakroOrtak.bas explicit declarations",
@@ -152,5 +152,18 @@
   "windows_native_controls": "NOT_RUN",
   "native_synthetic_test": "included; not executed here",
   "financial_rule_module": "unchanged from V1",
-  "scope": "standalone macro report package; seven-page dashboard factory not included"
+  "scope": "standalone macro report package; seven-page dashboard factory not included",
+  "v5": {
+    "static_checks": "python tools/vba_araclari.py kontrol: 11 modül; vba_elle kopyaları güncel; ayrılmış sözcük, Windows-1254 kodlaması, genel prosedür çakışması, düğme makroları ve Kurulum.vbs modül listesi denetlendi (CI).",
+    "fixed": [
+      "MakroYaz.Put -> SetCell (ayrılmış sözcük; derleme hatası)",
+      "Koşullu biçim xlCellValue kuralı (dil bağımsız)",
+      "SheetByKey ile sayfa bulma",
+      "Managers/DeptScope K() karşılaştırması",
+      "RaporOlustur hata işleyicisi Resume ile",
+      "ItemCount ile gider kalem sayısı"
+    ],
+    "native_excel_compile_and_run": "NOT_RUN — docs/CANLI_KONTROL.md",
+    "independent_review": "V5 VBA değişiklikleri ayrı bir inceleme ajanıyla derleyici gözüyle incelendi; bulgular düzeltildi."
+  }
 }

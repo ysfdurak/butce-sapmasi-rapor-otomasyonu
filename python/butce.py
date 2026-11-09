@@ -31,6 +31,72 @@ def number(value):
     return amount if amount.is_finite() else None
 
 
+TR_NUMBER = re.compile(r"[-+]?\d{1,3}(?:\.\d{3})+(?:,\d+)?|[-+]?\d+(?:,\d+)?")
+DOT_DECIMAL = re.compile(r"[-+]?\d+\.\d+")
+
+
+def text_number(value):
+    """Metin olarak girilmiş tutarı çevirir: '1.234,56', '1234,56', '(1.234)', '1234.56'. Değilse None.
+
+    Nokta + üçlü basamak grubu Türkçe binlik ayırıcı sayılır ('1.234' = 1234). VBA: MakroOrtak.TextNumber.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip().replace(" ", "").replace(" ", "").replace("₺", "")
+    if text.upper().endswith("TL"):
+        text = text[:-2]
+    negative = len(text) > 2 and text.startswith("(") and text.endswith(")")
+    if negative:
+        text = text[1:-1]
+    if TR_NUMBER.fullmatch(text):
+        text = text.replace(".", "").replace(",", ".")
+    elif not DOT_DECIMAL.fullmatch(text):
+        return None
+    amount = Decimal(text)
+    return -amount if negative else amount
+
+
+def sample_cells(cells):
+    """İlk beş hücre adresi; fazlası '…' ile belirtilir (VBA: MakroVeri.SampleCells)."""
+    return ", ".join(cells[:5]) + (" …" if len(cells) > 5 else "")
+
+
+class SourceIssues:
+    """Kaynak okurken metin sayıları ve boş hücreleri hücre adresiyle toplar."""
+
+    def __init__(self):
+        self.converted, self.unreadable, self.empty = [], [], []
+
+    def value(self, sheet, row, col):
+        raw = sheet.cell(row, col).value
+        amount = number(raw)
+        if amount is not None:
+            return amount
+        address = f"{get_column_letter(col)}{row}"
+        if isinstance(raw, str) and raw.strip():
+            amount = text_number(raw)
+            (self.converted if amount is not None else self.unreadable).append(address)
+            return amount
+        if raw is None:
+            self.empty.append(address)
+        return None
+
+    def warnings(self, sheet_name):
+        sample = sample_cells
+        result = []
+        if self.converted:
+            result.append(
+                f"Metin olarak girilmiş {len(self.converted)} tutar sayıya çevrildi ({sheet_name}: "
+                f"{sample(self.converted)}). Kaynakta sayı biçimine çevirin."
+            )
+        if self.unreadable:
+            result.append(
+                f"Sayıya çevrilemeyen {len(self.unreadable)} hücre boş sayıldı ({sheet_name}: "
+                f"{sample(self.unreadable)})."
+            )
+        return result
+
+
 def month(value):
     if isinstance(value, int) and 1 <= value <= 12:
         return value
@@ -149,20 +215,72 @@ def positioned_columns(sheet, cfg, closing):
     return actual, budget
 
 
-def positioned_cost(sheet, cfg, closing):
-    actual, budget = positioned_columns(sheet, cfg, closing)
+def item_count(cfg):
+    """Gider kalemi sayısı: ayar yoksa dip toplam satırına kadar, o da yoksa 27. VBA: MakroOrtak.ItemCount."""
+    if cfg.get("gider_kalem_sayisi"):
+        return cfg["gider_kalem_sayisi"]
+    if cfg.get("dip_toplam_satiri") and cfg["dip_toplam_satiri"] > cfg["ilk_gider_satiri"]:
+        return cfg["dip_toplam_satiri"] - cfg["ilk_gider_satiri"]
+    return 27
+
+
+def is_period(value):
+    try:
+        index_period(value)
+    except (ValueError, TypeError):
+        return False
+    return value not in (None, "")
+
+
+def layout_hint(sheet, cfg):
+    """Tarih ve Bütçe başlığı ayardaki hücrede değilse yakın bir kaymayı arar ve önerir."""
+    left, top, _, _ = excel_bounds(cfg["tarih_baslangici"], "Gerçekleşen", allow_cell=True)
+    b_left, b_top, _, _ = excel_bounds(cfg["butce_etiketi"], "Bütçe", allow_cell=True)
+    if is_period(sheet.cell(top, left).value) and key(sheet.cell(b_top, b_left).value) in {"bütçe", "butce"}:
+        return ""  # Başlıklar ayardaki yerinde; hata düzen kaymasından değil.
+    for dr, dc in sorted(
+        ((r, c) for r in range(-6, 7) for c in range(-6, 7) if (r, c) != (0, 0)),
+        key=lambda x: (abs(x[0]) + abs(x[1]), x),
+    ):
+        if min(top + dr, b_top + dr, left + dc, b_left + dc) < 1:
+            continue
+        if is_period(sheet.cell(top + dr, left + dc).value) and key(
+            sheet.cell(b_top + dr, b_left + dc).value
+        ) in {"bütçe", "butce"}:
+            start = f"{get_column_letter(left + dc)}{top + dr}"
+            marker = f"{get_column_letter(b_left + dc)}{b_top + dr}"
+            return (
+                f"Kaynak düzeni kaymış görünüyor ({sheet.title}): tarih_baslangici {cfg['tarih_baslangici']} yerine "
+                f"{start}, butce_etiketi {cfg['butce_etiketi']} yerine {marker} olabilir; satır ayarları da "
+                f"{dr:+d} kaymış olabilir. Tablo düzeni ekranından kontrol edip güncelleyin."
+            )
+    return ""
+
+
+def positioned_cost(sheet, cfg, closing, issues=None):
+    try:
+        actual, budget = positioned_columns(sheet, cfg, closing)
+    except ValueError as error:
+        hint = layout_hint(sheet, cfg)
+        raise ValueError(f"{error}. {hint}" if hint else str(error)) from error
     start_col, _, _, _ = excel_bounds(cfg["tarih_baslangici"], "Gerçekleşen", allow_cell=True)
+    issues = issues or SourceIssues()
 
     def values(row, columns):
-        return {p: number(sheet.cell(row, c).value) for p, c in columns.items()}
+        return {p: issues.value(sheet, row, c) for p, c in columns.items()}
 
     first = cfg["ilk_gider_satiri"]
-    size = cfg.get("gider_kalem_sayisi", 27)
+    size = item_count(cfg)
+    name_col = cfg.get("gider_sutunu", start_col - 1)
     items = {}
     for code, row in enumerate(range(first, first + size), 1):
-        name = sheet.cell(row, cfg.get("gider_sutunu", start_col - 1)).value
+        name = sheet.cell(row, name_col).value
         if not isinstance(name, str) or not name.strip():
-            raise ValueError(f"Gider adı bulunamadı: satır {row}")
+            hint = layout_hint(sheet, cfg)
+            raise ValueError(
+                f"Gider adı bulunamadı: {sheet.title}!{get_column_letter(name_col)}{row}"
+                + (f". {hint}" if hint else "")
+            )
         items[code] = (name.strip(), values(row, actual), values(row, budget))
     bottom = {p: total(item[1][p] for item in items.values()) for p in actual}
     return items, bottom, values(cfg["islem_adedi_satiri"], actual)
@@ -193,9 +311,9 @@ def merge_cost_items(items, mappings):
     return result
 
 
-def read_cost(sheet, cfg, closing):
+def read_cost(sheet, cfg, closing, issues=None):
     if cfg.get("tarih_baslangici"):
-        return positioned_cost(sheet, cfg, closing)
+        return positioned_cost(sheet, cfg, closing, issues)
 
     def cell(row, col):
         return sheet.cell(row, col).value
@@ -308,9 +426,10 @@ def read_snapshots(root, config, closing, warnings, progress=None):
         except ValueError as error:
             warnings.append([None, None, path.name, str(error)])
             continue
-        if p[0] != closing[0] or p > closing:
+        if not in_closing_scope(p, closing):
             continue
         book = load_workbook(path, data_only=True)
+        formulas = None
         try:
             for sheet in book:
                 name = configured.get(key(sheet.title))
@@ -327,8 +446,9 @@ def read_snapshots(root, config, closing, warnings, progress=None):
                     )
                     continue
                 seen.add(k)
+                issues = SourceIssues()
                 try:
-                    items, bottom, counts = read_cost(sheet, config["maliyet"], p)
+                    items, bottom, counts = read_cost(sheet, config["maliyet"], p, issues)
                     snapshots[k] = (
                         merge_cost_items(items, config.get("gider_eslestirme", {})),
                         bottom,
@@ -337,9 +457,32 @@ def read_snapshots(root, config, closing, warnings, progress=None):
                     )
                 except (ValueError, TypeError) as error:
                     warnings.append([label(p), name, path.name, str(error)])
+                for message in issues.warnings(sheet.title):
+                    warnings.append([label(p), name, path.name, message])
+                if issues.empty:
+                    if formulas is None:
+                        formulas = load_workbook(path)
+                    uncached = [a for a in issues.empty if formulas[sheet.title][a].data_type == "f"]
+                    if uncached:
+                        warnings.append(
+                            [
+                                label(p),
+                                name,
+                                path.name,
+                                f"{len(uncached)} formül hücresinin sonucu dosyada kayıtlı değil ({sheet.title}: "
+                                f"{sample_cells(uncached)}). Dosyayı Excel'de açıp kaydedin; bu hücreler boş okundu.",
+                            ]
+                        )
         finally:
             book.close()
+            if formulas is not None:
+                formulas.close()
     return snapshots
+
+
+def in_closing_scope(p, closing):
+    """Kapanış yılının ≤ kapanış dosyaları; Ocak kapanışında yıl dönümü revizyonu için önceki Aralık da."""
+    return p <= closing and (p[0] == closing[0] or (closing[1] == 1 and p == (closing[0] - 1, 12)))
 
 
 def control_period(value, year):
@@ -523,12 +666,26 @@ def read_indices(path, cfg):
         book.close()
 
 
+def revision_pairs(year, selected):
+    """(önceki kapanış, yeni kapanış, karşılaştırılacak [(tür, slot, etkilenen dönemler)]) üçlüleri.
+
+    Ocak kapanışında önceki yılın Aralık dosyasıyla geçen yılın 12 ayının gerçekleşenleri karşılaştırılır;
+    bütçe yılları farklı olduğundan bütçe karşılaştırılmaz. VBA: MakroHesap.CalculateChecks.
+    """
+    if selected == 1:
+        yield (year - 1, 12), (year, 1), [("Gerçekleşen", 1, [(year - 1, m) for m in range(1, 13)])]
+    for m in range(2, selected + 1):
+        yield (year, m - 1), (year, m), [
+            ("Gerçekleşen", 1, [(year, a) for a in range(1, m)]),
+            ("Bütçe", 2, [(year, a) for a in range(1, 13)]),
+        ]
+
+
 def revisions(snapshots, config, closing):
     year, selected = closing
     for name in config["bolumler"]:
-        for m in range(2, selected + 1):
-            p = year, m
-            older = snapshots.get(((year, m - 1), name))
+        for before_close, p, comparisons in revision_pairs(year, selected):
+            older = snapshots.get((before_close, name))
             newer = snapshots.get((p, name))
             if not older or not newer:
                 continue
@@ -537,9 +694,8 @@ def revisions(snapshots, config, closing):
             for code in sorted(old_items.keys() | new_items.keys()):
                 old = old_items.get(code, ("", {}, {}))
                 new = new_items.get(code, ("", {}, {}))
-                for kind, slot, last in [("Gerçekleşen", 1, m - 1), ("Bütçe", 2, 12)]:
-                    for affected in range(1, last + 1):
-                        affected_period = year, affected
+                for kind, slot, affected_periods in comparisons:
+                    for affected_period in affected_periods:
                         before = old[slot].get(affected_period)
                         after = new[slot].get(affected_period)
                         if before != after:
@@ -569,11 +725,11 @@ def make_report(config, closing, report_period, months, snapshots, company, cont
             coverage.append(name)
             continue
         items, bottom, _, source = snapshot
-        for m in range(2, closing[1] + 1):
-            if not (snapshots.get(((closing[0], m - 1), name)) and snapshots.get(((closing[0], m), name))):
+        for before_close, after_close, _ in revision_pairs(*closing):
+            if not (snapshots.get((before_close, name)) and snapshots.get((after_close, name))):
                 warnings.append(
                     [
-                        label((closing[0], m)),
+                        label(after_close),
                         name,
                         None,
                         "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı.",
@@ -1125,25 +1281,22 @@ def read_settings(path):
     try:
         sections = {
             "Dosyalar": {"maliyet_klasoru", "kontrol_dosyasi", "endeks_dosyasi"},
-            "Maliyet": {
-                "yil_satiri",
-                "ay_satiri",
-                "ilk_gider_satiri",
-                "dip_toplam_satiri",
-                "indeks_sutunu",
-                "gider_sutunu",
-                "ilk_donem_sutunu",
-            },
-            "Kontrol": {
-                "sayfa",
-                "ciro_satiri",
-                "ilk_blok_satiri",
-                "etiket_sutunu",
-                "ilk_ay_sutunu",
-                "tolerans",
-            },
-            "Endeks": {"sayfa", "ilk_veri_satiri"},
+            "Maliyet": {"ilk_gider_satiri", "gider_sutunu"},
+            "Kontrol": {"sayfa", "etiket_sutunu", "tolerans"},
+            "Endeks": {"sayfa"},
+            "Rapor": set(),
         }
+        # Konumlu düzen (tarih_baslangici, ciro_baslangici, baslik_satiri/endeks_araligi) yoksa eski satır/sütun
+        # düzeninin ayarları zorunludur. Konumlu düzen varsa eski ayarlar yalnız yedek olarak okunur.
+        legacy = {
+            "Maliyet": (
+                "tarih_baslangici",
+                {"yil_satiri", "ay_satiri", "dip_toplam_satiri", "indeks_sutunu", "ilk_donem_sutunu"},
+            ),
+            "Kontrol": ("ciro_baslangici", {"ciro_satiri", "ilk_blok_satiri", "ilk_ay_sutunu"}),
+            "Endeks": ("baslik_satiri", {"ilk_veri_satiri"}),
+        }
+        report_settings = {"onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi"}
         cell_settings = {"tarih_baslangici", "butce_etiketi", "ciro_baslangici", "butce_ciro_baslangici"}
         range_settings = {"gerceklesen_araligi", "butce_araligi", "ciro_araligi", "endeks_araligi"}
         optional = {
@@ -1158,7 +1311,10 @@ def read_settings(path):
             },
             "Kontrol": {"ciro_araligi", "ciro_baslangici", "butce_ciro_baslangici"},
             "Endeks": {"baslik_satiri", "endeks_araligi"},
+            "Rapor": report_settings,
         }
+        for section, (_, codes) in legacy.items():
+            optional[section] |= codes
         settings = {section: {} for section in sections}
         for i, (section, code, value) in rows("Dosya ve Konum Ayarları", 3):
             location = f"Dosya ve Konum Ayarları, satır {i}"
@@ -1177,12 +1333,30 @@ def read_settings(path):
                 amount = number(value)
                 if amount is None or amount < 0:
                     raise ValueError(f"{location}: Geçersiz tolerans")
+            elif code == "onemlilik_tutari":
+                amount = number(value)
+                if amount is None or amount < 0:
+                    raise ValueError(f"{location}: Önemlilik tutarı sıfır veya pozitif TL olmalı")
+            elif code == "onemlilik_orani":
+                amount = number(value)
+                if amount is None or not 0 <= amount <= 1:
+                    raise ValueError(
+                        f"{location}: Önemlilik oranı 0 ile 1 arasında olmalı (örnek: 0,10 = %10)"
+                    )
+            elif code in {"ozet_kalem_sayisi", "arsiv_saklama_adedi"}:
+                low = 1 if code == "ozet_kalem_sayisi" else 0
+                if index(value, location) < low or value > 200:
+                    raise ValueError(f"{location}: {low} ile 200 arasında tam sayı girin")
             elif section != "Dosyalar" and code != "sayfa":
                 if index(value, location) == 0:
                     raise ValueError(f"{location}: Konum 1 veya daha büyük olmalı")
             elif not isinstance(value, str):
                 raise ValueError(f"{location}: Dosya, klasör veya sayfa adı metin olmalı")
             settings[section][code] = value
+        for section, (positioned, codes) in legacy.items():
+            alternative = {"Endeks": "endeks_araligi"}.get(section)
+            if positioned not in settings[section] and alternative not in settings[section]:
+                sections[section] = sections[section] | codes
         for section, expected in sections.items():
             missing = expected - settings[section].keys()
             if missing:
@@ -1234,6 +1408,7 @@ def read_settings(path):
                 )
         return {
             **settings["Dosyalar"],
+            "rapor": settings["Rapor"],
             "maliyet": settings["Maliyet"],
             "kontrol": settings["Kontrol"],
             "endeks": settings["Endeks"],
@@ -1246,7 +1421,7 @@ def read_settings(path):
         book.close()
 
 
-def run(args, *, dashboard=False):
+def run(args):
     config = read_settings(args.ayar)
     root = args.ayar.parent
     report_period = period(args.donem)
@@ -1279,10 +1454,6 @@ def run(args, *, dashboard=False):
     if args.cikti.resolve() in {p.resolve() for p in inputs}:
         raise ValueError("Çıktı yolu bir kaynak dosyayla aynı olamaz")
     snapshots = read_snapshots(root / config["maliyet_klasoru"], config, closing, warnings)
-    if dashboard:
-        from dashboard_excel import build_dashboard
-
-        return build_dashboard(args.cikti, config, snapshots, closing, months, warnings, root=root)
     company, controls, company_budget = read_control(
         root / config["kontrol_dosyasi"],
         config["kontrol"],
@@ -1348,8 +1519,14 @@ def run(args, *, dashboard=False):
             raise ValueError(f"Çıktı bir kaynak dosyanın üzerine yazılamaz: {path}")
     if len({path.resolve() for path, *_ in reports}) != len(reports):
         raise ValueError("Genel ve müdürlük dosya adları çakışıyor")
+    import analiz
+
+    rules = analiz.settings(config)
+    budget_year = year == closing[0]
     for file_index, (path, scope, report_layout, unit_rows) in enumerate(reports):
         names = set(scope)
+        scoped_detail = [r for r in detail if r[0] in names]
+        scoped_checks = [r for r in checks if set(r[-1]) <= names]
         scope_warnings = [r for r in warnings if r[1] is None or r[1] in names or r[1] not in departments]
         cross_scope = {r[0] for r in checks if set(r[-1]) & names and not set(r[-1]) <= names}
         for target in sorted(cross_scope):
@@ -1365,9 +1542,9 @@ def run(args, *, dashboard=False):
             path,
             scope,
             report_layout,
-            [r for r in detail if r[0] in names],
+            scoped_detail,
             set(missing),
-            [r for r in checks if set(r[-1]) <= names],
+            scoped_checks,
             operating,
             revenue,
             revenue_rows,
@@ -1380,6 +1557,25 @@ def run(args, *, dashboard=False):
             editable=file_index != 0,
             snapshots=snapshots,
             closing=closing,
+            analysis={
+                "rules": rules,
+                "budgetYear": budget_year,
+                "closing": closing,
+                "caption": year_span,
+                "detail": scoped_detail,
+                "checks": scoped_checks,
+                "warnings": scope_warnings,
+                "missing": sorted(set(missing) & names),
+                "material": analiz.material_rows(scoped_detail, rules) if budget_year else [],
+                "forecast": (
+                    analiz.forecast_rows(config, snapshots, closing, report_layout) if budget_year else []
+                ),
+                "volume": (
+                    analiz.volume_price_rows(config, snapshots, closing, months, budget_counts, report_layout)
+                    if budget_year
+                    else []
+                ),
+            },
         )
     return [path.resolve() for path, *_ in reports]
 
@@ -1485,8 +1681,9 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
             "Bütçe mevcut",
         ]
     )
+    r = raw.max_row  # max_row her çağrıda tüm hücreleri tarar; döngüde sayaç kullanılır.
     for name, p, code, item, actual, previous, budget in source:
-        r = raw.max_row + 1
+        r += 1
         raw.append(
             [
                 code,
@@ -1639,6 +1836,7 @@ def write_report(
     editable,
     snapshots,
     closing,
+    analysis=None,
 ):
     book = Workbook()
     book.remove(book.active)
@@ -1695,6 +1893,10 @@ def write_report(
                 if row[1] in {"Müdürlük toplamı", "Direktörlük toplamı", "Genel toplam"}
             ],
         )
+    if analysis:
+        import analiz
+
+        analiz.add_sheets(book, analysis, editable)
     add_audit(book, checks, revision_rows, warnings, revenue_rows)
     metadata = book.create_sheet("_Rapor Kimliği")
     metadata.append(["ButceSapmasi-1", "Müdürlük" if editable else "Direktörlük", *report_id])
@@ -1836,10 +2038,9 @@ if __name__ == "__main__":
     parser.add_argument("--kapanis", help="Kaynak kapanışı YYYY-AA. Varsayılan: rapor dönemi.")
     parser.add_argument("--aylar", help="Hesaplanacak aylar. Örnek: 2,4,6. Varsayılan: --donem ayı.")
     parser.add_argument("--cikti", type=Path, required=True)
-    parser.add_argument("--dashboard", action="store_true", help="Yalnızca dashboard Excel dosyasını oluştur")
     try:
         args = parser.parse_args()
-        paths = run(args, dashboard=args.dashboard)
+        paths = run(args)
         print(f"{len(paths)} rapor kaydedildi: {paths[0].parent}")
     except (OSError, ValueError, KeyError, TypeError, RuntimeError) as exc:
         sys.exit(f"Rapor üretilemedi: {exc}")

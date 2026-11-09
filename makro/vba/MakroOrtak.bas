@@ -40,6 +40,71 @@ Public Function Num(ByVal v As Variant) As Variant
     If IsNumeric(v) Then Num = CDec(v)
 End Function
 
+' Metin olarak girilmiş tutar: "1.234,56", "1234,56", "(1.234)", "1234.56". Değilse Null.
+' Nokta + üçlü basamak grubu Türkçe binlik ayırıcıdır ("1.234" = 1234). Python: butce.text_number.
+Public Function TextNumber(ByVal v As Variant) As Variant
+    Dim s As String, negative As Boolean, re As Object, intPart As String, fracPart As String, parts As Variant
+    TextNumber = Null
+    If VarType(v) <> vbString Then Exit Function
+    s = Trim$(CStr(v))
+    s = Replace(s, ChrW(160), ""): s = Replace(s, " ", ""): s = Replace(s, ChrW(8378), "")
+    If UCase$(Right$(s, 2)) = "TL" Then s = Left$(s, Len(s) - 2)
+    If Len(s) > 2 And Left$(s, 1) = "(" And Right$(s, 1) = ")" Then negative = True: s = Mid$(s, 2, Len(s) - 2)
+    Set re = CreateObject("VBScript.RegExp")
+    re.Pattern = "^[-+]?([0-9]{1,3}(\.[0-9]{3})+|[0-9]+)(,[0-9]+)?$"
+    If re.Test(s) Then
+        s = Replace(s, ".", "")
+    Else
+        re.Pattern = "^[-+]?[0-9]+\.[0-9]+$"
+        If Not re.Test(s) Then Exit Function
+        s = Replace(s, ".", ",")
+    End If
+    ' Burada yalnız rakam, işaret ve tek virgül (ondalık) kaldı; yerel ayardan bağımsız çevrilir.
+    parts = Split(s & ",", ",")
+    intPart = parts(0): fracPart = parts(1)
+    TextNumber = CDec(0)
+    If intPart <> "" And intPart <> "-" And intPart <> "+" Then TextNumber = CDec(Abs(CDec(Val(Replace(intPart, "+", "")))))
+    If fracPart <> "" Then TextNumber = TextNumber + CDec(Val(fracPart)) / CDec(10 ^ Len(fracPart))
+    If Left$(intPart, 1) = "-" Then TextNumber = -TextNumber
+    If negative Then TextNumber = -TextNumber
+End Function
+
+' Gider kalemi sayısı: ayar yoksa dip toplam satırına kadar, o da yoksa 27. Python: butce.item_count.
+Public Function ItemCount() As Long
+    Dim first As Long
+    first = CLng(Opt("Maliyet", "ilk_gider_satiri"))
+    If CStr(Opt("Maliyet", "gider_kalem_sayisi")) <> "" Then
+        ItemCount = CLng(Opt("Maliyet", "gider_kalem_sayisi"))
+    ElseIf CStr(Opt("Maliyet", "dip_toplam_satiri")) <> "" Then
+        ItemCount = CLng(Opt("Maliyet", "dip_toplam_satiri")) - first
+        If ItemCount < 1 Then ItemCount = 27
+    Else
+        ItemCount = 27
+    End If
+End Function
+
+' Sayfayı büyük/küçük harf ve Türkçe harf farkı gözetmeden bulur (yükleme ile aynı eşleştirme).
+Public Function SheetByKey(ByVal wb As Workbook, ByVal name As String) As Worksheet
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If K(ws.Name) = K(name) Then Set SheetByKey = ws: Exit Function
+    Next ws
+    Fail "Kaynak sayfası bulunamadı: " & name & " / " & wb.Name
+End Function
+
+' Kapanış yılının <= kapanış dosyaları; Ocak kapanışında yıl dönümü revizyonu için önceki Aralık da.
+Public Function InClosingScope(ByVal period As String) As Boolean
+    If period = "" Then Exit Function
+    If period > P(CloseYear, CloseMonth) Then Exit Function
+    InClosingScope = (Left$(period, 4) = CStr(CloseYear)) Or (CloseMonth = 1 And period = P(CloseYear - 1, 12))
+End Function
+
+Public Function CurrentUser() As String
+    CurrentUser = Environ$("USERNAME")
+    If CurrentUser = "" Then CurrentUser = Application.UserName
+    If CurrentUser = "" Then CurrentUser = "Bilinmiyor"
+End Function
+
 Public Function ValAt(ByVal d As Object, ByVal id As String) As Variant
     ValAt = Null
     If d.Exists(id) Then ValAt = d(id)
@@ -185,11 +250,13 @@ Public Function ReadCols(ByVal ws As Worksheet, ByVal address As String, Optiona
     Set ReadCols = d
 End Function
 
-Public Function FullBudget(ByVal cols As Object) As Boolean
+Public Function FullBudget(ByVal cols As Object, Optional ByVal y As Long = 0) As Boolean
+    ' y: bütçe yılı; verilmezse kapanış yılı. Yıl dönümünde önceki Aralık dosyası kendi yılıyla okunur.
     Dim m As Long
+    If y = 0 Then y = CloseYear
     If cols.Count <> 12 Then Exit Function
     For m = 1 To 12
-        If Not cols.Exists(P(CloseYear, m)) Then Exit Function
+        If Not cols.Exists(P(y, m)) Then Exit Function
     Next m
     FullBudget = True
 End Function
@@ -227,16 +294,18 @@ Public Function DeptScope(Optional ByVal manager As String = "", Optional ByVal 
     Set d = Dict()
     For Each n In Depts.Keys
         meta = Depts(n)
-        If (manager = "" Or meta(1) = manager) And (director = "" Or meta(2) = director) Then d(n) = True
+        If (manager = "" Or K(meta(1)) = K(manager)) And (director = "" Or K(meta(2)) = K(director)) Then d(n) = True
     Next n
     Set DeptScope = d
 End Function
 
 Public Function Managers(ByVal scope As Object) As Object
-    Dim d As Object, n As Variant, meta As Variant
-    Set d = Dict()
+    ' Müdürlük adları K() ile karşılaştırılır; yazım farkı (büyük/küçük, Türkçe harf) ayrı müdürlük üretmez.
+    Dim d As Object, seen As Object, n As Variant, meta As Variant
+    Set d = Dict(): Set seen = Dict()
     For Each n In scope.Keys
-        meta = Depts(n): d(meta(1)) = True
+        meta = Depts(n)
+        If Not seen.Exists(K(meta(1))) Then seen(K(meta(1))) = True: d(meta(1)) = True
     Next n
     Set Managers = d
 End Function

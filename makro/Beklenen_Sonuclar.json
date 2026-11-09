@@ -508,5 +508,34 @@
   "expected_reports": 5,
   "departments": 12,
   "managers": 4,
-  "snapshots": 24
+  "snapshots": 24,
+  "v5": {
+    "label": "V5 analizleri; Python tests/test_analiz.py ve MakroTest aynı değerleri kontrol eder. Ekim 2026 kapanışı, Ocak-Ekim, varsayılan eşik 1.000.000 TL ve %10.",
+    "material_count": 150,
+    "material_adverse": 75,
+    "material_first": {
+      "department": "Toplama",
+      "code": 1,
+      "variance": -20764946.98,
+      "direction": "Lehte"
+    },
+    "forecast_director": {
+      "ytd_actual": 3449383390.31,
+      "ytd_budget": 3440938980.13,
+      "annual_budget": 4108586425.59,
+      "forecast_plan": 4117030835.77,
+      "forecast_pace": 4139260068.372
+    },
+    "volume_director": {
+      "volume_effect": 55686819.30957713,
+      "unit_cost_effect": -47242409.12957713,
+      "variance": 8444410.18
+    },
+    "volume_giris": {
+      "actual_count": 5070772,
+      "budget_count": 5660000
+    },
+    "layout_rows_general": 17,
+    "threshold_text": "≥ 1.000.000 TL ve ≥ %10"
+  }
 }

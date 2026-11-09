@@ -1,0 +1,41 @@
+name: Testler
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  vba:
+    name: VBA kaynak denetimi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: vba_elle kopyaları ve statik denetim
+        run: python tools/vba_araclari.py kontrol
+
+  python:
+    name: Python ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.9"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: windows-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Testler (paketteki wheels ile, pip kurulumu yok)
+        working-directory: python
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python run_tests.py

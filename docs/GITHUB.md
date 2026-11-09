@@ -5,4 +5,4 @@
 - **Repo açıklaması** — Excel kaynaklarından bütçe sapması, birim maliyet ve aylık kapanış analizi. Yerel Python dashboard'u ve Excel VBA raporları.
 - **Konular** — `budget-analysis`, `excel`, `excel-vba`, `python`, `dashboard`, `cost-analysis`, `variance-analysis`
 
-İlk yayın, iki V4 uygulamasının kaynaklarıyla sentetik demo dosyalarını kapsar. Proje lisansı ayrıca belirlenir. `python/wheels/` içindeki üçüncü taraf paketlerin kendi lisans bilgileri arşivlerinde korunmuştur.
+Depo, iki V5 uygulamasının kaynaklarını ve sentetik demo dosyalarını kapsar. GitHub Actions her gönderimde Python testlerini ve VBA kaynak denetimini çalıştırır. Proje lisansı ayrıca belirlenir. `python/wheels/` içindeki üçüncü taraf paketlerin kendi lisans bilgileri arşivlerinde korunmuştur.

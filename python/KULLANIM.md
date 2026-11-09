@@ -1,8 +1,6 @@
-> **V4:** Önce [Önceki yorumları toplu inceleme](V4_YORUM_KULLANIMI.md) belgesini okuyun. Yeni kurulum adı V4, makro modül sayısı 10’dur. Önceki kaynak, rapor ve dashboard kuralları korunur.
+# Bütçe Sapması — Python V5
 
-> **V3 güncellemesi:** Önce [V3_YENILIKLER.md](V3_YENILIKLER.md) ve [V3_CANLI_KONTROL.md](V3_CANLI_KONTROL.md) dosyalarını okuyun. Aşağıdaki V2 akışı korunur; sürüm dosya adlarında V3 kullanılır. Yeni özellikler ve sınırları yukarıdaki belgede açıklanır.
-
-# Bütçe Sapması — Python V4
+> **V5:** Raporlara Yönetici Özeti, Önemli Sapmalar, Yıl Sonu Tahmini ve Hacim ve Birim Maliyet sayfaları eklendi; rapor üretimi yaklaşık 12 kat hızlandı. Hesap kuralları: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı: [Açıklamalar ve onay izi](../docs/YORUM_KULLANIMI.md). Önceki sürüm notları [docs/arsiv](../docs/arsiv/) klasöründedir.
 
 Bu sürüm, raporlama ve yedi sayfalık dashboard'u **tek yerel Python uygulamasında** birleştirir. Önceki Excel/makro sürümleri ayrıca korunmuştur. Bu paket Excel COM, VBA, PowerShell, pip veya internetten grafik kütüphanesi indirme kullanmaz. Dashboard için masaüstü Excel'in açık olması gerekmez.
 
@@ -109,6 +107,6 @@ Bu yerel sürüm tek kullanıcı içindir; başka bilgisayarlara sunucu olarak a
 
 ## Test durumu
 
-V4 doğrulama kaydında 77 Python testi ve 72 JavaScript/API kontrolü geçti. Canlı yerel API istekleri, kaynak başlıkları, eklenen/silinen/değişen eşleştirmeler, kaynak yollarının kalıcı kaydı, yedek/geri koruma, rapor üretimi, açıklama taşıma ve kayıtların korunması sınandı. JavaScript testi belge taklidiyle renderer ve olay işleyicilerini sınar; gerçek tarayıcı yerleşimi testi değildir.
+V5'te Python test sayısı 93'tür (`python run_tests.py`); V4'te kaydedilen 72 JavaScript/API kontrolü arayüz değişmediği için geçerlidir. Canlı yerel API istekleri, kaynak başlıkları, eklenen/silinen/değişen eşleştirmeler, kaynak yollarının kalıcı kaydı, yedek/geri koruma, rapor üretimi, açıklama taşıma ve kayıtların korunması sınandı. JavaScript testi belge taklidiyle renderer ve olay işleyicilerini sınar; gerçek tarayıcı yerleşimi testi değildir.
 
-**Bu ortamın tarayıcısı yerel Python işlemine bağlanamadı. Windows başlangıcı, yerel dosya pencereleri, gerçek tarayıcı yerleşimi ve fareyle tooltip davranışı henüz Windows üzerinde canlı doğrulanmadı.** Hesaplar ve rapor üretimi doğrulanmış pilot sürüm olarak teslim edilmiştir. `CANLI_KONTROL.md` ile kendi bilgisayarında son kontrolü yapabilirsin. Bu paket makro sürümünün Windows testlerini tamamlanmış saymaz.
+**Bu ortamın tarayıcısı yerel Python işlemine bağlanamadı. Windows başlangıcı, yerel dosya pencereleri, gerçek tarayıcı yerleşimi ve fareyle tooltip davranışı henüz Windows üzerinde canlı doğrulanmadı.** Hesaplar ve rapor üretimi doğrulanmış pilot sürüm olarak teslim edilmiştir. [Canlı kontrol listesi](../docs/CANLI_KONTROL.md) ile kendi bilgisayarında son kontrolü yapabilirsin. Bu paket makro sürümünün Windows testlerini tamamlanmış saymaz.

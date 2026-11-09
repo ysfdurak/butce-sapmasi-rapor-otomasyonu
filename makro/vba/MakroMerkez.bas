@@ -260,6 +260,7 @@ End Sub
 
 Public Sub GecmisiYenidenUret()
     Dim ws As Worksheet, r As Long, panel As Worksheet, lb As Object, i As Long, chosen As String
+    Dim savedValues As Variant, savedMonths(1 To 12) As Boolean, saved As Boolean
     If WorkRunning Then Exit Sub
     On Error GoTo Bad
     Set ws = WorkspaceSheet("Çalıştırma Geçmişi")
@@ -267,14 +268,34 @@ Public Sub GecmisiYenidenUret()
     r = ActiveCell.Row: ReplayInput = CStr(ws.Cells(r, 8).Value2)
     ValidateArchive ReplayInput
     Set panel = ThisWorkbook.Worksheets("Kontrol Paneli")
+    ' Yeniden üretim kullanıcının panel seçimlerini değiştirmez: önce saklanır, sonra geri yazılır.
+    savedValues = panel.Range("D8:D10").Value2
+    Set lb = panel.ListBoxes("MRV_Aylar")
+    For i = 1 To 12
+        savedMonths(i) = lb.Selected(i)
+    Next i
+    saved = True
     panel.Range("D8").Value2 = ws.Cells(r, 4).Value2: panel.Range("D9").Value2 = ws.Cells(r, 5).Value2: panel.Range("D10").Value2 = ws.Cells(r, 6).Value2
     Set lb = panel.ListBoxes("MRV_Aylar"): chosen = "," & Replace(CStr(ws.Cells(r, 7).Value2), "aylar:", "") & ","
     For i = 1 To 12
         lb.Selected(i) = (InStr(chosen, "," & Format$(i, "00") & ",") > 0)
     Next i
-    RaporOlustur: Exit Sub
+    RaporOlustur
+    RestorePanel panel, lb, savedValues, savedMonths
+    Exit Sub
 Bad:
     ReplayInput = "": MsgBox Err.Description, vbExclamation
+    On Error GoTo -1
+    On Error Resume Next
+    If saved Then RestorePanel panel, lb, savedValues, savedMonths
+End Sub
+
+Private Sub RestorePanel(ByVal panel As Worksheet, ByVal lb As Object, ByVal values As Variant, ByRef months() As Boolean)
+    Dim i As Long
+    panel.Range("D8:D10").Value2 = values
+    For i = 1 To 12
+        lb.Selected(i) = months(i)
+    Next i
 End Sub
 
 Public Sub ArchiveBegin()
@@ -299,7 +320,7 @@ Public Sub ArchiveBegin()
         name = Dir$(folder & "\*.xlsx")
         Do While name <> ""
             period = FilenamePeriod(name)
-            If Left$(name, 2) <> "~$" And Left$(period, 4) = CStr(CloseYear) And period <= P(CloseYear, CloseMonth) Then list.Add folder & "\" & name, "maliyet\" & name
+            If Left$(name, 2) <> "~$" And InClosingScope(period) Then list.Add folder & "\" & name, "maliyet\" & name
             name = Dir$()
         Loop
         For Each fileKey In list.Keys
@@ -376,6 +397,7 @@ Public Sub ArchiveEnd(ByVal success As Boolean, ByVal message As String)
         Set ws = WorkspaceSheet("Çalıştırma Geçmişi")
         If success Then
             ws.Cells(HistoryRow, 2).Value2 = "Tamamlandı": ws.Cells(HistoryRow, 9).Value2 = RunPath
+            ArchivePrune
         Else
             ws.Cells(HistoryRow, 2).Value2 = "Hata / durduruldu": ws.Cells(HistoryRow, 9).Value2 = message
         End If
@@ -383,6 +405,42 @@ Public Sub ArchiveEnd(ByVal success As Boolean, ByVal message As String)
     If OriginalSettings <> "" Then SettingsPath = OriginalSettings: RootPath = OriginalRoot
     ReplayInput = "": WorkRunning = False: StopRequested = False
     HistoryRow = 0: OriginalSettings = "": OriginalRoot = ""
+End Sub
+
+' Girdi arşivinde yalnız son N çalışma tutulur (Rapor|arsiv_saklama_adedi, 0 = sınırsız). Kaynak kopyaları
+' gizli mali veri içerdiğinden sınırsız birikmesi önlenir. Silinen çalışmaların geçmiş satırı "Arşiv silindi" olur.
+' Python: workspace.Workspace.prune
+Public Sub ArchivePrune()
+    Dim fso As Object, root As String, folder As Object, names() As String, count As Long, i As Long, j As Long, tmp As String
+    Dim limit As Long, ws As Worksheet, r As Long, removed As Object
+    On Error GoTo Quiet
+    limit = CLng(Opt("Rapor", "arsiv_saklama_adedi", 20))
+    If limit <= 0 Then Exit Sub
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    root = fso.BuildPath(ThisWorkbook.Path, "Calisma_Arsivi")
+    If Not fso.FolderExists(root) Then Exit Sub
+    ReDim names(1 To fso.GetFolder(root).SubFolders.Count + 1)
+    For Each folder In fso.GetFolder(root).SubFolders
+        If fso.FileExists(fso.BuildPath(folder.Path, "Imzalar.tsv")) Then count = count + 1: names(count) = folder.Name
+    Next folder
+    If count <= limit Then Exit Sub
+    For i = 1 To count - 1
+        For j = i + 1 To count
+            If names(j) > names(i) Then tmp = names(i): names(i) = names(j): names(j) = tmp
+        Next j
+    Next i
+    Set removed = Dict()
+    For i = limit + 1 To count
+        If LCase$(fso.BuildPath(root, names(i))) <> LCase$(ArchivePath) Then
+            fso.DeleteFolder fso.BuildPath(root, names(i)), True
+            removed(LCase$(fso.BuildPath(root, names(i)))) = True
+        End If
+    Next i
+    Set ws = WorkspaceSheet("Çalıştırma Geçmişi")
+    For r = 2 To ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+        If removed.Exists(LCase$(CStr(ws.Cells(r, 8).Value2))) Then ws.Cells(r, 8).Value2 = "Arşiv silindi (saklama sınırı " & limit & ")"
+    Next r
+Quiet:
 End Sub
 
 Public Function OpexEligible(ByVal n As String) As Boolean
@@ -422,13 +480,13 @@ Public Sub HesapIzle()
     AddWorkButton ws, "İncele / yenile", "HesapIzle", "G4"
     RowValues ws, 7, Array("Bölüm", "Müdürlük", "Gider kodu", "Gider kalemi", "Tür", "Dönem", "Dosya", "Sayfa", "Hücre", "Değer TL")
     Header ws.Range("A7:J7"): r = 8
-    first = CLng(Opt("Maliyet", "ilk_gider_satiri")): count = CLng(Opt("Maliyet", "gider_kalem_sayisi", 27))
+    first = CLng(Opt("Maliyet", "ilk_gider_satiri")): count = ItemCount()
     For Each n In Depts.Keys
         If filterDept = "" Or K(n) = filterDept Then
             Set source = CurrentSnap(CStr(n))
             If Not source Is Nothing Then
                 WorkGate "Hesap izi: " & Depts(n)(0)
-                meta = Depts(n): Set wb = ReadBook(CStr(source("file"))): Set src = wb.Worksheets(CStr(meta(0)))
+                meta = Depts(n): Set wb = ReadBook(CStr(source("file"))): Set src = SheetByKey(wb, CStr(meta(0)))
                 CostColumns src, P(CloseYear, CloseMonth), actual, budget
                 For code = 1 To count
                     target = CStr(code): rawRow = first + code - 1: name = CStr(src.Cells(rawRow, CLng(Opt("Maliyet", "gider_sutunu"))).Value2)
@@ -518,7 +576,7 @@ Public Sub DuzenOnizle()
     For Each n In Depts.Keys
         Set source = CurrentSnap(CStr(n))
         If Not source Is Nothing Then
-            Set book = ReadBook(CStr(source("file"))): Set src = book.Worksheets(CStr(Depts(n)(0)))
+            Set book = ReadBook(CStr(source("file"))): Set src = SheetByKey(book, CStr(Depts(n)(0)))
             ws.Cells(dest, 1).Value2 = source("file"): dest = dest + 1
             first = CLng(Opt("Maliyet", "islem_adedi_satiri")) - 4
             Set x = src.Range(CStr(Opt("Maliyet", "tarih_baslangici")))
