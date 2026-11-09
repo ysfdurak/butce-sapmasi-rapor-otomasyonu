@@ -1,6 +1,7 @@
 """Local explanation storage, isolated by dataset, closing and exact selected months."""
 
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
@@ -20,8 +21,19 @@ class Notes:
             c.execute(AUDIT_TABLE)
         self.review = Review(self)
 
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=10)
+        """İşlem sonunda commit/rollback yapar ve bağlantıyı kapatır.
+
+        sqlite3 bağlantısının kendi `with` bloğu bağlantıyı kapatmaz; Windows'ta açık kalan dosya tutamakları
+        kayıt dosyasının taşınmasını/silinmesini engelliyordu.
+        """
+        connection = sqlite3.connect(self.path, timeout=10)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def key(self, data, months):
         return (data.identity, butce.label(data.closing), butce.month_signature(sorted(months)))
