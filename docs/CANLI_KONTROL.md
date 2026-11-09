@@ -15,6 +15,13 @@ Kutular Windows'ta kullanıcı tarafından işaretlenmek üzere bilerek boştur.
 - [ ] Bir açıklamayı onaylayın: Açıklama Durumu sayfasında Son işlem, İşlemi yapan (Windows kullanıcınız) ve İşlem zamanı dolu.
 - [ ] 21'den fazla rapor üretince girdi arşivinde en fazla 20 çalışma kalıyor.
 
+- [ ] Raporun ikinci sayfası **Pano**: filtreler Tümü iken gerçekleşen 3.449.383.390,31. Müdürlük = Depolama ve Gider grubu = Personel Giderleri seçince gerçekleşen 500.718.327,50, bütçe 415.183.233,99. Grafikler filtreyle değişiyor.
+
+## Makrosuz Power Query yolu
+
+- [ ] [Rehberdeki](POWER_QUERY.md) adımlarla sorgu hatasız yükleniyor; Ekim 2026 / Ocak–Ekim toplamı gerçekleşen 3.449.383.390,31, bütçe 3.440.938.980,13.
+- [ ] Müdürlük / Bölüm / Gider grubu / Ay dilimleyicileri ve PivotChart çalışıyor; **Tümünü Yenile** yeni ay dosyasını alıyor.
+
 ## Excel makro
 
 - [ ] `Kurulum.vbs` Türkçe mesajlarla `Butce_Kontrol_Makro_V5.xlsm` oluşturuyor. Tekrar çalıştırınca "güncelle" seçeneği yedek alıp modülleri değiştiriyor; panel seçimleri ve yorumlar korunuyor.

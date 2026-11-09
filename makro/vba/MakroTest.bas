@@ -135,6 +135,13 @@ Public Sub SentetikTest()
     volume = VolumeRow("Giriş", "Bölüm", SingleScope(K("Giriş")))
     Expect "Giriş gerçekleşen adet", volume(5), CDec(5070772)
     Expect "Giriş bütçe adet", volume(6), CDec(5660000)
+    Set layoutRows = PanoRows(scope)
+    Expect "Pano veri satırı", layoutRows.Count, 3120
+    forecast = CDec(0)
+    For Each row In layoutRows
+        forecast = Plus(forecast, row(7))
+    Next row
+    Expect "Pano gerçekleşen toplamı", forecast, CDec(3449383390.31)
     CloseYear = 2027: CloseMonth = 1
     Expect "Ocak kapanışında önceki Aralık kapsamda", InClosingScope("2026-12"), True
     Expect "Ocak kapanışında önceki Kasım kapsam dışı", InClosingScope("2026-11"), False

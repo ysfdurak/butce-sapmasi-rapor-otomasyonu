@@ -1,11 +1,11 @@
 {
   "version": "Python uçtan uca V5",
   "backend": {
-    "uniqueTestsPassed": 93,
+    "uniqueTestsPassed": 94,
     "newCommentReviewTests": 20,
     "commentTestsRecheckedAfterFinalChanges": 20,
     "workspaceTestsRecheckedAfterFinalChanges": 15,
-    "v5AnalysisTests": 16
+    "v5AnalysisTests": 17
   },
   "frontend": {
     "passed": 72,
@@ -101,5 +101,6 @@
   "realBrowserLayoutAndMouseTooltip": "NOT_RUN",
   "macroVariant": "Makro Rapor V5; aynı sentetik beklenen değerler MakroTest içinde; native Excel execution NOT_RUN",
   "invoiceDetailExtraction": "NOT_IMPLEMENTED; intentionally deferred to second phase",
-  "v5Performance": "Ekim örneği rapor üretimi ~120 sn -> ~10 sn (add_selection_view max_row döngüsü)"
+  "v5Performance": "Ekim örneği rapor üretimi ~120 sn -> ~10 sn (add_selection_view max_row döngüsü)",
+  "v51Pano": "Pano formülleri LibreOffice ile yeniden hesaplanarak doğrulandı (Tümü ve Depolama/Personel filtreleri)"
 }

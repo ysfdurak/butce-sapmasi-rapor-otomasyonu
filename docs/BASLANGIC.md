@@ -27,6 +27,10 @@ Paketin `wheels/` klasöründe openpyxl ve et_xmlfile bulunur. Başlatıcı bunl
 
 [Python ayrıntılı kullanım](../python/KULLANIM.md) · [Açıklamalar ve yorum senaryosu](YORUM_KULLANIMI.md)
 
+## Makrosuz yol (Power Query)
+
+Python kurulamıyor ve makrolar kapalıysa Excel'in yerleşik Power Query özelliğiyle tek sorgu yapıştırılarak dilimleyicili bir PivotTable panosu kurulabilir: [Power Query rehberi](POWER_QUERY.md).
+
 ## Beklenen demo değerleri
 
 | Ölçüm | Ocak–Ekim 2026 | Ocak, Mart, Mayıs 2026 |

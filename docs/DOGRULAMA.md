@@ -2,7 +2,7 @@
 
 | Alan | Durum | Kanıt / kabul adımı |
 | --- | --- | --- |
-| Python hesaplama, kaynak, V5 analizleri ve rapor akışı | 93 otomatik test geçti | `cd python` ve `python run_tests.py`; GitHub Actions her gönderimde çalıştırır |
+| Python hesaplama, kaynak, V5 analizleri ve rapor akışı | 94 otomatik test geçti | `cd python` ve `python run_tests.py`; GitHub Actions her gönderimde çalıştırır |
 | Python JavaScript/API | V4'te 72 benzetim ve yerel API kontrolü geçti (V5'te arayüz hesabı değişmedi) | [Python doğrulama kaydı](../python/Dogrulama_Durumu.json) |
 | VBA kaynakları | `vba_elle` kopyaları güncel; ayrılmış sözcük, Windows-1254 kodlaması ve kurulum modül listesi denetimi geçti | `python tools/vba_araclari.py kontrol`; GitHub Actions |
 | VBA ↔ Python eşdeğerliği | Aynı sentetik beklenen değerler iki tarafta da test edilir | `python/tests/test_analiz.py` ve makrodaki **Sentetik hesap testi** |

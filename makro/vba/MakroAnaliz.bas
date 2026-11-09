@@ -418,3 +418,232 @@ Public Sub WriteExecutive(ByVal wb As Workbook, ByVal scope As Object, ByVal gen
     End With
     ws.Activate: ActiveWindow.DisplayGridlines = False
 End Sub
+
+' ---------------------------------------------------------------- Pano (filtreli yönetim panosu)
+' Python analiz.add_pano_sheet ile aynı düzen ve formüller. Pivot/dilimleyici yerine formül tabanlıdır:
+' makrosuz açılır, yenileme gerektirmez. Veri: bölüm x gider kalemi x seçili ay.
+
+Public Function PanoRows(ByVal scope As Object) As Collection
+    Dim result As Collection, items As Object, n As Variant, code As Variant, d As Object, meta As Variant, m As Variant
+    Dim names As Variant, budgetValue As Variant, itemNamesOfDept As Object
+    Set result = New Collection
+    names = Split("Ocak Şubat Mart Nisan Mayıs Haziran Temmuz Ağustos Eylül Ekim Kasım Aralık", " ")
+    Set items = ItemNames()
+    For Each n In scope.Keys
+        meta = Depts(n): Set d = CurrentSnap(CStr(n))
+        If Not d Is Nothing Then
+            Set itemNamesOfDept = d("names")
+            For Each code In items.Keys
+                If itemNamesOfDept.Exists(code) Then
+                    For Each m In Picked.Keys
+                        budgetValue = Null
+                        If ReportYear = CloseYear Then budgetValue = ValAt(d, "B" & Sep & P(ReportYear, CLng(m)) & Sep & code)
+                        result.Add Array(meta(1), meta(0), GroupOf(CLng(code)), CLng(code), itemNamesOfDept.Item(code), CLng(m), names(CLng(m) - 1) & " " & ReportYear, _
+                            ValAt(d, "A" & Sep & P(ReportYear, CLng(m)) & Sep & code), budgetValue, ValAt(d, "A" & Sep & P(ReportYear - 1, CLng(m)) & Sep & code))
+                    Next m
+                End If
+            Next code
+        End If
+    Next n
+    Set PanoRows = result
+End Function
+
+Private Function UniqueColumn(ByVal rows As Collection, ByVal index As Long) As Collection
+    Dim seen As Object, row As Variant, result As Collection
+    Set seen = CreateObject("Scripting.Dictionary"): Set result = New Collection  ' büyük/küçük harf duyarlı (Python gibi)
+    For Each row In rows
+        If Not seen.Exists(CStr(row(index))) Then seen.Add CStr(row(index)), True: result.Add row(index)
+    Next row
+    Set UniqueColumn = result
+End Function
+
+Public Sub WritePano(ByVal wb As Workbook, ByVal scope As Object)
+    Dim ws As Worksheet, data As Worksheet, lists As Worksheet, rows As Collection, row As Variant, buffer() As Variant
+    Dim i As Long, j As Long, last As Long, r As Long, c As Long, col As Long, budgetYear As Boolean, value As Variant
+    Dim managers As Collection, departments As Collection, groups As Collection, item As Variant, deptManager As Object
+    Dim refA As String, refB As String, refC As String, refF As String, refH As String, refI As String, refJ As String
+    Dim filters As String, monthRow As Long, monthEnd As Long, groupRow As Long, groupEnd As Long, deptRow As Long, deptEnd As Long
+    Dim m As Variant, monthNames As Variant, cht As Object, s As Object, labels As Variant, formulas As Variant, formats As Variant
+    budgetYear = (ReportYear = CloseYear)
+    monthNames = Split("Ocak Şubat Mart Nisan Mayıs Haziran Temmuz Ağustos Eylül Ekim Kasım Aralık", " ")
+    Set rows = PanoRows(scope)
+    Set managers = UniqueColumn(rows, 0): Set departments = UniqueColumn(rows, 1): Set groups = UniqueColumn(rows, 2)
+    Set deptManager = CreateObject("Scripting.Dictionary")
+    For Each row In rows
+        deptManager(CStr(row(1))) = row(0)
+    Next row
+
+    Set data = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count)): data.Name = "_Pano Veri"
+    RowValues data, 1, Array("Müdürlük", "Bölüm", "Gider grubu", "Gider kodu", "Gider kalemi", "Ay no", "Ay", "Gerçekleşen (TL)", "Bütçe (TL)", "Önceki yıl (TL)")
+    If rows.Count > 0 Then
+        ReDim buffer(1 To rows.Count, 1 To 10)
+        i = 0
+        For Each row In rows
+            i = i + 1
+            For j = 0 To 9
+                value = row(j)
+                If IsNull(value) Then
+                    value = Empty
+                ElseIf VarType(value) = vbDecimal Then
+                    value = CDbl(value)
+                End If
+                buffer(i, j + 1) = value
+            Next j
+        Next row
+        data.Range("A2").Resize(rows.Count, 10).Value2 = buffer
+    End If
+    data.Visible = xlSheetHidden
+    Set lists = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count)): lists.Name = "_Pano Liste"
+    For Each item In Array(1, 2, 3)
+        lists.Cells(1, item).Value2 = "Tümü": r = 2
+        If item = 1 Then
+            For Each value In managers
+                lists.Cells(r, 1).Value2 = value: r = r + 1
+            Next value
+        ElseIf item = 2 Then
+            For Each value In departments
+                lists.Cells(r, 2).Value2 = value: r = r + 1
+            Next value
+        Else
+            For Each value In groups
+                lists.Cells(r, 3).Value2 = value: r = r + 1
+            Next value
+        End If
+    Next item
+    lists.Visible = xlSheetHidden
+
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(1)): ws.Name = "Pano"
+    ws.Cells.Font.Name = "Calibri": ws.Cells.Font.Size = 11
+    last = rows.Count + 1: If last < 2 Then last = 2
+    refA = "'_Pano Veri'!$A$2:$A$" & last: refB = "'_Pano Veri'!$B$2:$B$" & last: refC = "'_Pano Veri'!$C$2:$C$" & last
+    refF = "'_Pano Veri'!$F$2:$F$" & last: refH = "'_Pano Veri'!$H$2:$H$" & last
+    refI = "'_Pano Veri'!$I$2:$I$" & last: refJ = "'_Pano Veri'!$J$2:$J$" & last
+    filters = Crit(refA, "$B$4") & "," & Crit(refB, "$B$5") & "," & Crit(refC, "$B$6")
+
+    ws.Range("A1").Value2 = "Pano"
+    ws.Range("A1").Font.Size = 16: ws.Range("A1").Font.Bold = True: ws.Range("A1").Font.Color = RGB(35, 60, 87)
+    ws.Range("A2").Value2 = "Filtreleri B4:B6 hücrelerindeki açılır listelerden seçin; tablolar ve grafikler kendiliğinden güncellenir. Eksik aylık tutarlar 0 sayılır; kesin toplamlar Genel Özet sayfasındadır."
+    ws.Range("A2").Font.Italic = True: ws.Range("A2").Font.Color = RGB(91, 107, 117)
+    labels = Array("Müdürlük", "Bölüm", "Gider grubu")
+    For i = 0 To 2
+        ws.Cells(4 + i, 1).Value2 = labels(i): ws.Cells(4 + i, 1).Font.Bold = True
+        ws.Cells(4 + i, 2).Value2 = "Tümü": ws.Cells(4 + i, 2).Interior.Color = RGB(255, 244, 218)
+        Select Case i
+            Case 0: j = managers.Count
+            Case 1: j = departments.Count
+            Case Else: j = groups.Count
+        End Select
+        With ws.Cells(4 + i, 2).Validation
+            .Delete
+            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="='_Pano Liste'!$" & Chr$(65 + i) & "$1:$" & Chr$(65 + i) & "$" & (j + 1)
+            .ErrorMessage = "Listeden seçin."
+        End With
+    Next i
+
+    labels = Array("Gerçekleşen (TL)", "Bütçe (TL)", VarianceTitle(), "Sapma (%)", "Yön", "Önceki yıl aynı aylar (TL)")
+    formulas = Array("=SUMIFS(" & refH & "," & filters & ")", BudgetFormula("=SUMIFS(" & refI & "," & filters & ")", budgetYear), _
+        "=IF(E5="""","""",E4-E5)", "=IF(OR(E5="""",E5=0),"""",E6/E5)", "=IF(E6="""","""",IF(E6>0,""Aleyhte"",IF(E6<0,""Lehte"",""Bütçede"")))", _
+        "=SUMIFS(" & refJ & "," & filters & ")")
+    formats = Array(MoneyFmt, MoneyFmt, MoneyFmt, PctFmt, "", MoneyFmt)
+    For i = 0 To 5
+        ws.Cells(4 + i, 4).Value2 = labels(i): ws.Cells(4 + i, 4).Font.Bold = True
+        ws.Cells(4 + i, 5).Formula = formulas(i)
+        If formats(i) <> "" Then ws.Cells(4 + i, 5).NumberFormat = formats(i)
+    Next i
+    ws.Range("E8").Font.Bold = True
+
+    monthRow = 12
+    PanoHeader ws, monthRow - 1, 1, Array("Ay", "Gerçekleşen (TL)", "Bütçe (TL)", "Önceki yıl (TL)", VarianceTitle())
+    r = monthRow
+    For Each m In Picked.Keys
+        ws.Cells(r, 1).Value2 = monthNames(CLng(m) - 1) & " " & ReportYear
+        ws.Cells(r, 2).Formula = "=SUMIFS(" & refH & "," & filters & "," & refF & "," & CLng(m) & ")"
+        ws.Cells(r, 3).Formula = BudgetFormula("=SUMIFS(" & refI & "," & filters & "," & refF & "," & CLng(m) & ")", budgetYear)
+        ws.Cells(r, 4).Formula = "=SUMIFS(" & refJ & "," & filters & "," & refF & "," & CLng(m) & ")"
+        ws.Cells(r, 5).Formula = "=IF(C" & r & "="""","""",B" & r & "-C" & r & ")"
+        r = r + 1
+    Next m
+    monthEnd = r - 1
+
+    groupRow = monthEnd + 3
+    PanoHeader ws, groupRow - 1, 1, Array("Gider grubu", "Gerçekleşen (TL)", "Bütçe (TL)", VarianceTitle(), "Sapma (%)")
+    r = groupRow
+    For Each item In groups
+        ws.Cells(r, 1).Value2 = item
+        ws.Cells(r, 2).Formula = "=SUMIFS(" & refH & "," & Crit(refA, "$B$4") & "," & Crit(refB, "$B$5") & "," & refC & ",A" & r & ")"
+        ws.Cells(r, 3).Formula = BudgetFormula("=SUMIFS(" & refI & "," & Crit(refA, "$B$4") & "," & Crit(refB, "$B$5") & "," & refC & ",A" & r & ")", budgetYear)
+        ws.Cells(r, 4).Formula = "=IF(C" & r & "="""","""",B" & r & "-C" & r & ")"
+        ws.Cells(r, 5).Formula = "=IF(OR(C" & r & "="""",C" & r & "=0),"""",D" & r & "/C" & r & ")"
+        r = r + 1
+    Next item
+    groupEnd = r - 1
+
+    deptRow = groupEnd + 3
+    PanoHeader ws, deptRow - 1, 1, Array("Bölüm", "Müdürlük", "Gerçekleşen (TL)", "Bütçe (TL)", VarianceTitle(), "Sapma (%)")
+    r = deptRow
+    For Each item In departments
+        ws.Cells(r, 1).Value2 = item: ws.Cells(r, 2).Value2 = deptManager(CStr(item))
+        ws.Cells(r, 3).Formula = "=SUMIFS(" & refH & "," & Crit(refA, "$B$4") & "," & Crit(refC, "$B$6") & "," & refB & ",A" & r & ")"
+        ws.Cells(r, 4).Formula = BudgetFormula("=SUMIFS(" & refI & "," & Crit(refA, "$B$4") & "," & Crit(refC, "$B$6") & "," & refB & ",A" & r & ")", budgetYear)
+        ws.Cells(r, 5).Formula = "=IF(D" & r & "="""","""",C" & r & "-D" & r & ")"
+        ws.Cells(r, 6).Formula = "=IF(OR(D" & r & "="""",D" & r & "=0),"""",E" & r & "/D" & r & ")"
+        r = r + 1
+    Next item
+    deptEnd = r - 1
+
+    ws.Range(ws.Cells(monthRow, 2), ws.Cells(monthEnd, 5)).NumberFormat = MoneyFmt
+    If groupEnd >= groupRow Then ws.Range(ws.Cells(groupRow, 2), ws.Cells(groupEnd, 4)).NumberFormat = MoneyFmt: ws.Range(ws.Cells(groupRow, 5), ws.Cells(groupEnd, 5)).NumberFormat = PctFmt
+    If deptEnd >= deptRow Then ws.Range(ws.Cells(deptRow, 3), ws.Cells(deptEnd, 5)).NumberFormat = MoneyFmt: ws.Range(ws.Cells(deptRow, 6), ws.Cells(deptEnd, 6)).NumberFormat = PctFmt
+    ws.Columns("A").ColumnWidth = 24: ws.Columns("B:C").ColumnWidth = 20: ws.Columns("D").ColumnWidth = 26
+    ws.Columns("E").ColumnWidth = 22: ws.Columns("F").ColumnWidth = 14
+
+    ' Grafikler: aylık gerçekleşen/bütçe sütun + önceki yıl çizgi; gider grubu sapması çubuk.
+    Set cht = ws.ChartObjects.Add(ws.Range("H4").Left, ws.Range("H4").Top, 520, 230).Chart
+    cht.ChartType = xlColumnClustered
+    Do While cht.SeriesCollection.Count > 0
+        cht.SeriesCollection(1).Delete
+    Loop
+    For c = 2 To IIf(budgetYear, 3, 2)
+        Set s = cht.SeriesCollection.NewSeries
+        s.Name = "='Pano'!" & ws.Cells(monthRow - 1, c).Address
+        s.Values = ws.Range(ws.Cells(monthRow, c), ws.Cells(monthEnd, c))
+        s.XValues = ws.Range(ws.Cells(monthRow, 1), ws.Cells(monthEnd, 1))
+    Next c
+    Set s = cht.SeriesCollection.NewSeries
+    s.Name = "='Pano'!" & ws.Cells(monthRow - 1, 4).Address
+    s.Values = ws.Range(ws.Cells(monthRow, 4), ws.Cells(monthEnd, 4))
+    s.XValues = ws.Range(ws.Cells(monthRow, 1), ws.Cells(monthEnd, 1))
+    s.ChartType = xlLine
+    cht.HasTitle = True: cht.ChartTitle.Text = "Aylık gerçekleşen ve bütçe (TL)"
+    If budgetYear And groupEnd >= groupRow Then
+        Set cht = ws.ChartObjects.Add(ws.Range("H21").Left, ws.Range("H21").Top, 520, 230).Chart
+        cht.ChartType = xlBarClustered
+        Do While cht.SeriesCollection.Count > 0
+            cht.SeriesCollection(1).Delete
+        Loop
+        Set s = cht.SeriesCollection.NewSeries
+        s.Name = "='Pano'!" & ws.Cells(groupRow - 1, 4).Address
+        s.Values = ws.Range(ws.Cells(groupRow, 4), ws.Cells(groupEnd, 4))
+        s.XValues = ws.Range(ws.Cells(groupRow, 1), ws.Cells(groupEnd, 1))
+        cht.HasTitle = True: cht.ChartTitle.Text = "Gider grubu: gerçekleşen " & MinusSign() & " bütçe (TL)"
+        cht.HasLegend = False
+    End If
+    ws.Activate: ActiveWindow.DisplayGridlines = False
+    ActiveWindow.FreezePanes = False: ActiveWindow.ScrollRow = 1: ActiveWindow.ScrollColumn = 1
+    ActiveWindow.SplitColumn = 0: ActiveWindow.SplitRow = 7: ActiveWindow.FreezePanes = True
+End Sub
+
+Private Function Crit(ByVal reference As String, ByVal cell As String) As String
+    Crit = reference & ",IF(" & cell & "=""Tümü"",""*""," & cell & ")"
+End Function
+
+Private Function BudgetFormula(ByVal formula As String, ByVal budgetYear As Boolean) As String
+    If budgetYear Then BudgetFormula = formula Else BudgetFormula = "="""""
+End Function
+
+Private Sub PanoHeader(ByVal ws As Worksheet, ByVal r As Long, ByVal c As Long, ByVal titles As Variant)
+    RowValues ws, r, titles, c
+    With ws.Range(ws.Cells(r, c), ws.Cells(r, c + UBound(titles)))
+        .Interior.Color = RGB(231, 238, 242): .Font.Bold = True: .Font.Color = RGB(38, 55, 70): .WrapText = True
+    End With
+End Sub

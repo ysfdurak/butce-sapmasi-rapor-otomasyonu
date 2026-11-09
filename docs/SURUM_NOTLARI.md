@@ -1,5 +1,10 @@
 # Sürüm notları
 
+## V5.1 — Kasım 2026
+
+- **Pano** sayfası (Python ve makro): açılır liste filtreleri, toplam kartları, aylık / gider grubu / bölüm tabloları ve iki grafik. Formül tabanlı; Power BI veya makro gerektirmez.
+- **Makrosuz yol:** `powerquery/Butce_Veri.pq` tek Power Query sorgusu ve [kurulum rehberi](POWER_QUERY.md). Python ve makro kullanılamayan bilgisayarlarda dilimleyicili PivotTable panosu kurulur.
+
 ## V5 — Kasım 2026
 
 Uzman incelemesindeki revizyonlar Python ve Excel VBA sürümlerine eşdeğer uygulandı.

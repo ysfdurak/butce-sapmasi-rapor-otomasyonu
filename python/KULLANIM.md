@@ -107,6 +107,6 @@ Bu yerel sürüm tek kullanıcı içindir; başka bilgisayarlara sunucu olarak a
 
 ## Test durumu
 
-V5'te Python test sayısı 93'tür (`python run_tests.py`); V4'te kaydedilen 72 JavaScript/API kontrolü arayüz değişmediği için geçerlidir. Canlı yerel API istekleri, kaynak başlıkları, eklenen/silinen/değişen eşleştirmeler, kaynak yollarının kalıcı kaydı, yedek/geri koruma, rapor üretimi, açıklama taşıma ve kayıtların korunması sınandı. JavaScript testi belge taklidiyle renderer ve olay işleyicilerini sınar; gerçek tarayıcı yerleşimi testi değildir.
+V5'te Python test sayısı 94'tür (`python run_tests.py`); V4'te kaydedilen 72 JavaScript/API kontrolü arayüz değişmediği için geçerlidir. Canlı yerel API istekleri, kaynak başlıkları, eklenen/silinen/değişen eşleştirmeler, kaynak yollarının kalıcı kaydı, yedek/geri koruma, rapor üretimi, açıklama taşıma ve kayıtların korunması sınandı. JavaScript testi belge taklidiyle renderer ve olay işleyicilerini sınar; gerçek tarayıcı yerleşimi testi değildir.
 
 **Bu ortamın tarayıcısı yerel Python işlemine bağlanamadı. Windows başlangıcı, yerel dosya pencereleri, gerçek tarayıcı yerleşimi ve fareyle tooltip davranışı henüz Windows üzerinde canlı doğrulanmadı.** Hesaplar ve rapor üretimi doğrulanmış pilot sürüm olarak teslim edilmiştir. [Canlı kontrol listesi](../docs/CANLI_KONTROL.md) ile kendi bilgisayarında son kontrolü yapabilirsin. Bu paket makro sürümünün Windows testlerini tamamlanmış saymaz.

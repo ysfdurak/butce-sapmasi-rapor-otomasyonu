@@ -1566,6 +1566,9 @@ def run(args):
                 "checks": scoped_checks,
                 "warnings": scope_warnings,
                 "missing": sorted(set(missing) & names),
+                "months": months,
+                "year": year,
+                "pano": analiz.pano_rows(config, snapshots, closing, months, names, year),
                 "material": analiz.material_rows(scoped_detail, rules) if budget_year else [],
                 "forecast": (
                     analiz.forecast_rows(config, snapshots, closing, report_layout) if budget_year else []

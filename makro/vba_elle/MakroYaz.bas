@@ -388,6 +388,7 @@ Public Sub WriteOneReport(ByVal path As String, ByVal scope As Object, ByVal gen
     WriteMemoReport wb, scope, general
     placeholder.Delete
     WriteExecutive wb, scope, general
+    WritePano wb, scope
     wb.CheckCompatibility = False
     Application.Calculation = xlCalculationAutomatic
     ' Yalnýz bu rapor hesaplanýr; açýk tüm kitaplarý tam yeniden hesaplamak gereksiz yavaþtý.

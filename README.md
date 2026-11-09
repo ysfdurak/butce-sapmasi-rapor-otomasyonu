@@ -10,6 +10,7 @@ Uygulama, farklı dosyalardaki bölüm giderlerini tek bir kapanışta toplar. G
 | --- | --- | --- |
 | Excel VBA | Excel kontrol paneli, direktörlük ve müdürlük raporları | [Windows Excel kurulumu](docs/BASLANGIC.md#excel-vba) |
 | Python | Yedi sayfalık yerel dashboard ve Excel raporları | [Python kurulumu](docs/BASLANGIC.md#python) |
+| Excel Power Query (makrosuz) | Python ve makro kullanılamayan bilgisayarlarda dilimleyicili PivotTable panosu | [Power Query rehberi](docs/POWER_QUERY.md) |
 
 Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri ve rapor eşikleri Excel'deki ayar dosyasından yönetilir. İki sürüm aynı hesap kurallarıyla aynı rapor sayfalarını üretir ([Veri ve hesap](docs/VERI_VE_HESAP.md)). Python arayüzü tarayıcıda kendi bilgisayarınızda açılır. VBA paketi masaüstü Excel'de rapor üretir.
 
@@ -22,6 +23,7 @@ Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri ve rapor e�
 
 ## Neleri gösterir?
 
+- **Pano** — Müdürlük, bölüm ve gider grubu açılır listeleriyle filtrelenen tablolar ve grafikler; formül tabanlı olduğundan her Excel'de makrosuz çalışır.
 - **Yönetici özeti** — Raporun ilk sayfası; toplam sapma ve yönü (Lehte/Aleyhte), yıl sonu tahmini, veri kontrolü ve en büyük önemli sapmalar. Tek sayfaya yazdırılır.
 - **Bütçe sapması ve gider yapısı** — Gerçekleşen, bütçe, bütçe eksi gerçekleşen, yüzde sapma ve ana/alt gider kırılımı.
 - **Önemli sapmalar** — TL ve yüzde eşiğini birlikte aşan kalemler; müdürlük dosyalarında açıklanması gereken hücreler işaretlenir ve açıklama durumu izlenir.
@@ -48,7 +50,7 @@ Görsel, kontrol paneli tasarım önizlemesidir.
 
 ## Doğrulama durumu
 
-- Python'un **93 otomatik testi** ve VBA kaynak denetimi (`tools/vba_araclari.py`) GitHub Actions'ta her gönderimde çalışır.
+- Python'un **94 otomatik testi** ve VBA kaynak denetimi (`tools/vba_araclari.py`) GitHub Actions'ta her gönderimde çalışır.
 - Aynı sentetik beklenen değerler Python testlerinde ve makrodaki **Sentetik hesap testi**nde kontrol edilir.
 - V4'te kaydedilen **72 JavaScript/API kontrolü**, arayüzün çizim ve olay mantığının benzetimini ve canlı yerel API'yi kapsar.
 - Windows Excel'de VBA derlemesi, gerçek tarayıcı yerleşimi ve Windows dosya pencereleri [canlı kabul listesiyle](docs/CANLI_KONTROL.md) doğrulanır.

@@ -488,3 +488,249 @@ def add_sheets(book, analysis, editable):
         analysis.get("missing", ()),
     )
     add_executive_sheet(book, facts, rules, analysis["caption"], analysis["closing"], budget_year)
+    if analysis.get("pano") is not None:
+        add_pano_sheet(book, analysis["pano"], analysis["months"], analysis["year"], budget_year)
+
+
+# --------------------------------------------------------------------------- Pano (filtreli yönetim panosu)
+#
+# Pivot/dilimleyici yerine formül tabanlıdır: her Excel sürümünde makrosuz çalışır, yenileme gerektirmez ve
+# Python ile VBA aynı formülleri üretir. Veri satırları bölüm × gider kalemi × seçili ay düzeyindedir.
+
+PANO_COLUMNS = [
+    "Müdürlük",
+    "Bölüm",
+    "Gider grubu",
+    "Gider kodu",
+    "Gider kalemi",
+    "Ay no",
+    "Ay",
+    "Gerçekleşen (TL)",
+    "Bütçe (TL)",
+    "Önceki yıl (TL)",
+]
+
+
+def pano_rows(config, snapshots, closing, months, names, year):
+    """Pano verisi; boş (eksik) aylık tutarlar boş bırakılır. VBA: MakroAnaliz.PanoRows."""
+    from butce import MONTHS
+
+    rows = []
+    budget_year = year == closing[0]
+    for name, mapping in config["bolumler"].items():
+        if name not in names:
+            continue
+        snap = snapshots.get((closing, name))
+        if snap is None:
+            continue
+        for code, (item, actual, budget) in sorted(snap[0].items()):
+            group = next((g for lo, hi, g in config["gider_gruplari"] if lo <= code <= hi), "Eşleşmeyen")
+            for m in months:
+                rows.append(
+                    [
+                        mapping["mudurluk"],
+                        name,
+                        group,
+                        code,
+                        item,
+                        m,
+                        f"{MONTHS[m - 1]} {year}",
+                        actual.get((year, m)),
+                        budget.get((year, m)) if budget_year else None,
+                        actual.get((year - 1, m)),
+                    ]
+                )
+    return rows
+
+
+def pano_layout(rows, months, year):
+    """Sayfa düzeni: filtre listeleri ve tablo satırları (Python ve VBA aynı sırayı kullanır)."""
+    from butce import MONTHS
+
+    def unique(index):
+        return list(dict.fromkeys(r[index] for r in rows))
+
+    return {
+        "managers": unique(0),
+        "departments": unique(1),
+        "groups": unique(2),
+        "months": [(m, f"{MONTHS[m - 1]} {year}") for m in months],
+        "deptManagers": {r[1]: r[0] for r in rows},
+    }
+
+
+def add_pano_sheet(book, rows, months, year, budget_year):
+    from openpyxl.chart import BarChart, LineChart, Reference
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    layout = pano_layout(rows, months, year)
+    data = book.create_sheet("_Pano Veri")
+    data.append(PANO_COLUMNS)
+    for row in rows:
+        data.append(row)
+    data.sheet_state = "hidden"
+    lists = book.create_sheet("_Pano Liste")
+    for col, values in enumerate((layout["managers"], layout["departments"], layout["groups"]), 1):
+        lists.cell(1, col, "Tümü")
+        for r, value in enumerate(values, 2):
+            lists.cell(r, col, value)
+    lists.sheet_state = "hidden"
+
+    sheet = book.create_sheet("Pano", 1)
+    last = max(len(rows) + 1, 2)
+    ref = {c: f"'_Pano Veri'!${c}$2:${c}${last}" for c in "ABCFHIJ"}
+
+    def crit(cell, column):
+        return f'{ref[column]},IF({cell}="Tümü","*",{cell})'
+
+    filters = f"{crit('$B$4', 'A')},{crit('$B$5', 'B')},{crit('$B$6', 'C')}"
+
+    def total(value_col, extra=""):
+        return f"=SUMIFS({ref[value_col]},{filters}{extra})"
+
+    def budget(extra=""):
+        return total("I", extra) if budget_year else '=""'
+
+    sheet["A1"] = "Pano"
+    sheet["A1"].font = Font(size=16, bold=True, color="233C57")
+    sheet["A2"] = (
+        "Filtreleri B4:B6 hücrelerindeki açılır listelerden seçin; tablolar ve grafikler kendiliğinden "
+        "güncellenir. Eksik aylık tutarlar 0 sayılır; kesin toplamlar Genel Özet sayfasındadır."
+    )
+    sheet["A2"].font = Font(color="5B6B75", italic=True)
+    filter_fill = PatternFill("solid", fgColor="FFF4DA")
+    header_fill = PatternFill("solid", fgColor="E7EEF2")
+    for r, (label, column) in enumerate((("Müdürlük", "A"), ("Bölüm", "B"), ("Gider grubu", "C")), 4):
+        sheet.cell(r, 1, label).font = Font(bold=True)
+        cell = sheet.cell(r, 2, "Tümü")
+        cell.fill = filter_fill
+        count = len((layout["managers"], layout["departments"], layout["groups"])["ABC".index(column)]) + 1
+        rule = DataValidation(
+            type="list", formula1=f"'_Pano Liste'!${column}$1:${column}${count}", allow_blank=False
+        )
+        rule.error = "Listeden seçin."
+        sheet.add_data_validation(rule)
+        rule.add(cell)
+
+    kpis = [
+        ("Gerçekleşen (TL)", total("H"), MONEY),
+        ("Bütçe (TL)", budget(), MONEY),
+        ("Gerçekleşen − bütçe (TL)", '=IF(E5="","",E4-E5)', MONEY),
+        ("Sapma (%)", '=IF(OR(E5="",E5=0),"",E6/E5)', PERCENT),
+        ("Yön", '=IF(E6="","",IF(E6>0,"Aleyhte",IF(E6<0,"Lehte","Bütçede")))', None),
+        ("Önceki yıl aynı aylar (TL)", total("J"), MONEY),
+    ]
+    for r, (label, formula, fmt) in enumerate(kpis, 4):
+        sheet.cell(r, 4, label).font = Font(bold=True)
+        cell = sheet.cell(r, 5, formula)
+        if fmt:
+            cell.number_format = fmt
+    sheet["E8"].font = Font(bold=True)
+
+    def header(row, col, titles):
+        for i, title in enumerate(titles):
+            cell = sheet.cell(row, col + i, title)
+            cell.fill = header_fill
+            cell.font = Font(bold=True, color="263746")
+            cell.alignment = Alignment(wrap_text=True, vertical="center")
+
+    month_row = 12
+    header(
+        month_row - 1,
+        1,
+        ["Ay", "Gerçekleşen (TL)", "Bütçe (TL)", "Önceki yıl (TL)", "Gerçekleşen − bütçe (TL)"],
+    )
+    for i, (m, title) in enumerate(layout["months"]):
+        r = month_row + i
+        extra = f",{ref['F']},{m}"
+        sheet.cell(r, 1, title)
+        sheet.cell(r, 2, total("H", extra))
+        sheet.cell(r, 3, budget(extra))
+        sheet.cell(r, 4, total("J", extra))
+        sheet.cell(r, 5, f'=IF(C{r}="","",B{r}-C{r})')
+    month_end = month_row + len(layout["months"]) - 1
+
+    group_row = month_end + 3
+    header(
+        group_row - 1,
+        1,
+        ["Gider grubu", "Gerçekleşen (TL)", "Bütçe (TL)", "Gerçekleşen − bütçe (TL)", "Sapma (%)"],
+    )
+    for i, group in enumerate(layout["groups"]):
+        r = group_row + i
+        extra = f',{ref["C"]},A{r}'
+        sheet.cell(r, 1, group)
+        sheet.cell(r, 2, f"=SUMIFS({ref['H']},{crit('$B$4', 'A')},{crit('$B$5', 'B')}{extra})")
+        sheet.cell(
+            r,
+            3,
+            f"=SUMIFS({ref['I']},{crit('$B$4', 'A')},{crit('$B$5', 'B')}{extra})" if budget_year else '=""',
+        )
+        sheet.cell(r, 4, f'=IF(C{r}="","",B{r}-C{r})')
+        sheet.cell(r, 5, f'=IF(OR(C{r}="",C{r}=0),"",D{r}/C{r})')
+    group_end = group_row + len(layout["groups"]) - 1
+
+    dept_row = group_end + 3
+    header(
+        dept_row - 1,
+        1,
+        ["Bölüm", "Müdürlük", "Gerçekleşen (TL)", "Bütçe (TL)", "Gerçekleşen − bütçe (TL)", "Sapma (%)"],
+    )
+    for i, name in enumerate(layout["departments"]):
+        r = dept_row + i
+        extra = f',{ref["B"]},A{r}'
+        sheet.cell(r, 1, name)
+        sheet.cell(r, 2, layout["deptManagers"][name])
+        sheet.cell(r, 3, f"=SUMIFS({ref['H']},{crit('$B$4', 'A')},{crit('$B$6', 'C')}{extra})")
+        sheet.cell(
+            r,
+            4,
+            f"=SUMIFS({ref['I']},{crit('$B$4', 'A')},{crit('$B$6', 'C')}{extra})" if budget_year else '=""',
+        )
+        sheet.cell(r, 5, f'=IF(D{r}="","",C{r}-D{r})')
+        sheet.cell(r, 6, f'=IF(OR(D{r}="",D{r}=0),"",E{r}/D{r})')
+    dept_end = dept_row + len(layout["departments"]) - 1
+
+    for r in range(month_row, dept_end + 1):
+        for c in range(2, 7):
+            cell = sheet.cell(r, c)
+            if isinstance(cell.value, str) and cell.value.startswith("="):
+                is_rate = (group_row <= r <= group_end and c == 5) or (dept_row <= r <= dept_end and c == 6)
+                cell.number_format = PERCENT if is_rate else MONEY
+    for column, width in {"A": 24, "B": 20, "C": 20, "D": 26, "E": 22, "F": 14}.items():
+        sheet.column_dimensions[column].width = width
+
+    trend = BarChart()
+    trend.type = "col"
+    trend.title = "Aylık gerçekleşen ve bütçe (TL)"
+    trend.add_data(
+        Reference(
+            sheet, min_col=2, max_col=3 if budget_year else 2, min_row=month_row - 1, max_row=month_end
+        ),
+        titles_from_data=True,
+    )
+    trend.set_categories(Reference(sheet, min_col=1, min_row=month_row, max_row=month_end))
+    prior = LineChart()
+    prior.add_data(
+        Reference(sheet, min_col=4, min_row=month_row - 1, max_row=month_end), titles_from_data=True
+    )
+    trend += prior
+    trend.height, trend.width = 8, 18
+    sheet.add_chart(trend, "H4")
+
+    if budget_year:
+        groups = BarChart()
+        groups.type = "bar"
+        groups.title = "Gider grubu: gerçekleşen − bütçe (TL)"
+        groups.add_data(
+            Reference(sheet, min_col=4, min_row=group_row - 1, max_row=group_end), titles_from_data=True
+        )
+        groups.set_categories(Reference(sheet, min_col=1, min_row=group_row, max_row=group_end))
+        groups.legend = None
+        groups.height, groups.width = 8, 18
+        sheet.add_chart(groups, "H21")
+    sheet.sheet_view.showGridLines = False
+    sheet.freeze_panes = "A8"
+    book.calculation.fullCalcOnLoad = True
+    return sheet

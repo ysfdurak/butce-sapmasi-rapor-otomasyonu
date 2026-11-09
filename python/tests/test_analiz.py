@@ -166,6 +166,18 @@ class ReportOutputTests(unittest.TestCase):
         self.assertEqual(summary["Önemli sapma"], "150 kalem (75 aleyhte)")
         self.assertEqual(book["Yönetici Özeti"].page_setup.orientation, "landscape")
 
+    def test_pano_sheet_filters_with_formulas(self):
+        book = load_workbook(self.paths[0])
+        self.assertEqual(book.sheetnames[1], "Pano")
+        data = list(book["_Pano Veri"].iter_rows(min_row=2, values_only=True))
+        self.assertEqual(len(data), 3120)  # 12 bölüm × 26 kalem × 10 ay; MakroTest aynı sayıyı bekler
+        self.assertAlmostEqual(sum(r[7] for r in data), 3449383390.31, places=2)
+        pano = book["Pano"]
+        self.assertEqual([pano.cell(r, 2).value for r in (4, 5, 6)], ["Tümü"] * 3)
+        self.assertTrue(pano["E4"].value.startswith("=SUMIFS('_Pano Veri'!$H$2:$H$3121"))
+        self.assertEqual(len(pano._charts), 2)
+        self.assertTrue(book.calculation.fullCalcOnLoad)
+
     def test_manager_report_requires_explanation_for_material_items(self):
         book = load_workbook(next(p for p in self.paths if "Depolama" in p.name))
         sheet = book["Önemli Sapmalar"]
