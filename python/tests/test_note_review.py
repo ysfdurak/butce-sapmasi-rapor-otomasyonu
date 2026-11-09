@@ -17,7 +17,7 @@ class NoteReviewTests(unittest.TestCase):
         cls.data = Dataset(ROOT / "ornek/Ayarlar.xlsx", (2026, 10))
         cls.prev = Dataset(ROOT / "ornek/Ayarlar.xlsx", (2026, 9))
         cls.files = sorted((ROOT / "ornek/onceki_yorumlar").glob("Onceki*.xlsx"))
-        cls.expected = json.loads((ROOT / "ornek/onceki_yorumlar/beklenen.json").read_text())
+        cls.expected = json.loads((ROOT / "ornek/onceki_yorumlar/beklenen.json").read_text(encoding="utf-8"))
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
