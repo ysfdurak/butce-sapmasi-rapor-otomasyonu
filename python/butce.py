@@ -59,7 +59,9 @@ def selected_months(value, default):
     entries = value.split(",") if isinstance(value, str) else list(value)
     if not entries:
         raise ValueError("En az bir ay seçin")
-    if any(isinstance(entry, bool) or not re.fullmatch(r"[0-9]{1,2}", str(entry).strip()) for entry in entries):
+    if any(
+        isinstance(entry, bool) or not re.fullmatch(r"[0-9]{1,2}", str(entry).strip()) for entry in entries
+    ):
         raise ValueError("Ayları 1–12 arasında, virgülle ayrılmış tam sayılarla girin")
     months = sorted({int(str(entry).strip()) for entry in entries})
     if months[0] < 1 or months[-1] > 12:
@@ -127,14 +129,19 @@ def dated_columns(sheet, start, limit=None, year=None, month_labels=False):
 def positioned_columns(sheet, cfg, closing):
     start_col, _, _, _ = excel_bounds(cfg["tarih_baslangici"], "Gerçekleşen", allow_cell=True)
     budget_col, marker_row, _, _ = excel_bounds(cfg["butce_etiketi"], "Bütçe", allow_cell=True)
-    starts = [c for c in range(budget_col, sheet.max_column + 1)
-              if key(sheet.cell(marker_row, c).value) in {"bütçe", "butce"}]
+    starts = [
+        c
+        for c in range(budget_col, sheet.max_column + 1)
+        if key(sheet.cell(marker_row, c).value) in {"bütçe", "butce"}
+    ]
     if not starts:
         raise ValueError(f"Bütçe başlığı bulunamadı: {cfg['butce_etiketi']}")
     actual = dated_columns(sheet, cfg["tarih_baslangici"], starts[0] - 1)
     expected_budget = {(closing[0], m) for m in range(1, 13)}
-    budgets = [dated_columns(sheet, f"{get_column_letter(c)}{marker_row + 1}", c + 11, closing[0], month_labels=True)
-               for c in starts]
+    budgets = [
+        dated_columns(sheet, f"{get_column_letter(c)}{marker_row + 1}", c + 11, closing[0], month_labels=True)
+        for c in starts
+    ]
     valid = [budget for budget in budgets if set(budget) == expected_budget]
     if closing not in actual or len(valid) != 1:
         raise ValueError("Gerçekleşen kapanışı veya kapanış yılının tek 12 aylık bütçe bloğu bulunamadı")
@@ -173,21 +180,28 @@ def merge_cost_items(items, mappings):
         names = {name for name, _ in records}
         if len(names) != 1:
             raise ValueError(f"{target} rapor indeksinde gider adları farklı. Eşleştirmeyi tamamlayın.")
-        result[target] = (next(iter(names)), *[
-            {p: total(record[slot].get(p) for _, record in records)
-             for p in set().union(*(record[slot] for _, record in records))}
-            for slot in (1, 2)
-        ])
+        result[target] = (
+            next(iter(names)),
+            *[
+                {
+                    p: total(record[slot].get(p) for _, record in records)
+                    for p in set().union(*(record[slot] for _, record in records))
+                }
+                for slot in (1, 2)
+            ],
+        )
     return result
 
 
 def read_cost(sheet, cfg, closing):
     if cfg.get("tarih_baslangici"):
         return positioned_cost(sheet, cfg, closing)
+
     def cell(row, col):
         return sheet.cell(row, col).value
 
     actual, budget = {}, {}
+
     def add_period(target, col, y, m):
         p = (int(y), month(m))
         if p in target:
@@ -204,7 +218,8 @@ def read_cost(sheet, cfg, closing):
         if a_right >= b_left:
             raise ValueError("Gerçekleşen ve bütçe aralıkları çakışıyor veya sırasız")
         for target, left, top, right, bottom in (
-            (actual, a_left, a_top, a_right, a_bottom), (budget, b_left, b_top, b_right, b_bottom)
+            (actual, a_left, a_top, a_right, a_bottom),
+            (budget, b_left, b_top, b_right, b_bottom),
         ):
             needed = [cfg["yil_satiri"], cfg["ay_satiri"], cfg["ilk_gider_satiri"], cfg["dip_toplam_satiri"]]
             if target is actual and cfg.get("islem_adedi_satiri"):
@@ -286,7 +301,8 @@ def read_snapshots(root, config, closing, warnings, progress=None):
     ignored = {key(s) for s in config["ortak_sayfalar"]}
     configured = {key(s): s for s in config["bolumler"]}
     for path in cost_files(root):
-        if progress:progress("Kaynak dosyası: " + path.name)
+        if progress:
+            progress("Kaynak dosyası: " + path.name)
         try:
             p = filename_period(path)
         except ValueError as error:
@@ -306,12 +322,19 @@ def read_snapshots(root, config, closing, warnings, progress=None):
                 k = (p, name)
                 if k in seen:
                     snapshots.pop(k, None)
-                    warnings.append([label(p), name, path.name, "Aynı bölüm ve kapanış için birden fazla kaynak"])
+                    warnings.append(
+                        [label(p), name, path.name, "Aynı bölüm ve kapanış için birden fazla kaynak"]
+                    )
                     continue
                 seen.add(k)
                 try:
                     items, bottom, counts = read_cost(sheet, config["maliyet"], p)
-                    snapshots[k] = (merge_cost_items(items, config.get("gider_eslestirme", {})), bottom, counts, path.name)
+                    snapshots[k] = (
+                        merge_cost_items(items, config.get("gider_eslestirme", {})),
+                        bottom,
+                        counts,
+                        path.name,
+                    )
                 except (ValueError, TypeError) as error:
                     warnings.append([label(p), name, path.name, str(error)])
         finally:
@@ -335,7 +358,9 @@ def positioned_control(sheet, cfg, year, directors):
     budgets = []
     for c in range(max(max(actual.values()) + 1, budget_left), sheet.max_column - 10):
         try:
-            block = dated_columns(sheet, f"{get_column_letter(c)}{header}", c + 11, year=year, month_labels=True)
+            block = dated_columns(
+                sheet, f"{get_column_letter(c)}{header}", c + 11, year=year, month_labels=True
+            )
         except ValueError:
             continue
         if set(block) == expected:
@@ -352,13 +377,15 @@ def positioned_control(sheet, cfg, year, directors):
         if director not in directors or key(sheet.cell(r + 2, title_col).value) != "opex toplamı":
             continue
         rows.setdefault((director, "opex toplamı"), []).append(
-            {p: number(sheet.cell(r + 2, c).value) for p, c in actual.items()})
+            {p: number(sheet.cell(r + 2, c).value) for p, c in actual.items()}
+        )
         for k in range(r + 3, sheet.max_row + 1):
             name = key(sheet.cell(k, title_col).value)
             if not name or name in directors:
                 break
             rows.setdefault((director, name), []).append(
-                {p: number(sheet.cell(k, c).value) for p, c in actual.items()})
+                {p: number(sheet.cell(k, c).value) for p, c in actual.items()}
+            )
     return company, rows, company_budget
 
 
@@ -376,8 +403,9 @@ def read_control(path, cfg, year, directors=()):
             left_col, top, right, bottom = excel_bounds(cfg["ciro_araligi"], "Ciro")
             if bottom != top + 1:
                 raise ValueError("Ciro aralığında üst satır aylar, alt satır tutarlar olmalı")
-            header, values = sheet.iter_rows(min_row=top, max_row=bottom, min_col=left_col,
-                                             max_col=right, values_only=True)
+            header, values = sheet.iter_rows(
+                min_row=top, max_row=bottom, min_col=left_col, max_col=right, values_only=True
+            )
             first_revenue = 0
         else:
             header = data[cfg["ciro_satiri"] - 2]
@@ -392,7 +420,7 @@ def read_control(path, cfg, year, directors=()):
 
         director = None
         columns = {}
-        for row in data[cfg["ilk_blok_satiri"] - 1:]:
+        for row in data[cfg["ilk_blok_satiri"] - 1 :]:
             title = row[left]
             cells = {i: row[i] for i in range(first, len(row)) if row[i] is not None}
             if not any(v is not None and str(v).strip() for v in row):
@@ -455,7 +483,9 @@ def read_indices(path, cfg):
             rows = sheet.iter_rows(min_row=top, min_col=left, max_col=right, max_row=bottom, values_only=True)
             header = next(rows, ())
             if not header or key(header[0]) not in {"bölüm adı", "bölüm gider endeksi"}:
-                raise ValueError("Endeks aralığının sol üstünde Bölüm Adı veya Bölüm Gider Endeksi başlığı bulunamadı")
+                raise ValueError(
+                    "Endeks aralığının sol üstünde Bölüm Adı veya Bölüm Gider Endeksi başlığı bulunamadı"
+                )
             periods = []
             for value in header[1:]:
                 if value in (None, ""):
@@ -465,7 +495,9 @@ def read_indices(path, cfg):
                     y, m = periods[-1]
                     expected = (y + 1, 1) if m == 12 else (y, m + 1)
                     if p != expected:
-                        raise ValueError(f"Endeks ayları ardışık değil: beklenen {label(expected)}, bulunan {label(p)}")
+                        raise ValueError(
+                            f"Endeks ayları ardışık değil: beklenen {label(expected)}, bulunan {label(p)}"
+                        )
                 periods.append(p)
             if not periods:
                 raise ValueError("İkinci endeks tablosunda ay başlığı bulunamadı")
@@ -511,8 +543,20 @@ def revisions(snapshots, config, closing):
                         before = old[slot].get(affected_period)
                         after = new[slot].get(affected_period)
                         if before != after:
-                            yield [label(p), label(affected_period), config["bolumler"][name]["mudurluk"], name, code, new[0] or old[0],
-                                   kind, before, after, delta(after, before), old_file, new_file]
+                            yield [
+                                label(p),
+                                label(affected_period),
+                                config["bolumler"][name]["mudurluk"],
+                                name,
+                                code,
+                                new[0] or old[0],
+                                kind,
+                                before,
+                                after,
+                                delta(after, before),
+                                old_file,
+                                new_file,
+                            ]
 
 
 def make_report(config, closing, report_period, months, snapshots, company, controls, indices, warnings):
@@ -527,23 +571,56 @@ def make_report(config, closing, report_period, months, snapshots, company, cont
         items, bottom, _, source = snapshot
         for m in range(2, closing[1] + 1):
             if not (snapshots.get(((closing[0], m - 1), name)) and snapshots.get(((closing[0], m), name))):
-                warnings.append([label((closing[0], m)), name, None, "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı."])
+                warnings.append(
+                    [
+                        label((closing[0], m)),
+                        name,
+                        None,
+                        "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı.",
+                    ]
+                )
         index = period_index(indices, mapping["endeks"], [(year, m) for m in months])
         if index is None and mapping.get("endeks"):
             warnings.append([label(closing), name, None, "Seçilen dönem için endeks hesabı tamamlanamadı"])
         for code, (item, actuals, budget) in sorted(items.items()):
-            group = next((g for low, high, g in config["gider_gruplari"] if low <= code <= high), "Eşleşmeyen")
+            group = next(
+                (g for low, high, g in config["gider_gruplari"] if low <= code <= high), "Eşleşmeyen"
+            )
             actual = total(actuals.get((year, m)) for m in months)
             prior = total(actuals.get((year - 1, m)) for m in months)
             planned = total(budget.get((year, m)) for m in months)
             if actual is None or prior is None or (year == closing[0] and planned is None):
-                warnings.append([label(report_period), name, source, f"{code} {item}: karşılaştırma için bir veya daha fazla aylık tutar eksik"])
+                warnings.append(
+                    [
+                        label(report_period),
+                        name,
+                        source,
+                        f"{code} {item}: karşılaştırma için bir veya daha fazla aylık tutar eksik",
+                    ]
+                )
             base = prior * index if prior is not None and index is not None else None
             savings = delta(base, actual)
-            detail.append([name, mapping["mudurluk"], code, item, group, actual, prior, planned,
-                           delta(actual, planned), ratio(delta(actual, planned), planned),
-                           delta(actual, prior), ratio(delta(actual, prior), prior),
-                           index, base, savings, ratio(savings, base), source])
+            detail.append(
+                [
+                    name,
+                    mapping["mudurluk"],
+                    code,
+                    item,
+                    group,
+                    actual,
+                    prior,
+                    planned,
+                    delta(actual, planned),
+                    ratio(delta(actual, planned), planned),
+                    delta(actual, prior),
+                    ratio(delta(actual, prior), prior),
+                    index,
+                    base,
+                    savings,
+                    ratio(savings, base),
+                    source,
+                ]
+            )
     control_groups = {}
     for name, mapping in config["bolumler"].items():
         target = mapping.get("kontrol_bolumu") or name
@@ -556,15 +633,44 @@ def make_report(config, closing, report_period, months, snapshots, company, cont
             a = total(source[1].get(p) if source else None for source in sources)
             b = matches[0].get(p) if len(matches) == 1 else None
             diff = delta(a, b)
-            status = ("Bölüm eşleşmedi" if not matches else
-                      "Birden fazla bölüm satırı eşleşti" if len(matches) > 1 else
-                      "Kaynak dip toplamı eksik" if a is None else
-                      "Kontrol tutarı veya ay bulunamadı" if b is None else
-                      "Veri doğrulanamadı: tutar farklı" if abs(diff) > Decimal(str(config["kontrol"]["tolerans"])) else "Doğrulandı")
+            status = (
+                "Bölüm eşleşmedi"
+                if not matches
+                else (
+                    "Birden fazla bölüm satırı eşleşti"
+                    if len(matches) > 1
+                    else (
+                        "Kaynak dip toplamı eksik"
+                        if a is None
+                        else (
+                            "Kontrol tutarı veya ay bulunamadı"
+                            if b is None
+                            else (
+                                "Veri doğrulanamadı: tutar farklı"
+                                if abs(diff) > Decimal(str(config["kontrol"]["tolerans"]))
+                                else "Doğrulandı"
+                            )
+                        )
+                    )
+                )
+            )
             managers = sorted({config["bolumler"][name]["mudurluk"] for name in names})
             files = ", ".join(dict.fromkeys(source[3] for source in sources if source))
-            checks.append([target, ", ".join(managers), config["bolumler"][names[0]]["direktorluk"],
-                           label(p), a, b, diff, status, files, ", ".join(names), tuple(names)])
+            checks.append(
+                [
+                    target,
+                    ", ".join(managers),
+                    config["bolumler"][names[0]]["direktorluk"],
+                    label(p),
+                    a,
+                    b,
+                    diff,
+                    status,
+                    files,
+                    ", ".join(names),
+                    tuple(names),
+                ]
+            )
     return detail, checks, coverage
 
 
@@ -590,19 +696,52 @@ def unit_cost_rows(config, closing, report_period, months, snapshots, indices, w
             if costs.get(p) is None:
                 warnings.append([label(p), name, source, "Birim maliyet için gider dip toplamı eksik"])
         a, b = [total(costs.get(p) for p in span) for span in (current, prior)]
-        x, y = [total(counts[p] if counts.get(p) is not None and counts[p] > ZERO else None for p in span)
-                for span in (current, prior)]
+        x, y = [
+            total(counts[p] if counts.get(p) is not None and counts[p] > ZERO else None for p in span)
+            for span in (current, prior)
+        ]
         index = period_index(indices, mapping["endeks"], current)
         adjusted = b * index if b is not None and index is not None else None
-        comparable = (a is not None and a >= ZERO and x is not None and x > ZERO and
-                      b is not None and b > ZERO and y is not None and y > ZERO and index is not None)
-        if (year == closing[0] and not comparable) or (year != closing[0] and (a is None or x is None or x <= ZERO)):
-            warnings.append([label(report_period), name, source, "Birim maliyet kapsamı dışında: karşılaştırılabilir veri eksik"])
+        comparable = (
+            a is not None
+            and a >= ZERO
+            and x is not None
+            and x > ZERO
+            and b is not None
+            and b > ZERO
+            and y is not None
+            and y > ZERO
+            and index is not None
+        )
+        if (year == closing[0] and not comparable) or (
+            year != closing[0] and (a is None or x is None or x <= ZERO)
+        ):
+            warnings.append(
+                [
+                    label(report_period),
+                    name,
+                    source,
+                    "Birim maliyet kapsamı dışında: karşılaştırılabilir veri eksik",
+                ]
+            )
             continue
-        planned_cost = total(sum((v[2].get(p) for v in snapshot[0].values()), ZERO)
-                             if all(v[2].get(p) is not None for v in snapshot[0].values()) else None for p in current)
-        planned_count = total(v if (v := (budget_counts or {}).get(name, {}).get(p)) is not None and v > ZERO else None for p in current)
-        planned_bm = ratio(planned_cost, planned_count) if year == closing[0] and planned_count is not None and planned_count > ZERO else None
+        planned_cost = total(
+            (
+                sum((v[2].get(p) for v in snapshot[0].values()), ZERO)
+                if all(v[2].get(p) is not None for v in snapshot[0].values())
+                else None
+            )
+            for p in current
+        )
+        planned_count = total(
+            v if (v := (budget_counts or {}).get(name, {}).get(p)) is not None and v > ZERO else None
+            for p in current
+        )
+        planned_bm = (
+            ratio(planned_cost, planned_count)
+            if year == closing[0] and planned_count is not None and planned_count > ZERO
+            else None
+        )
         rows.append([name, mapping["mudurluk"], a, x, b, y, adjusted, index, planned_bm])
     by_name = {row[0]: row for row in rows}
     departments = config["bolumler"]
@@ -628,8 +767,10 @@ def unit_cost_rows(config, closing, report_period, months, snapshots, indices, w
                 manager_weight = ratio(row[2], manager_cost)
                 director_weight = ratio(row[2], director_cost)
                 weights[name] = [
-                    manager_weight, manager_weight * rate if manager_weight is not None and rate is not None else None,
-                    director_weight, director_weight * rate if director_weight is not None and rate is not None else None,
+                    manager_weight,
+                    manager_weight * rate if manager_weight is not None and rate is not None else None,
+                    director_weight,
+                    director_weight * rate if director_weight is not None and rate is not None else None,
                 ]
 
     result = []
@@ -653,22 +794,57 @@ def unit_cost_rows(config, closing, report_period, months, snapshots, indices, w
                 rate = allocation[3]
                 allocation[:2] = [None, None]
             else:
-                rate = ratio(total(by_name[n][2] * improvement(by_name[n])
-                                   if by_name[n][2] is not None and improvement(by_name[n]) is not None
-                                   else None for n in names), a)
+                rate = ratio(
+                    total(
+                        (
+                            by_name[n][2] * improvement(by_name[n])
+                            if by_name[n][2] is not None and improvement(by_name[n]) is not None
+                            else None
+                        )
+                        for n in names
+                    ),
+                    a,
+                )
                 allocation = [None] * 4
-        result.append([name, manager, a, x, actual, b, y, previous, base, rate,
-                       values[0][7] if level == "Bölüm" else None, *allocation, values[0][8] if level == "Bölüm" else None])
+        result.append(
+            [
+                name,
+                manager,
+                a,
+                x,
+                actual,
+                b,
+                y,
+                previous,
+                base,
+                rate,
+                values[0][7] if level == "Bölüm" else None,
+                *allocation,
+                values[0][8] if level == "Bölüm" else None,
+            ]
+        )
     return result
 
 
 def aggregate(rows):
     a, p, b = [total(row[i] for row in rows) for i in (5, 6, 7)]
     base, saving = [total(row[i] for row in rows) for i in (13, 14)]
-    weighted = total(row[5] * row[15] if row[5] is not None and row[15] is not None else
-                     ZERO if row[5] == ZERO else None for row in rows)
-    return [a, p, b, delta(a, b), ratio(delta(a, b), b), delta(a, p),
-            ratio(delta(a, p), p), base, saving, ratio(weighted, a)]
+    weighted = total(
+        row[5] * row[15] if row[5] is not None and row[15] is not None else ZERO if row[5] == ZERO else None
+        for row in rows
+    )
+    return [
+        a,
+        p,
+        b,
+        delta(a, b),
+        ratio(delta(a, b), b),
+        delta(a, p),
+        ratio(delta(a, p), p),
+        base,
+        saving,
+        ratio(weighted, a),
+    ]
 
 
 def add_table(book, name, headers, rows, percentages=()):
@@ -690,9 +866,20 @@ def add_table(book, name, headers, rows, percentages=()):
         for c in cells[1:]:
             if c.data_type == "f":
                 c.data_type = "s"
-            if c.data_type == "n" and c.value is not None and headers[i - 1] not in {"İndeks", "Doğrulanamayan bölüm-ay", "Eksik bölüm"}:
-                c.number_format = "0.00%" if i in percentages else (
-                    "0.000" if str(headers[i - 1]).startswith("Dönem endeksi") else "#,##0.00;-#,##0.00;0.00")
+            if (
+                c.data_type == "n"
+                and c.value is not None
+                and headers[i - 1] not in {"İndeks", "Doğrulanamayan bölüm-ay", "Eksik bölüm"}
+            ):
+                c.number_format = (
+                    "0.00%"
+                    if i in percentages
+                    else (
+                        "0.000"
+                        if str(headers[i - 1]).startswith("Dönem endeksi")
+                        else "#,##0.00;-#,##0.00;0.00"
+                    )
+                )
 
 
 def department_tree(departments):
@@ -729,16 +916,24 @@ def add_general_summary(book, detail, layout, missing, metrics, operating, reven
     rows, subtotals = [], []
     for name, level, names in layout:
         incomplete = missing.intersection(names)
-        values = ([None] * len(metrics) if incomplete else
-                  aggregate([row for row in detail if row[0] in names])[:len(metrics)])
+        values = (
+            [None] * len(metrics)
+            if incomplete
+            else aggregate([row for row in detail if row[0] in names])[: len(metrics)]
+        )
         values[3] = delta(values[2], values[0])
         values[0], values[1] = values[1], values[0]
         opx = None if incomplete else total(operating.get(name) for name in names)
         rows.append([name, level, *values, ratio(opx, revenue)])
         if level != "Bölüm":
             subtotals.append((len(rows) + 1, level))
-    add_table(book, "Genel Özet", ["Bölüm / müdürlük / direktörlük", "Satır türü", *metrics, ratio_header],
-              rows, (7, 8))
+    add_table(
+        book,
+        "Genel Özet",
+        ["Bölüm / müdürlük / direktörlük", "Satır türü", *metrics, ratio_header],
+        rows,
+        (7, 8),
+    )
     style_subtotals(book["Genel Özet"], subtotals)
 
 
@@ -773,7 +968,9 @@ def add_expense_matrix(book, detail, departments, period_name, editable):
     rows, outlines, totals = [], [], []
     for group, items in groups.items():
         totals.append(len(rows) + 6)
-        rows.append(expense_row(group, None, "Grup toplamı", [row for records in items.values() for row in records]))
+        rows.append(
+            expense_row(group, None, "Grup toplamı", [row for records in items.values() for row in records])
+        )
         start = len(rows) + 6
         for (code, name), records in sorted(items.items()):
             rows.append(expense_row(group, code, name, records))
@@ -821,8 +1018,11 @@ def add_expense_matrix(book, detail, departments, period_name, editable):
         for r in range(4, last + 1):
             for c in range(start, end + 1):
                 sheet.cell(r, c).border = Border(
-                    top=edge if r == 4 else None, bottom=edge if r == last else None,
-                    left=edge if c == start else None, right=edge if c == end else None)
+                    top=edge if r == 4 else None,
+                    bottom=edge if r == last else None,
+                    left=edge if c == start else None,
+                    right=edge if c == end else None,
+                )
             if r >= 6:
                 difference = sheet.cell(r, start + 2)
                 if difference.value is not None and difference.value != ZERO:
@@ -845,10 +1045,40 @@ def add_expense_matrix(book, detail, departments, period_name, editable):
 
 def add_audit(book, checks, revision_rows, warnings, revenue_rows):
     blocks = [
-        ("Veri kontrolü", ["Kontrol bölümü", "Müdürlük", "Direktörlük", "Ay", "Alınan dip toplam TL",
-                           "Kontrol TL", "Fark TL", "Durum", "Kaynak", "Kaynak bölümler"], [r[:-1] for r in checks]),
-        ("Revizyon geçmişi", ["Kapanış", "Etkilenen ay", "Müdürlük", "Bölüm", "İndeks", "Alt gider kalemi", "Tür",
-                             "Eski TL", "Yeni TL", "Fark TL", "Önceki dosya", "Yeni dosya"], revision_rows),
+        (
+            "Veri kontrolü",
+            [
+                "Kontrol bölümü",
+                "Müdürlük",
+                "Direktörlük",
+                "Ay",
+                "Alınan dip toplam TL",
+                "Kontrol TL",
+                "Fark TL",
+                "Durum",
+                "Kaynak",
+                "Kaynak bölümler",
+            ],
+            [r[:-1] for r in checks],
+        ),
+        (
+            "Revizyon geçmişi",
+            [
+                "Kapanış",
+                "Etkilenen ay",
+                "Müdürlük",
+                "Bölüm",
+                "İndeks",
+                "Alt gider kalemi",
+                "Tür",
+                "Eski TL",
+                "Yeni TL",
+                "Fark TL",
+                "Önceki dosya",
+                "Yeni dosya",
+            ],
+            revision_rows,
+        ),
         ("Uyarılar", ["Kapanış", "Bölüm", "Kaynak", "Uyarı"], warnings),
         ("Ciro kontrolü", ["Dönem", "Gerçekleşen ciro", "Bütçe ciro"], revenue_rows),
     ]
@@ -880,7 +1110,9 @@ def read_settings(path):
             values = [cell.value.strip() if isinstance(cell.value, str) else cell.value for cell in cells]
             if all(value in (None, "") for value in values):
                 continue
-            if any(cell.data_type == "f" for cell in cells) or any(value in (None, "") for value in values[:required]):
+            if any(cell.data_type == "f" for cell in cells) or any(
+                value in (None, "") for value in values[:required]
+            ):
                 raise ValueError(f"{name}, satır {i}: Zorunlu hücrelere sabit değer girin")
             yield i, values
 
@@ -893,19 +1125,47 @@ def read_settings(path):
     try:
         sections = {
             "Dosyalar": {"maliyet_klasoru", "kontrol_dosyasi", "endeks_dosyasi"},
-            "Maliyet": {"yil_satiri", "ay_satiri", "ilk_gider_satiri", "dip_toplam_satiri",
-                        "indeks_sutunu", "gider_sutunu", "ilk_donem_sutunu"},
-            "Kontrol": {"sayfa", "ciro_satiri", "ilk_blok_satiri", "etiket_sutunu", "ilk_ay_sutunu", "tolerans"},
+            "Maliyet": {
+                "yil_satiri",
+                "ay_satiri",
+                "ilk_gider_satiri",
+                "dip_toplam_satiri",
+                "indeks_sutunu",
+                "gider_sutunu",
+                "ilk_donem_sutunu",
+            },
+            "Kontrol": {
+                "sayfa",
+                "ciro_satiri",
+                "ilk_blok_satiri",
+                "etiket_sutunu",
+                "ilk_ay_sutunu",
+                "tolerans",
+            },
             "Endeks": {"sayfa", "ilk_veri_satiri"},
         }
         cell_settings = {"tarih_baslangici", "butce_etiketi", "ciro_baslangici", "butce_ciro_baslangici"}
         range_settings = {"gerceklesen_araligi", "butce_araligi", "ciro_araligi", "endeks_araligi"}
-        optional = {"Maliyet": {"islem_adedi_satiri", "gerceklesen_araligi", "butce_araligi", "tarih_baslangici", "butce_etiketi", "gider_kalem_sayisi", "gosterge_adi_sutunu"},
-                    "Kontrol": {"ciro_araligi", "ciro_baslangici", "butce_ciro_baslangici"}, "Endeks": {"baslik_satiri", "endeks_araligi"}}
+        optional = {
+            "Maliyet": {
+                "islem_adedi_satiri",
+                "gerceklesen_araligi",
+                "butce_araligi",
+                "tarih_baslangici",
+                "butce_etiketi",
+                "gider_kalem_sayisi",
+                "gosterge_adi_sutunu",
+            },
+            "Kontrol": {"ciro_araligi", "ciro_baslangici", "butce_ciro_baslangici"},
+            "Endeks": {"baslik_satiri", "endeks_araligi"},
+        }
         settings = {section: {} for section in sections}
         for i, (section, code, value) in rows("Dosya ve Konum Ayarları", 3):
             location = f"Dosya ve Konum Ayarları, satır {i}"
-            if code not in (sections.get(section, set()) | optional.get(section, set())) or code in settings[section]:
+            if (
+                code not in (sections.get(section, set()) | optional.get(section, set()))
+                or code in settings[section]
+            ):
                 raise ValueError(f"{location}: Tanımsız veya tekrarlanan ayar")
             if code in cell_settings:
                 if not isinstance(value, str) or ":" in value:
@@ -931,7 +1191,9 @@ def read_settings(path):
         excluded = [str(values[0]) for _, values in rows("Ortak Sayfalar", 1)]
         departments = {}
         used_names = {key(name) for name in excluded}
-        for i, (name, manager, director, index_name, location, control_name, submanager) in rows("Bölüm Eşleştirme", 7, required=3):
+        for i, (name, manager, director, index_name, location, control_name, submanager) in rows(
+            "Bölüm Eşleştirme", 7, required=3
+        ):
             if not all(isinstance(v, str) for v in (name, manager, director)) or key(name) in used_names:
                 raise ValueError(f"Bölüm Eşleştirme, satır {i}: Geçersiz, mükerrer veya hariç tutulan bölüm")
             if index_name not in (None, "") and not isinstance(index_name, str):
@@ -943,9 +1205,14 @@ def read_settings(path):
             if submanager not in (None, "") and not isinstance(submanager, str):
                 raise ValueError(f"Bölüm Eşleştirme, satır {i}: Müdürlük altı metin olmalı")
             used_names.add(key(name))
-            departments[name] = {"mudurluk": manager, "direktorluk": director, "endeks": index_name or "",
-                                 "lokasyon": location or "Tanımsız", "kontrol_bolumu": control_name or name,
-                                 "mudurluk_alti": submanager or "Tanımsız"}
+            departments[name] = {
+                "mudurluk": manager,
+                "direktorluk": director,
+                "endeks": index_name or "",
+                "lokasyon": location or "Tanımsız",
+                "kontrol_bolumu": control_name or name,
+                "mudurluk_alti": submanager or "Tanımsız",
+            }
         if not departments:
             raise ValueError("Bölüm Eşleştirme: En az bir bölüm girin")
 
@@ -961,10 +1228,20 @@ def read_settings(path):
             for i, (source, target, name) in rows("Gider Eşleştirme", 3):
                 if source in expense_map or not isinstance(name, str):
                     raise ValueError(f"Gider Eşleştirme, satır {i}: Geçersiz veya mükerrer kaynak")
-                expense_map[index(source, f"Gider Eşleştirme, satır {i}")] = (index(target, f"Gider Eşleştirme, satır {i}"), name)
-        return {**settings["Dosyalar"], "maliyet": settings["Maliyet"], "kontrol": settings["Kontrol"],
-                "endeks": settings["Endeks"], "ortak_sayfalar": excluded,
-                "bolumler": departments, "gider_gruplari": groups, "gider_eslestirme": expense_map}
+                expense_map[index(source, f"Gider Eşleştirme, satır {i}")] = (
+                    index(target, f"Gider Eşleştirme, satır {i}"),
+                    name,
+                )
+        return {
+            **settings["Dosyalar"],
+            "maliyet": settings["Maliyet"],
+            "kontrol": settings["Kontrol"],
+            "endeks": settings["Endeks"],
+            "ortak_sayfalar": excluded,
+            "bolumler": departments,
+            "gider_gruplari": groups,
+            "gider_eslestirme": expense_map,
+        }
     finally:
         book.close()
 
@@ -984,7 +1261,14 @@ def run(args, *, dashboard=False):
     filename_months = "-".join(f"{m:02d}" for m in months)
     warnings = []
     if year != closing[0]:
-        warnings.append([label(closing), None, None, f"{year} bütçesi bu kapanış dosyasında yok. Bütçe karşılaştırması boş bırakıldı."])
+        warnings.append(
+            [
+                label(closing),
+                None,
+                None,
+                f"{year} bütçesi bu kapanış dosyasında yok. Bütçe karşılaştırması boş bırakıldı.",
+            ]
+        )
     inputs = [args.ayar, root / config["kontrol_dosyasi"], root / config["endeks_dosyasi"]]
     cost_dir = (root / config["maliyet_klasoru"]).resolve()
     if not cost_dir.is_dir():
@@ -997,18 +1281,31 @@ def run(args, *, dashboard=False):
     snapshots = read_snapshots(root / config["maliyet_klasoru"], config, closing, warnings)
     if dashboard:
         from dashboard_excel import build_dashboard
+
         return build_dashboard(args.cikti, config, snapshots, closing, months, warnings, root=root)
     company, controls, company_budget = read_control(
-        root / config["kontrol_dosyasi"], config["kontrol"], closing[0],
-        {key(mapping["direktorluk"]) for mapping in config["bolumler"].values()})
+        root / config["kontrol_dosyasi"],
+        config["kontrol"],
+        closing[0],
+        {key(mapping["direktorluk"]) for mapping in config["bolumler"].values()},
+    )
     indices = read_indices(root / config["endeks_dosyasi"], config["endeks"])
-    detail, checks, missing = make_report(config, closing, report_period, months, snapshots, company, controls, indices, warnings)
+    detail, checks, missing = make_report(
+        config, closing, report_period, months, snapshots, company, controls, indices, warnings
+    )
     revenue = total(company.get((year, m)) for m in months)
     revenue_rows = [[label((year, m)), company.get((year, m)), company_budget.get((year, m))] for m in months]
-    if config["kontrol"].get("ciro_baslangici") and year == closing[0] and any(r[2] is None for r in revenue_rows):
+    if (
+        config["kontrol"].get("ciro_baslangici")
+        and year == closing[0]
+        and any(r[2] is None for r in revenue_rows)
+    ):
         warnings.append([label(report_period), None, None, "Seçilen ayların bütçe cirosu eksik"])
-    operating = {name: total(snapshots[(closing, name)][1].get((year, m)) for m in months)
-                 for name in config["bolumler"] if (closing, name) in snapshots}
+    operating = {
+        name: total(snapshots[(closing, name)][1].get((year, m)) for m in months)
+        for name in config["bolumler"]
+        if (closing, name) in snapshots
+    }
     year_span = month_caption(months, year)
     previous_span = month_caption(months, year - 1)
     if revenue is None:
@@ -1016,22 +1313,35 @@ def run(args, *, dashboard=False):
     departments = config["bolumler"]
     layout = list(hierarchy(departments))
     from birim import read_budget_counts
+
     budget_counts = read_budget_counts(root, config, snapshots, closing)
-    units = unit_cost_rows(config, closing, report_period, months, snapshots, indices, warnings, budget_counts)
+    units = unit_cost_rows(
+        config, closing, report_period, months, snapshots, indices, warnings, budget_counts
+    )
     revision_rows = list(revisions(snapshots, config, closing))
     reports = [(args.cikti, departments, layout, units)]
     seq = 0
     for managers in department_tree(departments).values():
         for manager, names in managers.items():
             seq += 1
-            safe = re.sub(r'[^\w -]', '_', manager).strip()[:65] or "Mudurluk"
-            path = args.cikti.with_name(f"Mudurluk_{seq:02d}_{safe}_{label(report_period)}_Aylar_{filename_months}.xlsx")
+            safe = re.sub(r"[^\w -]", "_", manager).strip()[:65] or "Mudurluk"
+            path = args.cikti.with_name(
+                f"Mudurluk_{seq:02d}_{safe}_{label(report_period)}_Aylar_{filename_months}.xlsx"
+            )
             selected_names = set(names)
-            selected_layout = [(name, level, group) for name, level, group in layout
-                               if level in {"Bölüm", "Müdürlük toplamı"} and set(group) <= selected_names]
-            selected_units = [row for (_, level, group), row in zip(layout, units)
-                              if level in {"Bölüm", "Müdürlük toplamı"} and set(group) <= selected_names]
-            reports.append((path, {name: departments[name] for name in names}, selected_layout, selected_units))
+            selected_layout = [
+                (name, level, group)
+                for name, level, group in layout
+                if level in {"Bölüm", "Müdürlük toplamı"} and set(group) <= selected_names
+            ]
+            selected_units = [
+                row
+                for (_, level, group), row in zip(layout, units)
+                if level in {"Bölüm", "Müdürlük toplamı"} and set(group) <= selected_names
+            ]
+            reports.append(
+                (path, {name: departments[name] for name in names}, selected_layout, selected_units)
+            )
     protected = {p.resolve() for p in inputs}
     for path, *_ in reports:
         if path.resolve() in protected or path.resolve().is_relative_to(cost_dir):
@@ -1043,13 +1353,34 @@ def run(args, *, dashboard=False):
         scope_warnings = [r for r in warnings if r[1] is None or r[1] in names or r[1] not in departments]
         cross_scope = {r[0] for r in checks if set(r[-1]) & names and not set(r[-1]) <= names}
         for target in sorted(cross_scope):
-            scope_warnings.append([label(report_period), None, None,
-                                   f"{target}: Birleşik bölüm kontrolü direktörlük raporunda yer alır"])
-        write_report(path, scope, report_layout, [r for r in detail if r[0] in names], set(missing),
-                     [r for r in checks if set(r[-1]) <= names], operating, revenue, revenue_rows, year_span, previous_span,
-                     unit_rows, [r for r in revision_rows if r[3] in names],
-                     scope_warnings,
-                     (label(report_period), label(closing), selection_id), editable=file_index != 0, snapshots=snapshots, closing=closing)
+            scope_warnings.append(
+                [
+                    label(report_period),
+                    None,
+                    None,
+                    f"{target}: Birleşik bölüm kontrolü direktörlük raporunda yer alır",
+                ]
+            )
+        write_report(
+            path,
+            scope,
+            report_layout,
+            [r for r in detail if r[0] in names],
+            set(missing),
+            [r for r in checks if set(r[-1]) <= names],
+            operating,
+            revenue,
+            revenue_rows,
+            year_span,
+            previous_span,
+            unit_rows,
+            [r for r in revision_rows if r[3] in names],
+            scope_warnings,
+            (label(report_period), label(closing), selection_id),
+            editable=file_index != 0,
+            snapshots=snapshots,
+            closing=closing,
+        )
     return [path.resolve() for path, *_ in reports]
 
 
@@ -1071,32 +1402,56 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
         for code, (item, actuals, budget) in items.items():
             for (year, month_number), value in actuals.items():
                 if (year, month_number) <= closing:
-                    source.append((name, (year, month_number), code, item, value,
-                                   actuals.get((year - 1, month_number)), budget.get((year, month_number))))
+                    source.append(
+                        (
+                            name,
+                            (year, month_number),
+                            code,
+                            item,
+                            value,
+                            actuals.get((year - 1, month_number)),
+                            budget.get((year, month_number)),
+                        )
+                    )
     periods = sorted({row[1] for row in source} | {period(report_id[0])})
     period_rows = {p: i for i, p in enumerate(periods, 2)}
     names = [name for name, level, _ in hierarchy(departments) if level == "Bölüm"]
     scope_rows = {name: i for i, name in enumerate(names, 2)}
     selectors.append(["Yıl", "Ay no", "Dahil", None, "Ay seçenekleri", "Seçili ay no", "Yıl seçenekleri"])
-    scope.append(["Müdürlük", "Bölüm", "Lokasyon", "Dahil", None,
-                  "Müdürlük seçenekleri", "Bölüm seçenekleri", "Lokasyon seçenekleri"])
+    scope.append(
+        [
+            "Müdürlük",
+            "Bölüm",
+            "Lokasyon",
+            "Dahil",
+            None,
+            "Müdürlük seçenekleri",
+            "Bölüm seçenekleri",
+            "Lokasyon seçenekleri",
+        ]
+    )
     for r, m in enumerate(MONTHS, 2):
         selectors.cell(r, 5, m)
-        selectors.cell(r, 6, f'=IF(COUNTIF({panel_ref}!$B$6:$G$7,E{r})>0,{r - 1},0)')
+        selectors.cell(r, 6, f"=IF(COUNTIF({panel_ref}!$B$6:$G$7,E{r})>0,{r - 1},0)")
     years = sorted({y for y, _ in periods})
     for r, y in enumerate(years, 2):
         selectors.cell(r, 7, y)
     for r, (year, m) in enumerate(periods, 2):
         selectors.cell(r, 1, year)
         selectors.cell(r, 2, m)
-        selectors.cell(r, 3, f'=--AND(A{r}={panel_ref}!$B$3,F{m + 1}>0)')
+        selectors.cell(r, 3, f"=--AND(A{r}={panel_ref}!$B$3,F{m + 1}>0)")
     for r, name in enumerate(names, 2):
         mapping = departments[name]
         for c, value in enumerate((mapping["mudurluk"], name, mapping.get("lokasyon") or "Tanımsız"), 1):
             scope.cell(r, c, value).data_type = "s"
-        scope.cell(r, 4, f'=--AND(OR({panel_ref}!$F$3="Tümü",A{r}={panel_ref}!$F$3),'
-                         f'OR({panel_ref}!$B$4="Tümü",B{r}={panel_ref}!$B$4),'
-                         f'OR({panel_ref}!$D$4="Tümü",C{r}={panel_ref}!$D$4))')
+        scope.cell(
+            r,
+            4,
+            f'=--AND(OR({panel_ref}!$F$3="Tümü",A{r}={panel_ref}!$F$3),'
+            f'OR({panel_ref}!$B$4="Tümü",B{r}={panel_ref}!$B$4),'
+            f'OR({panel_ref}!$D$4="Tümü",C{r}={panel_ref}!$D$4))',
+        )
+
     def add_choice(name, sheet, cells):
         definition = DefinedName(name, attr_text=f"'{sheet.title}'!{cells}")
         if hasattr(book.defined_names, "add"):
@@ -1117,14 +1472,34 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
             scope[f"{col}{r}"].data_type = "s"
         option_ranges[field] = add_choice(f"PanelKapsam{col}", scope, f"${col}$2:${col}${len(values) + 1}")
 
-    raw.append(["İndeks", "Gider", "Gerçekleşen", "Önceki yıl", "Bütçe", "Dahil",
-                "Gerçekleşen mevcut", "Önceki yıl mevcut", "Bütçe mevcut"])
+    raw.append(
+        [
+            "İndeks",
+            "Gider",
+            "Gerçekleşen",
+            "Önceki yıl",
+            "Bütçe",
+            "Dahil",
+            "Gerçekleşen mevcut",
+            "Önceki yıl mevcut",
+            "Bütçe mevcut",
+        ]
+    )
     for name, p, code, item, actual, previous, budget in source:
         r = raw.max_row + 1
-        raw.append([code, item, actual, previous, budget,
-                    f"={select_ref}!C{period_rows[p]}*{scope_ref}!D{scope_rows[name]}",
-                    f"=IF(ISNUMBER(C{r}),F{r},0)", f"=IF(ISNUMBER(D{r}),F{r},0)",
-                    f"=IF(ISNUMBER(E{r}),F{r},0)"])
+        raw.append(
+            [
+                code,
+                item,
+                actual,
+                previous,
+                budget,
+                f"={select_ref}!C{period_rows[p]}*{scope_ref}!D{scope_rows[name]}",
+                f"=IF(ISNUMBER(C{r}),F{r},0)",
+                f"=IF(ISNUMBER(D{r}),F{r},0)",
+                f"=IF(ISNUMBER(E{r}),F{r},0)",
+            ]
+        )
         raw.cell(r, 2).data_type = "s"
     last = max(raw.max_row, 2)
 
@@ -1135,9 +1510,15 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
     view["A2"] = "Seçtiğin aylar gerçekleşen, bütçe ve önceki yıl için aynı şekilde toplanır."
     y, m = period(report_id[0])
     for address, value in {
-        "A3": "Yıl", "B3": y,
-        "E3": "Müdürlük", "F3": "Tümü", "A4": "Bölüm", "B4": "Tümü",
-        "C4": "Lokasyon", "D4": "Tümü", "A6": "Aylar",
+        "A3": "Yıl",
+        "B3": y,
+        "E3": "Müdürlük",
+        "F3": "Tümü",
+        "A4": "Bölüm",
+        "B4": "Tümü",
+        "C4": "Lokasyon",
+        "D4": "Tümü",
+        "A6": "Aylar",
     }.items():
         view[address] = value
     initial_months = selected_months(report_id[2].removeprefix("aylar:"), m)
@@ -1146,19 +1527,28 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
     view.merge_cells("A5:G5")
     view["A5"] = "Bir veya daha fazla ay seç. Bir ayı kaldırmak için hücreyi Delete ile temizle."
     view.merge_cells("A8:G8")
-    view["A8"] = (f'=IF(COUNTIF({select_ref}!F2:F13,">0")=0,"En az bir ay seçin.",'
-                  f'IF(SUM({scope_ref}!D2:D{len(names) + 1})=0,"Kapsam seçimleri eşleşmiyor.",'
-                  f'IF(SUM({select_ref}!C2:C{len(periods) + 1})<>COUNTIF({select_ref}!F2:F13,">0"),'
-                  '"Seçilen aylardan en az biri kaynakta yok. Seçimi kontrol edin.","")))')
+    view["A8"] = (
+        f'=IF(COUNTIF({select_ref}!F2:F13,">0")=0,"En az bir ay seçin.",'
+        f'IF(SUM({scope_ref}!D2:D{len(names) + 1})=0,"Kapsam seçimleri eşleşmiyor.",'
+        f'IF(SUM({select_ref}!C2:C{len(periods) + 1})<>COUNTIF({select_ref}!F2:F13,">0"),'
+        '"Seçilen aylardan en az biri kaynakta yok. Seçimi kontrol edin.","")))'
+    )
     validations = [
         ("B3", add_choice("PanelYillar", selectors, f"$G$2:$G${len(years) + 1}"), False),
         ("F3", option_ranges["Müdürlük"], False),
-        ("B4", option_ranges["Bölüm"], False), ("D4", option_ranges["Lokasyon"], False),
+        ("B4", option_ranges["Bölüm"], False),
+        ("D4", option_ranges["Lokasyon"], False),
         ("B6:G7", add_choice("PanelAylar", selectors, "$E$2:$E$13"), True),
     ]
     for address, formula, blank in validations:
-        rule = DataValidation(type="list", formula1=formula, allow_blank=blank, showErrorMessage=True,
-                              errorTitle="Geçersiz seçim", error="Açılır listeden bir değer seçin.")
+        rule = DataValidation(
+            type="list",
+            formula1=formula,
+            allow_blank=blank,
+            showErrorMessage=True,
+            errorTitle="Geçersiz seçim",
+            error="Açılır listeden bir değer seçin.",
+        )
         view.add_data_validation(rule)
         rule.add(address)
     for row in (view[3], view[4], view[6], view[7]):
@@ -1168,8 +1558,15 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
     book.active = view
     view.freeze_panes = "C11"
     view.sheet_view.showGridLines = False
-    headings = ["İndeks", "Alt gider", "Gerçekleşen (TL)", "Önceki yıl (TL)", "Bütçe (TL)",
-                "Bütçe − gerçekleşen (TL)", "Bütçe aşım oranı (%)"]
+    headings = [
+        "İndeks",
+        "Alt gider",
+        "Gerçekleşen (TL)",
+        "Önceki yıl (TL)",
+        "Bütçe (TL)",
+        "Bütçe − gerçekleşen (TL)",
+        "Bütçe aşım oranı (%)",
+    ]
     for c, title in enumerate(headings, 1):
         cell = view.cell(10, c, title)
         cell.fill = PatternFill("solid", fgColor="E7EEF2")
@@ -1180,17 +1577,27 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
         if code is not None:
             view.cell(r, 1, code)
         view.cell(r, 2, item).data_type = "s"
+
         def summarize(column):
             area = f"{raw_ref}!${column}$2:${column}${last}"
             if code is None:
                 return f"SUM({area})"
             return f"SUMIFS({area},{raw_ref}!$A$2:$A${last},A{r},{raw_ref}!$B$2:$B${last},B{r})"
+
         for c, data_col, presence_col in ((3, "C", "G"), (4, "D", "H"), (5, "E", "I")):
             source_range = f"{raw_ref}!${data_col}$2:${data_col}${last}"
             active_range = f"{raw_ref}!$F$2:$F${last}"
-            criteria = "" if code is None else f",--({raw_ref}!$A$2:$A${last}=A{r}),--({raw_ref}!$B$2:$B${last}=B{r})"
+            criteria = (
+                ""
+                if code is None
+                else f",--({raw_ref}!$A$2:$A${last}=A{r}),--({raw_ref}!$B$2:$B${last}=B{r})"
+            )
             active, present = summarize("F"), summarize(presence_col)
-            view.cell(r, c, f'=IF(OR($A$8<>"",{active}=0,{present}<>{active}),"",SUMPRODUCT({source_range},{active_range}{criteria}))')
+            view.cell(
+                r,
+                c,
+                f'=IF(OR($A$8<>"",{active}=0,{present}<>{active}),"",SUMPRODUCT({source_range},{active_range}{criteria}))',
+            )
         view.cell(r, 6, f'=IF(COUNT(C{r},E{r})<2,"",E{r}-C{r})')
         view.cell(r, 7, f'=IF(OR(COUNT(C{r},E{r})<2,E{r}=0),"",(C{r}-E{r})/E{r})')
         for c in range(3, 8):
@@ -1200,8 +1607,10 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
                 cell.font = Font(bold=True, color="263746")
     for col, positive, negative in (("F", "C6EFCE", "FFC7CE"), ("G", "FFC7CE", "C6EFCE")):
         for operator, fill in (("greaterThan", positive), ("lessThan", negative)):
-            view.conditional_formatting.add(f"{col}11:{col}{view.max_row}",
-                                            CellIsRule(operator=operator, formula=["0"], fill=PatternFill("solid", fgColor=fill)))
+            view.conditional_formatting.add(
+                f"{col}11:{col}{view.max_row}",
+                CellIsRule(operator=operator, formula=["0"], fill=PatternFill("solid", fgColor=fill)),
+            )
     selectors.sheet_state = scope.sheet_state = raw.sheet_state = "veryHidden"
     if "Giderler" in book:
         main = book["Giderler"]
@@ -1211,44 +1620,87 @@ def add_selection_view(book, departments, snapshots, closing, report_id, *, shee
     return view
 
 
-def write_report(path, departments, layout, detail, missing, checks, operating, revenue, revenue_rows, year_span, previous_span,
-                 unit_rows, revision_rows, warnings, report_id, editable, snapshots, closing):
+def write_report(
+    path,
+    departments,
+    layout,
+    detail,
+    missing,
+    checks,
+    operating,
+    revenue,
+    revenue_rows,
+    year_span,
+    previous_span,
+    unit_rows,
+    revision_rows,
+    warnings,
+    report_id,
+    editable,
+    snapshots,
+    closing,
+):
     book = Workbook()
     book.remove(book.active)
+
     def title(name, span=year_span):
         return f"{name}\n{span}"
 
     comparison_span = f"{year_span} / {previous_span}"
     metrics = [
-        title("Önceki yıl gerçekleşen (TL)", previous_span), title("Gerçekleşen (TL)"),
-        title("Bütçe (TL)"), title("Bütçe − gerçekleşen (TL)"), title("Bütçe aşım oranı (%)"),
+        title("Önceki yıl gerçekleşen (TL)", previous_span),
+        title("Gerçekleşen (TL)"),
+        title("Bütçe (TL)"),
+        title("Bütçe − gerçekleşen (TL)"),
+        title("Bütçe aşım oranı (%)"),
     ]
-    add_general_summary(book, detail, layout, set(missing), metrics, operating, revenue,
-                        title("OPEX / şirket cirosu"))
+    add_general_summary(
+        book, detail, layout, set(missing), metrics, operating, revenue, title("OPEX / şirket cirosu")
+    )
     add_expense_matrix(book, detail, departments, year_span, editable)
     add_selection_view(book, departments, snapshots, closing, report_id)
     unit_rows = [r for r in unit_rows if r[4] is not None]
     if unit_rows:
-        add_table(book, "Birim Maliyet", [
-            "Bölüm / müdürlük / direktörlük", "Müdürlük / satır türü", title("Toplam gider (TL)"), title("İşlem adedi"),
-            title("Birim maliyet (TL/işlem)"), title("Toplam gider (TL)", previous_span),
-            title("İşlem adedi", previous_span), title("Birim maliyet (TL/işlem)", previous_span),
-            title("Endekslenmiş birim maliyet (TL/işlem)", previous_span),
-            title("Birim maliyet iyileşmesi (%)", comparison_span),
-            title("Dönem endeksi", comparison_span),
-            title("Müdürlük gider ağırlığı"), title("Direktörlük gider ağırlığı"), title("Bütçe BM (TL/işlem)"),
-        ], [row[:12] + [row[13], row[15]] for row in unit_rows], (10, 12, 13))
+        add_table(
+            book,
+            "Birim Maliyet",
+            [
+                "Bölüm / müdürlük / direktörlük",
+                "Müdürlük / satır türü",
+                title("Toplam gider (TL)"),
+                title("İşlem adedi"),
+                title("Birim maliyet (TL/işlem)"),
+                title("Toplam gider (TL)", previous_span),
+                title("İşlem adedi", previous_span),
+                title("Birim maliyet (TL/işlem)", previous_span),
+                title("Endekslenmiş birim maliyet (TL/işlem)", previous_span),
+                title("Birim maliyet iyileşmesi (%)", comparison_span),
+                title("Dönem endeksi", comparison_span),
+                title("Müdürlük gider ağırlığı"),
+                title("Direktörlük gider ağırlığı"),
+                title("Bütçe BM (TL/işlem)"),
+            ],
+            [row[:12] + [row[13], row[15]] for row in unit_rows],
+            (10, 12, 13),
+        )
         if not str(report_id[0]).startswith(str(closing[0])):
             sheet = book["Birim Maliyet"]
             sheet.delete_cols(6, sheet.max_column - 5)
             sheet.auto_filter.ref = sheet.dimensions
-        style_subtotals(book["Birim Maliyet"], [
-            (r, row[1]) for r, row in enumerate(unit_rows, 2) if row[1] in {"Müdürlük toplamı", "Direktörlük toplamı", "Genel toplam"}
-        ])
+        style_subtotals(
+            book["Birim Maliyet"],
+            [
+                (r, row[1])
+                for r, row in enumerate(unit_rows, 2)
+                if row[1] in {"Müdürlük toplamı", "Direktörlük toplamı", "Genel toplam"}
+            ],
+        )
     add_audit(book, checks, revision_rows, warnings, revenue_rows)
     metadata = book.create_sheet("_Rapor Kimliği")
     metadata.append(["ButceSapmasi-1", "Müdürlük" if editable else "Direktörlük", *report_id])
-    for name in (n for managers in department_tree(departments).values() for group in managers.values() for n in group):
+    for name in (
+        n for managers in department_tree(departments).values() for group in managers.values() for n in group
+    ):
         metadata.append([name, departments[name]["mudurluk"], departments[name]["direktorluk"]])
     metadata.sheet_state = "veryHidden"
     save_report(book, path)
@@ -1313,7 +1765,9 @@ def merge_explanations(general_path, manager_paths, output_path):
                     if any(departments.get(name) != pair for name, pair in members.items()):
                         raise ValueError("Bölüm, müdürlük veya direktörlük eşleşmiyor")
                     expected = set(members.values())
-                    if len(expected) != 1 or set(members) != {n for n, pair in departments.items() if pair in expected}:
+                    if len(expected) != 1 or set(members) != {
+                        n for n, pair in departments.items() if pair in expected
+                    }:
                         raise ValueError("Müdürlük kapsamı eksik veya geçersiz")
                     if recorded.intersection(members):
                         raise ValueError("Aynı bölüm birden fazla dosyada seçildi")
@@ -1330,8 +1784,11 @@ def merge_explanations(general_path, manager_paths, output_path):
                             if note.data_type == "f":
                                 raise ValueError(f"Açıklama metin olmalı: {name}, {item[2]}")
                             target_row = items.get(item)
-                            if target_row is None or any(source.cell(row, col + offset).value !=
-                                    target_sheet.cell(target_row, columns[name] + offset).value for offset in (0, 1)):
+                            if target_row is None or any(
+                                source.cell(row, col + offset).value
+                                != target_sheet.cell(target_row, columns[name] + offset).value
+                                for offset in (0, 1)
+                            ):
                                 raise ValueError(f"Alt gider veya rapor tutarı uyuşmuyor: {name}, {item[2]}")
                             notes.setdefault(item, {})[name] = value
                 finally:
@@ -1352,13 +1809,20 @@ def merge_explanations(general_path, manager_paths, output_path):
         sheet_name = "Alt Gider Açıklamaları"
         if sheet_name in general:
             del general[sheet_name]
-        add_table(general, sheet_name, ["Gider grubu", "İndeks", "Alt gider kalemi", "Birleşik bölüm açıklaması"], result)
+        add_table(
+            general,
+            sheet_name,
+            ["Gider grubu", "İndeks", "Alt gider kalemi", "Birleşik bölüm açıklaması"],
+            result,
+        )
         sheet = general[sheet_name]
         sheet.column_dimensions["D"].width = 78
         for r in range(2, sheet.max_row + 1):
             cell = sheet.cell(r, 4)
             cell.alignment = Alignment(wrap_text=True, vertical="top")
-            sheet.row_dimensions[r].height = min(400, 16 * sum(max(1, (len(line) + 69) // 70) for line in cell.value.split("\n")))
+            sheet.row_dimensions[r].height = min(
+                400, 16 * sum(max(1, (len(line) + 69) // 70) for line in cell.value.split("\n"))
+            )
         save_report(general, output_path)
         return len(result)
     finally:

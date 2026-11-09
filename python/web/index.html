@@ -1,11 +1,61 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bütçe Sapması · Yerel Analiz</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
-<body>
-<aside class="sidebar"><div class="brand"><span class="brand-mark">B</span><div>Bütçe Sapması<small>PYTHON · YEREL ANALİZ</small></div></div><div class="nav-label">ÇALIŞMA ALANI</div><nav id="nav" aria-label="Dashboard sayfaları"></nav><div class="sidebar-bottom"><span class="online-dot"></span>Bu bilgisayarda çalışıyor<small>Kaynaklar dış servise gönderilmez.</small><button id="auditBtn" class="sidebar-link">Doğrulama ve revizyonlar ↗</button></div></aside>
-<main><header><div><div class="eyebrow">OPERASYON & BÜTÇE</div><h1 id="pageTitle">Genel durum</h1><p id="subtitle">Kaynaklar hazırlanıyor…</p></div><div class="toolbar"><button id="carryPreviousBtn">Önceki ayın yorumlarını getir</button><button id="workspaceBtn" class="primary">Çalışma merkezi</button><button id="sourceBtn">Kaynaklar</button><button id="saveFiltersBtn">Seçimi kaydet</button><button id="reportBtn" class="primary">Rapor oluştur ↗</button><button id="closeBtn" class="icon-button" aria-label="Uygulamayı kapat">⏻</button></div></header>
-<section class="selection-bar"><div class="section-label">ORTAK SEÇİMLER <span>Tüm sayfalarla senkronize</span><button id="resetBtn" class="text-button">Sıfırla</button></div><div id="filters" class="filters"></div></section>
-<div class="context"><span id="selectionCaption"></span><span id="unitCaption"></span></div><div id="messages" aria-live="polite"></div><section id="content" aria-label="Dashboard içeriği"></section>
-<footer><span id="sourceStamp"></span><span id="status" role="status"></span></footer></main>
-<div id="tooltip" class="tooltip" role="tooltip" hidden></div><div id="toast" role="status" hidden></div>
-<dialog id="modal"><div class="modal-head"><h2 id="modalTitle"></h2><button id="modalClose" class="icon-button" aria-label="Pencereyi kapat">×</button></div><div id="modalBody"></div></dialog>
-</body></html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bütçe Sapması · Yerel Analiz</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">B</span>
+        <div>Bütçe Sapması<small>PYTHON · YEREL ANALİZ</small></div>
+      </div>
+      <div class="nav-label">ÇALIŞMA ALANI</div>
+      <nav id="nav" aria-label="Dashboard sayfaları"></nav>
+      <div class="sidebar-bottom">
+        <span class="online-dot"></span>Bu bilgisayarda çalışıyor<small
+          >Kaynaklar dış servise gönderilmez.</small
+        ><button id="auditBtn" class="sidebar-link">Doğrulama ve revizyonlar ↗</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">OPERASYON & BÜTÇE</div>
+          <h1 id="pageTitle">Genel durum</h1>
+          <p id="subtitle">Kaynaklar hazırlanıyor…</p>
+        </div>
+        <div class="toolbar">
+          <button id="carryPreviousBtn">Önceki ayın yorumlarını getir</button
+          ><button id="workspaceBtn" class="primary">Çalışma merkezi</button
+          ><button id="sourceBtn">Kaynaklar</button><button id="saveFiltersBtn">Seçimi kaydet</button
+          ><button id="reportBtn" class="primary">Rapor oluştur ↗</button
+          ><button id="closeBtn" class="icon-button" aria-label="Uygulamayı kapat">⏻</button>
+        </div>
+      </header>
+      <section class="selection-bar">
+        <div class="section-label">
+          ORTAK SEÇİMLER <span>Tüm sayfalarla senkronize</span
+          ><button id="resetBtn" class="text-button">Sıfırla</button>
+        </div>
+        <div id="filters" class="filters"></div>
+      </section>
+      <div class="context"><span id="selectionCaption"></span><span id="unitCaption"></span></div>
+      <div id="messages" aria-live="polite"></div>
+      <section id="content" aria-label="Dashboard içeriği"></section>
+      <footer><span id="sourceStamp"></span><span id="status" role="status"></span></footer>
+    </main>
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+    <div id="toast" role="status" hidden></div>
+    <dialog id="modal">
+      <div class="modal-head">
+        <h2 id="modalTitle"></h2>
+        <button id="modalClose" class="icon-button" aria-label="Pencereyi kapat">×</button>
+      </div>
+      <div id="modalBody"></div>
+    </dialog>
+  </body>
+</html>
