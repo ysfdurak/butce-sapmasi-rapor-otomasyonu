@@ -1,0 +1,214 @@
+test_all_selection_includes_additions_and_deleted_names_are_removed (test_configuration.ConfigurationTests.test_all_selection_includes_additions_and_deleted_names_are_removed) ... ok
+test_configure_job_remembers_settings_path_on_restart (test_configuration.ConfigurationTests.test_configure_job_remembers_settings_path_on_restart) ... ok
+test_deleted_and_renamed_mapping_reflects_in_filters (test_configuration.ConfigurationTests.test_deleted_and_renamed_mapping_reflects_in_filters) ... ok
+test_external_change_does_not_get_overwritten (test_configuration.ConfigurationTests.test_external_change_does_not_get_overwritten) ... ok
+test_failed_candidate_does_not_modify_settings (test_configuration.ConfigurationTests.test_failed_candidate_does_not_modify_settings) ... ok
+test_invalid_source_does_not_modify_settings (test_configuration.ConfigurationTests.test_invalid_source_does_not_modify_settings) ... ok
+test_locations_persist_and_backup_preserves_all_mappings (test_configuration.ConfigurationTests.test_locations_persist_and_backup_preserves_all_mappings) ... ok
+test_new_department_and_manager_included_after_reload (test_configuration.ConfigurationTests.test_new_department_and_manager_included_after_reload) ... ok
+test_preview_contains_every_mapping_field (test_configuration.ConfigurationTests.test_preview_contains_every_mapping_field) ... ok
+test_unmapped_source_is_warned_without_guessed_manager (test_configuration.ConfigurationTests.test_unmapped_source_is_warned_without_guessed_manager) ... ok
+test_actual_titles_all_four_and_transaction (test_configuration.SourceTitleTests.test_actual_titles_all_four_and_transaction) ... ok
+test_different_department_titles_are_scoped (test_configuration.SourceTitleTests.test_different_department_titles_are_scoped) ... ok
+test_missing_title_is_visible (test_configuration.SourceTitleTests.test_missing_title_is_visible) ... ok
+test_optional_title_column_is_parametric (test_configuration.SourceTitleTests.test_optional_title_column_is_parametric) ... ok
+test_arbitrary_months_same_period (test_dashboard.CalculationTests.test_arbitrary_months_same_period) ... ok
+test_control_mismatch_has_visible_warning (test_dashboard.CalculationTests.test_control_mismatch_has_visible_warning) ... ok
+test_detail_groups_and_hover (test_dashboard.CalculationTests.test_detail_groups_and_hover) ... ok
+test_empty_selections (test_dashboard.CalculationTests.test_empty_selections) ... ok
+test_future_month_missing_is_not_zero (test_dashboard.CalculationTests.test_future_month_missing_is_not_zero) ... ok
+test_historical_year_no_budget (test_dashboard.CalculationTests.test_historical_year_no_budget) ... ok
+test_index_arithmetic_mean_of_selected_monthly_ratios (test_dashboard.CalculationTests.test_index_arithmetic_mean_of_selected_monthly_ratios) ... ok
+test_invalid_filter_rejected (test_dashboard.CalculationTests.test_invalid_filter_rejected) ... ok
+test_local_scopes_independent (test_dashboard.CalculationTests.test_local_scopes_independent) ... ok
+test_missing_previous_cost_excludes_and_renormalizes (test_dashboard.CalculationTests.test_missing_previous_cost_excludes_and_renormalizes) ... ok
+test_multi_year_budget_gate (test_dashboard.CalculationTests.test_multi_year_budget_gate) ... ok
+test_priority_reference (test_dashboard.CalculationTests.test_priority_reference) ... ok
+test_reference_totals (test_dashboard.CalculationTests.test_reference_totals) ... ok
+test_revenue_is_used_once (test_dashboard.CalculationTests.test_revenue_is_used_once) ... ok
+test_staff_budget_completion (test_dashboard.CalculationTests.test_staff_budget_completion) ... ok
+test_staff_counts_do_not_enter_financials (test_dashboard.CalculationTests.test_staff_counts_do_not_enter_financials) ... ok
+test_transaction_previous_year_values (test_dashboard.CalculationTests.test_transaction_previous_year_values) ... ok
+test_unit_weighted_reference (test_dashboard.CalculationTests.test_unit_weighted_reference) ... ok
+test_year_rollover_in_memory (test_dashboard.CalculationTests.test_year_rollover_in_memory) ... ok
+test_zero_count_excludes_unit_only (test_dashboard.CalculationTests.test_zero_count_excludes_unit_only) ... ok
+test_cookie_auth (test_dashboard.HTTPTests.test_cookie_auth) ... ok
+test_cross_origin_rejected (test_dashboard.HTTPTests.test_cross_origin_rejected) ... ok
+test_failed_load_preserves_dataset (test_dashboard.HTTPTests.test_failed_load_preserves_dataset) ... ok
+test_no_filesystem_traversal (test_dashboard.HTTPTests.test_no_filesystem_traversal) ... ok
+test_query_and_saved_filters (test_dashboard.HTTPTests.test_query_and_saved_filters) ... ok
+test_existing_report_pipeline_generates_five_files (test_dashboard.PersistenceTests.test_existing_report_pipeline_generates_five_files) ... ok
+test_note_import_atomic_and_period_validation (test_dashboard.PersistenceTests.test_note_import_atomic_and_period_validation) ... ok
+test_notes_exact_months_and_stale_amounts (test_dashboard.PersistenceTests.test_notes_exact_months_and_stale_amounts) ... ok
+test_approved_comment_becomes_pending_again_after_amount_change (test_note_review.NoteReviewTests.test_approved_comment_becomes_pending_again_after_amount_change) ... ok
+test_approved_export_has_no_pending_label (test_note_review.NoteReviewTests.test_approved_export_has_no_pending_label) ... ok
+test_approved_local_history_is_brought_without_files (test_note_review.NoteReviewTests.test_approved_local_history_is_brought_without_files) ... ok
+test_calendar_previous_closing_including_year_rollover (test_note_review.NoteReviewTests.test_calendar_previous_closing_including_year_rollover) ... ok
+test_changed_amount_invalidates_review_token (test_note_review.NoteReviewTests.test_changed_amount_invalidates_review_token) ... ok
+test_department_scope_is_applied (test_note_review.NoteReviewTests.test_department_scope_is_applied) ... ok
+test_draft_save_remains_unconfirmed (test_note_review.NoteReviewTests.test_draft_save_remains_unconfirmed) ... ok
+test_duplicate_entries_rejected_without_partial_commit (test_note_review.NoteReviewTests.test_duplicate_entries_rejected_without_partial_commit) ... ok
+test_entire_bulk_operation_rolls_back_if_one_token_is_invalid (test_note_review.NoteReviewTests.test_entire_bulk_operation_rolls_back_if_one_token_is_invalid) ... ok
+test_example_files_have_ten_pending_and_different_month_scope (test_note_review.NoteReviewTests.test_example_files_have_ten_pending_and_different_month_scope) ... ok
+test_existing_current_note_is_not_overwritten (test_note_review.NoteReviewTests.test_existing_current_note_is_not_overwritten) ... ok
+test_manual_edit_after_carry_is_protected (test_note_review.NoteReviewTests.test_manual_edit_after_carry_is_protected) ... ok
+test_multiple_old_month_selections_are_not_guessed (test_note_review.NoteReviewTests.test_multiple_old_month_selections_are_not_guessed) ... ok
+test_optimistic_lock_prevents_losing_other_window_edit (test_note_review.NoteReviewTests.test_optimistic_lock_prevents_losing_other_window_edit) ... ok
+test_pending_export_red_labeled_and_source_months_visible (test_note_review.NoteReviewTests.test_pending_export_red_labeled_and_source_months_visible) ... ok
+test_rejected_note_is_not_exported_as_effective_comment (test_note_review.NoteReviewTests.test_rejected_note_is_not_exported_as_effective_comment) ... ok
+test_repeat_import_preserves_drafts_rejections_and_approvals (test_note_review.NoteReviewTests.test_repeat_import_preserves_drafts_rejections_and_approvals) ... ok
+test_same_values_do_not_approve_the_comment (test_note_review.NoteReviewTests.test_same_values_do_not_approve_the_comment) ... ok
+test_two_unchanged_eight_edited_in_two_bulk_actions (test_note_review.NoteReviewTests.test_two_unchanged_eight_edited_in_two_bulk_actions) ... ok
+test_wrong_closing_report_is_rejected_atomically (test_note_review.NoteReviewTests.test_wrong_closing_report_is_rejected_atomically) ... ok
+test_cancel_load_preserves_previous_dataset (test_workspace.WorkspaceTests.test_cancel_load_preserves_previous_dataset) ... ok
+test_changed_source_during_capture_is_rejected (test_workspace.WorkspaceTests.test_changed_source_during_capture_is_rejected) ... ok
+test_conflicting_rename_does_not_move_notes (test_workspace.WorkspaceTests.test_conflicting_rename_does_not_move_notes) ... ok
+test_layout_failure_preserves_settings (test_workspace.WorkspaceTests.test_layout_failure_preserves_settings) ... ok
+test_layout_preview_uses_actual_cells (test_workspace.WorkspaceTests.test_layout_preview_uses_actual_cells) ... ok
+test_mapping_review_and_explicit_rename_keep_id_and_notes (test_workspace.WorkspaceTests.test_mapping_review_and_explicit_rename_keep_id_and_notes) ... ok
+test_multi_year_trace_hides_budget (test_workspace.WorkspaceTests.test_multi_year_trace_hides_budget) ... ok
+test_quality_reports_scope_and_exclusions (test_workspace.WorkspaceTests.test_quality_reports_scope_and_exclusions) ... ok
+test_replay_path_traversal_rejected (test_workspace.WorkspaceTests.test_replay_path_traversal_rejected) ... ok
+test_report_job_snapshot_and_replay_use_frozen_notes (test_workspace.WorkspaceTests.test_report_job_snapshot_and_replay_use_frozen_notes) ... ok
+test_snapshot_rejects_added_source_file (test_workspace.WorkspaceTests.test_snapshot_rejects_added_source_file) ... ok
+test_snapshot_replay_is_identical_and_tamper_detected (test_workspace.WorkspaceTests.test_snapshot_replay_is_identical_and_tamper_detected) ... ok
+test_successful_layout_change_is_backed_up_and_atomic (test_workspace.WorkspaceTests.test_successful_layout_change_is_backed_up_and_atomic) ... ok
+test_trace_merged_item_reconciles_and_excludes_counts (test_workspace.WorkspaceTests.test_trace_merged_item_reconciles_and_excludes_counts) ... ok
+test_trace_rejects_changed_sources (test_workspace.WorkspaceTests.test_trace_rejects_changed_sources) ... ok
+
+----------------------------------------------------------------------
+Ran 77 tests in 137.265s
+
+OK
+
+Final comment recheck:
+test_approved_comment_becomes_pending_again_after_amount_change (test_note_review.NoteReviewTests.test_approved_comment_becomes_pending_again_after_amount_change) ... ok
+test_approved_export_has_no_pending_label (test_note_review.NoteReviewTests.test_approved_export_has_no_pending_label) ... ok
+test_approved_local_history_is_brought_without_files (test_note_review.NoteReviewTests.test_approved_local_history_is_brought_without_files) ... ok
+test_calendar_previous_closing_including_year_rollover (test_note_review.NoteReviewTests.test_calendar_previous_closing_including_year_rollover) ... ok
+test_changed_amount_invalidates_review_token (test_note_review.NoteReviewTests.test_changed_amount_invalidates_review_token) ... ok
+test_department_scope_is_applied (test_note_review.NoteReviewTests.test_department_scope_is_applied) ... ok
+test_draft_save_remains_unconfirmed (test_note_review.NoteReviewTests.test_draft_save_remains_unconfirmed) ... ok
+test_duplicate_entries_rejected_without_partial_commit (test_note_review.NoteReviewTests.test_duplicate_entries_rejected_without_partial_commit) ... ok
+test_entire_bulk_operation_rolls_back_if_one_token_is_invalid (test_note_review.NoteReviewTests.test_entire_bulk_operation_rolls_back_if_one_token_is_invalid) ... ok
+test_example_files_have_ten_pending_and_different_month_scope (test_note_review.NoteReviewTests.test_example_files_have_ten_pending_and_different_month_scope) ... ok
+test_existing_current_note_is_not_overwritten (test_note_review.NoteReviewTests.test_existing_current_note_is_not_overwritten) ... ok
+test_manual_edit_after_carry_is_protected (test_note_review.NoteReviewTests.test_manual_edit_after_carry_is_protected) ... ok
+test_multiple_old_month_selections_are_not_guessed (test_note_review.NoteReviewTests.test_multiple_old_month_selections_are_not_guessed) ... ok
+test_optimistic_lock_prevents_losing_other_window_edit (test_note_review.NoteReviewTests.test_optimistic_lock_prevents_losing_other_window_edit) ... ok
+test_pending_export_red_labeled_and_source_months_visible (test_note_review.NoteReviewTests.test_pending_export_red_labeled_and_source_months_visible) ... ok
+test_rejected_note_is_not_exported_as_effective_comment (test_note_review.NoteReviewTests.test_rejected_note_is_not_exported_as_effective_comment) ... ok
+test_repeat_import_preserves_drafts_rejections_and_approvals (test_note_review.NoteReviewTests.test_repeat_import_preserves_drafts_rejections_and_approvals) ... ok
+test_same_values_do_not_approve_the_comment (test_note_review.NoteReviewTests.test_same_values_do_not_approve_the_comment) ... ok
+test_two_unchanged_eight_edited_in_two_bulk_actions (test_note_review.NoteReviewTests.test_two_unchanged_eight_edited_in_two_bulk_actions) ... ok
+test_wrong_closing_report_is_rejected_atomically (test_note_review.NoteReviewTests.test_wrong_closing_report_is_rejected_atomically) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 2.295s
+
+OK
+
+Final workspace recheck:
+test_cancel_load_preserves_previous_dataset (test_workspace.WorkspaceTests.test_cancel_load_preserves_previous_dataset) ... ok
+test_changed_source_during_capture_is_rejected (test_workspace.WorkspaceTests.test_changed_source_during_capture_is_rejected) ... ok
+test_conflicting_rename_does_not_move_notes (test_workspace.WorkspaceTests.test_conflicting_rename_does_not_move_notes) ... ok
+test_layout_failure_preserves_settings (test_workspace.WorkspaceTests.test_layout_failure_preserves_settings) ... ok
+test_layout_preview_uses_actual_cells (test_workspace.WorkspaceTests.test_layout_preview_uses_actual_cells) ... ok
+test_mapping_review_and_explicit_rename_keep_id_and_notes (test_workspace.WorkspaceTests.test_mapping_review_and_explicit_rename_keep_id_and_notes) ... ok
+test_multi_year_trace_hides_budget (test_workspace.WorkspaceTests.test_multi_year_trace_hides_budget) ... ok
+test_quality_reports_scope_and_exclusions (test_workspace.WorkspaceTests.test_quality_reports_scope_and_exclusions) ... ok
+test_replay_path_traversal_rejected (test_workspace.WorkspaceTests.test_replay_path_traversal_rejected) ... ok
+test_report_job_snapshot_and_replay_use_frozen_notes (test_workspace.WorkspaceTests.test_report_job_snapshot_and_replay_use_frozen_notes) ... ok
+test_snapshot_rejects_added_source_file (test_workspace.WorkspaceTests.test_snapshot_rejects_added_source_file) ... ok
+test_snapshot_replay_is_identical_and_tamper_detected (test_workspace.WorkspaceTests.test_snapshot_replay_is_identical_and_tamper_detected) ... ok
+test_successful_layout_change_is_backed_up_and_atomic (test_workspace.WorkspaceTests.test_successful_layout_change_is_backed_up_and_atomic) ... ok
+test_trace_merged_item_reconciles_and_excludes_counts (test_workspace.WorkspaceTests.test_trace_merged_item_reconciles_and_excludes_counts) ... ok
+test_trace_rejects_changed_sources (test_workspace.WorkspaceTests.test_trace_rejects_changed_sources) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 7.434s
+
+OK
+
+Frontend/API simulation:
+{
+  "passed": 72,
+  "checks": [
+    "initial general cards read live Python API",
+    "6 shared multiselect listboxes",
+    "4 centered cards",
+    "general actual trend is monthly",
+    "4 personnel charts",
+    "selected-month personnel count",
+    "personnel integer labels",
+    "transactions exact count",
+    "transaction annual change metric",
+    "transaction year disclosure",
+    "detail initial groups collapsed",
+    "detail expands children",
+    "detail hover history attribute",
+    "donut percentage labels",
+    "department monetary unit",
+    "opex independent local filter",
+    "unit weighted improvement",
+    "priority gross and count",
+    "priority signed gap red",
+    "HTML injection escaped",
+    "financial variance sign colors",
+    "transaction over-budget count green",
+    "multiple years hide budget cards",
+    "local scopes retain independence",
+    "unit single department weight 100 percent",
+    "multi-year hover series",
+    "multiple-year personnel series",
+    "non-contiguous month cards",
+    "navigation event renders unit page",
+    "mode click event changes personnel mode",
+    "source personnel title is rendered",
+    "cost/control/index location pickers",
+    "all mapping columns in preview",
+    "configuration explicit save action",
+    "settings preview API fills actual source folder",
+    "preview includes all mapped departments",
+    "work center expected and received counts",
+    "work center actionable quality table",
+    "work center persistent named views",
+    "work center mapping review",
+    "work center run history and replay",
+    "trace source cells and selected months",
+    "trace merged cost and no personnel rows",
+    "trace weights visible",
+    "trace cost picker",
+    "layout preview real coordinates",
+    "layout editable parameters",
+    "saved view loads from actual API",
+    "10 previous comments appear as pending",
+    "inline textareas for all ten",
+    "source closing and differing month scope visible",
+    "bulk review and shared-text controls",
+    "pending draft text is red",
+    "typing auto-selects edited row",
+    "two comments accepted together",
+    "other unsaved draft survives subset approval",
+    "eight edited comments accepted together",
+    "saved text Giriş 1",
+    "saved text Giriş 3",
+    "saved text Tartım 4",
+    "saved text Tartım 5",
+    "saved text İade Kabul 6",
+    "saved text Yerleştirme 1",
+    "saved text Yerleştirme 3",
+    "saved text Stok Yönetimi 4",
+    "saved text Stok Yönetimi 5",
+    "saved text Sayım 6",
+    "shared text applied only to chosen rows",
+    "draft save does not approve",
+    "two invalid comments excluded",
+    "pending-only filter hides rejected rows",
+    "all-state view retains rejected history"
+  ],
+  "kind": "JavaScript renderer/event simulation + live Python API",
+  "realBrowserLayout": "NOT_RUN: cloud browser cannot reach workspace loopback",
+  "windowsNativeDialogs": "NOT_RUN",
+  "errors": []
+}

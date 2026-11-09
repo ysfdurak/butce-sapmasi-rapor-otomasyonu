@@ -1,0 +1,31 @@
+# Yerel kullanıcı verisi ve çıktılar
+**/kullanici/
+**/Raporlar_*/
+**/Ayar_Yedekleri/
+**/Calisma_Arsivi/
+**/Baslatma_Hatasi.txt
+*.xlsm
+*.sqlite3
+*.sqlite3-*
+*.log
+~$*
+/yerel-veri/
+
+# Python ve geliştirme ortamı
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.env
+.env.*
+.DS_Store
+Thumbs.db
+
+# Yeni Excel kaynak ve raporlarının yanlışlıkla eklenmesini önle
+*.xls
+*.xlsb
+*.xlsx
+!/makro/Kontrol_Sablonu.xlsx
+!/makro/Sentetik_Beklenen_Sonuclar.xlsx
+!/makro/ornek/**/*.xlsx
+!/python/ornek/**/*.xlsx

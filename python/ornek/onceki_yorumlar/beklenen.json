@@ -1,0 +1,92 @@
+[
+  {
+    "department": "Giriş",
+    "manager": "Mal Kabul",
+    "code": 1,
+    "item": "Ücret giderleri",
+    "old": "SENTETİK TEST: Giriş / Ücret giderleri için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Giriş / Ücret giderleri için önceki dönem değerlendirmesi.",
+    "action": "Aynen onayla"
+  },
+  {
+    "department": "Giriş",
+    "manager": "Mal Kabul",
+    "code": 3,
+    "item": "Fazla Mesai",
+    "old": "SENTETİK TEST: Giriş / Fazla Mesai için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Giriş / Fazla Mesai için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Tartım",
+    "manager": "Mal Kabul",
+    "code": 4,
+    "item": "Yan Haklar",
+    "old": "SENTETİK TEST: Tartım / Yan Haklar için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Tartım / Yan Haklar için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Tartım",
+    "manager": "Mal Kabul",
+    "code": 5,
+    "item": "Yemek",
+    "old": "SENTETİK TEST: Tartım / Yemek için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Tartım / Yemek için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "İade Kabul",
+    "manager": "Mal Kabul",
+    "code": 6,
+    "item": "Servis",
+    "old": "SENTETİK TEST: İade Kabul / Servis için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: İade Kabul / Servis için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Yerleştirme",
+    "manager": "Depolama",
+    "code": 1,
+    "item": "Ücret giderleri",
+    "old": "SENTETİK TEST: Yerleştirme / Ücret giderleri için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Yerleştirme / Ücret giderleri için önceki dönem değerlendirmesi.",
+    "action": "Aynen onayla"
+  },
+  {
+    "department": "Yerleştirme",
+    "manager": "Depolama",
+    "code": 3,
+    "item": "Fazla Mesai",
+    "old": "SENTETİK TEST: Yerleştirme / Fazla Mesai için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Yerleştirme / Fazla Mesai için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Stok Yönetimi",
+    "manager": "Depolama",
+    "code": 4,
+    "item": "Yan Haklar",
+    "old": "SENTETİK TEST: Stok Yönetimi / Yan Haklar için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Stok Yönetimi / Yan Haklar için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Stok Yönetimi",
+    "manager": "Depolama",
+    "code": 5,
+    "item": "Yemek",
+    "old": "SENTETİK TEST: Stok Yönetimi / Yemek için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Stok Yönetimi / Yemek için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  },
+  {
+    "department": "Sayım",
+    "manager": "Depolama",
+    "code": 6,
+    "item": "Servis",
+    "old": "SENTETİK TEST: Sayım / Servis için önceki dönem değerlendirmesi.",
+    "new": "SENTETİK TEST: Sayım / Servis için Ekim ayı açıklaması güncellendi.",
+    "action": "Düzenle ve onayla"
+  }
+]

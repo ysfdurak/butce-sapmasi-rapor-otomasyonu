@@ -1,0 +1,2 @@
+# Preserve the original Windows VBA import files and their CP1254 bytes.
+makro/vba_elle/*.bas -text whitespace=cr-at-eol
