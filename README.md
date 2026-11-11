@@ -4,6 +4,8 @@
 
 Uygulama, farklı dosyalardaki bölüm giderlerini tek bir kapanışta toplar. Gerçekleşenleri bütçe ve önceki yılın aynı aylarıyla karşılaştırır, kaynak dip toplamlarını kontrol eder ve geçmiş aylarda sonradan değişen kalemleri gösterir. Direktörlük ve müdürlük raporları üretir.
 
+**Kurulumsuz dene:** [Tarayıcı demosu](https://ysfdurak.github.io/butce-sapmasi-rapor-otomasyonu/demo/) — Python sürümü sentetik veriyle doğrudan tarayıcıda çalışır; yüklediğiniz dosyalar bilgisayarınızdan çıkmaz. [Nasıl çalışıyor?](docs/TARAYICI_DEMOSU.md)
+
 ## Çalıştırma seçenekleri
 
 | Sürüm | Çıktı | İlk adım |

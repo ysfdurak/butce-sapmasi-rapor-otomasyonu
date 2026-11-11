@@ -1,0 +1,26 @@
+/* Tarayıcı demosuna özgü eklemeler; ana tasarım ../python/web/style.css */
+.demo-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+  padding: 8px 14px; font: 13px/1.4 system-ui, sans-serif;
+  background: #0f172a; color: #e2e8f0;
+}
+.demo-banner b { color: #fff; }
+.demo-banner a { color: #93c5fd; font-weight: 600; }
+body { padding-bottom: 44px; }
+#closeBtn { display: none; }
+.demo-overlay {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+  background: rgba(248, 250, 252, 0.94); font: 15px/1.5 system-ui, sans-serif; color: #0f172a;
+}
+.demo-overlay[hidden] { display: none; }
+.demo-overlay .box { max-width: 420px; padding: 28px; text-align: center; }
+.demo-overlay h2 { margin: 0 0 8px; font-size: 20px; }
+.demo-overlay p, .demo-overlay span { color: #475569; }
+.demo-overlay.error p { color: #b91c1c; }
+.spinner {
+  width: 34px; height: 34px; margin: 0 auto 16px; border-radius: 50%;
+  border: 3px solid #cbd5e1; border-top-color: #1e3a8a; animation: spin 0.9s linear infinite;
+}
+.demo-busy { background: rgba(248, 250, 252, 0.7); }
+@keyframes spin { to { transform: rotate(360deg); } }

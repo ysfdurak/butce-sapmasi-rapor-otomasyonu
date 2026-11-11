@@ -16,6 +16,17 @@ jobs:
       - name: vba_elle kopyaları ve statik denetim
         run: python tools/vba_araclari.py kontrol
 
+  demo:
+    name: Tarayıcı demosu dosya listesi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: manifest.json güncel mi
+        run: python tools/demo_manifest.py && git diff --exit-code demo/manifest.json
+
   python:
     name: Python ${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
