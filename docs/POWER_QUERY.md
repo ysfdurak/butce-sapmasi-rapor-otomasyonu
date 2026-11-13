@@ -26,7 +26,7 @@
 | Önceki dönem açıklamalarını taşıma | Taslak olarak, toplu onay | ✓ Durum = **Bu döneme aktar** |
 | Girdi arşivi | Girdi dosyalarının kopyası | Girdi Kaydı (dosya adı, boyut, değiştirilme zamanı) + aylık **Farklı Kaydet**; Excel dosya kopyalayamaz |
 
-Yalnız bu yolda olanlar: **hızlı mod**, **revize bütçe** karşılaştırması (Bütçe Sürümleri) ve **Trend** (üst üste aleyhte giden kalemler). Şirkette ilk deneme için: [kontrol listesi](PQ_DENEME.md).
+Yalnız bu yolda olanlar: **hızlı mod**, **bütçe tabloları ve bütçe değişimi**, **ilk / güncel bütçe** karşılaştırması ve **Trend** (üst üste aleyhte giden kalemler). Şirkette ilk deneme için: [kontrol listesi](PQ_DENEME.md).
 
 Bilinçli fark: müdürlük dosyasında diğer bölümlerin verisi bulunmadığından Birim Maliyet'teki **Direktörlük gider ağırlığı** boş kalır (direktörlük raporunda vardır).
 
@@ -65,15 +65,25 @@ Kontrol Paneli seçimleri:
 
 ## Hızlı mod
 
-Revizyonları bulmak için sorgu kapanış yılının bütün kapanış dosyalarını okur. Klasörde çok ay varsa yenileme uzayabilir. `Butce_Veri` sorgusunda `HizliMod = true` yapılırsa yalnız kapanış ve önceki ayın dosyaları okunur; revizyonlar ve "ardışık dosya eksik" uyarısı yalnız son ay için hesaplanır. Diğer bütün raporlar aynıdır. Kontrol Paneli › Son yenileme satırında "hızlı mod" yazar.
+Revizyonları bulmak için sorgu kapanış yılının bütün kapanış dosyalarını okur. Klasörde çok ay varsa yenileme uzayabilir. `Butce_Veri` sorgusunda `HizliMod = true` yapılırsa yalnız kapanış, önceki ay ve yılın ilk kapanış dosyası (ilk bütçe için) okunur; revizyonlar ve "ardışık dosya eksik" uyarısı yalnız son ay için hesaplanır. Diğer bütün raporlar aynıdır. Kontrol Paneli › Son yenileme satırında "hızlı mod" yazar.
 
-## Revize bütçe
+## Bütçe tabloları, bütçe değişimi, ilk ve güncel bütçe
 
-Kaynak maliyet sayfasında **Bütçe** başlığıyla aynı satırda `Revize Bütçe` başlığı ve altında kapanış yılının 12 ayı varsa sorgu onu da okur (etiket farklıysa Ayarlar › Dosya ve Konum Ayarları'na `Maliyet · revize_butce_etiketi` satırı ekleyin). Gider eşleştirmesi ve "bir ay boşsa toplam boş" kuralı aynen uygulanır.
+Yıl içinde bütçe ayrı bir blokta gelmez: kapanış dosyalarındaki aynı bütçe hücreleri farklı değerle gelir. Sorgu bu yüzden üç bütçeyi ayırır:
 
-- **Kontrol Paneli › Karşılaştırma bütçesi:** `Revize bütçe` seçilirse Genel Özet, Giderler, Önemli Sapmalar, Yıl Sonu Tahmini, Pano ve Trend revize bütçeye göre hesaplanır (bütçe işlem adedi ve bütçe cirosu orijinal kalır). Yönetici Özeti'nin başında "Karşılaştırma bütçesi: revize bütçe" yazar.
-- **Bütçe Sürümleri** sayfası: gerçekleşen, bütçe, revize bütçe, revize − bütçe, gerçekleşen − bütçe, gerçekleşen − revize ve revize bütçeye göre sapma oranı (bölüm, müdürlük, direktörlük).
-- Kaynakta revize blok yoksa sayfa bunu yazar; seçim yapılırsa Kontrol Paneli uyarır.
+| Bütçe | Kaynağı |
+| --- | --- |
+| **Güncel bütçe** | Kapanış dosyasındaki bütçe (bütün raporların varsayılanı) |
+| **Önceki ay bütçesi** | Bir önceki kapanış dosyasındaki bütçe (Ocak kapanışında yok) |
+| **İlk bütçe (yıl başı)** | Bölümün bu yıl okunan ilk kapanış dosyasındaki bütçe; klasörde Ocak yoksa ilk bulunan ay |
+
+Sayfalar:
+- **Bütçe - Bölüm**, **Bütçe - Müdürlük**, **Bütçe - Direktörlük:** güncel bütçe ay ay, yıl toplamı, ilk bütçe yıl toplamı ve fark. Kapsam seçimine uyar. Ayrı bir dosya gerekirse bu üç sayfayı **Sayfayı Taşı veya Kopyala › Yeni kitap** ile çıkarabilirsiniz.
+- **Bütçe Değişimi:** önceki ay dosyasına göre bütçesi değişen bölüm / müdürlük / direktörlük satırları (ay ay değişim, toplam) ve sağda değişen kalemler (değişen ay sayısı, önceki ve güncel yıl bütçesi, aylık fark). Değişiklik yoksa "Bütçe değişmedi" yazar. Yönetici Özeti'nde kaç kalemin değiştiği ve yıllık etkisi görünür.
+- **Bütçe Sürümleri:** seçili aylar için gerçekleşen, güncel bütçe, ilk bütçe ve farkları.
+- **Kontrol Paneli › Karşılaştırma bütçesi:** `İlk bütçe (yıl başı)` seçilirse bütün raporlar ilk bütçeye göre hesaplanır (bütçe işlem adedi ve bütçe cirosu güncel kalır).
+
+Kalem ve ay düzeyindeki her değişiklik ayrıca **Revizyonlar** sayfasında listelenir.
 
 ## Trend
 
@@ -146,8 +156,8 @@ Endeks.xlsx  ─┘                                                Kontrol Panel
 
 Her değişiklikte CI üç şeyi otomatik denetler:
 
-1. **Gerçek M motoru:** İki sorgu da Excel'deki Power Query ile aynı motorla (Microsoft Power Query SDK, PQTest) örnek verilerle çalıştırılır ve Python benzetimiyle satır satır karşılaştırılır: Butce_Veri için en son kapanış, 2026-09, Depolama müdürlük dosyası, hızlı mod ve revize bütçeli kaynak; Butce_Aciklama için üç ardışık yenileme (yeni açıklamalar → onay, ret, aktarma, metni değişen ve kaynağı kaldırılan satırlar → değişiklik yokken geçmişe bir şey yazılmaması).
-2. **Şablon formülleri:** Şablon bu veriyle LibreOffice'te hesaplanır; Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Uyarılar Python motorunun raporlarıyla karşılaştırılır (direktörlük yıl başından, yalnız kapanış ayı, Depolama · Ocak/Mart/Mayıs, Depolama müdürlük dosyası). Açıklama Onayı'nın kontrol sütunu ve onaylı açıklamaların rapora yansıması, revize bütçe seçimi, Bütçe Sürümleri ve Trend listesi de veriden hesaplanan beklenen değerlerle denetlenir.
+1. **Gerçek M motoru:** İki sorgu da Excel'deki Power Query ile aynı motorla (Microsoft Power Query SDK, PQTest) örnek verilerle çalıştırılır ve Python benzetimiyle satır satır karşılaştırılır: Butce_Veri için en son kapanış, 2026-09, Depolama müdürlük dosyası, hızlı mod ve bütçesi değişen kaynak (normal ve hızlı mod); Butce_Aciklama için üç ardışık yenileme (yeni açıklamalar → onay, ret, aktarma, metni değişen ve kaynağı kaldırılan satırlar → değişiklik yokken geçmişe bir şey yazılmaması).
+2. **Şablon formülleri:** Şablon bu veriyle LibreOffice'te hesaplanır; Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Uyarılar Python motorunun raporlarıyla karşılaştırılır (direktörlük yıl başından, yalnız kapanış ayı, Depolama · Ocak/Mart/Mayıs, Depolama müdürlük dosyası). Açıklama Onayı'nın kontrol sütunu ve onaylı açıklamaların rapora yansıması, bütçe tabloları, Bütçe Değişimi, ilk bütçe seçimi, Bütçe Sürümleri ve Trend listesi de veriden hesaplanan beklenen değerlerle denetlenir.
 3. **Birim testleri:** blok sayıları, tekil anahtarlar, boş ay kuralı.
 
 Elle kontrol: örnek verilerle Ekim 2026, Ocak–Ekim, Tümü: gerçekleşen **3.449.383.390,31 TL**, bütçe **3.440.938.980,13 TL**.

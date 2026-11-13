@@ -215,44 +215,106 @@ def onay_senaryosu(gecici, veri, klasor):
     return hata
 
 
-def revize_trend_senaryosu(gecici):
-    """Revize bütçe seçimi, Bütçe Sürümleri ve Trend sayfaları (Python motorunda karşılığı yok: veriden beklenen)."""
+def butce_trend_senaryosu(gecici):
+    """Bütçe tabloları, bütçe değişimi, ilk/güncel bütçe ve trend (Python motorunda karşılığı yok: veriden beklenen)."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import revize_ornek
+    import butce_degisim_ornek
 
-    print("== Revize bütçe ve trend")
+    print("== Bütçe tabloları, bütçe değişimi ve trend")
     hata = 0
-    revize_ornek.main(gecici / "revize")
-    veri = pq_veri.build(gecici / "revize" / "Ayarlar.xlsx")
+    butce_degisim_ornek.main(gecici / "bd")
+    veri = pq_veri.build(gecici / "bd" / "Ayarlar.xlsx")
     c = pq_veri.COLUMNS
     gi, bi, ri = c.index("G1"), c.index("B1"), c.index("R1")
     toplam = {r[4]: r for r in veri if r[1] == "Toplam" and r[8] == 2026}
+    onceki = {r[4]: r for r in veri if r[1] == "OncekiToplam"}
+    duzen = [r for r in veri if r[1] == "Duzen"]
 
-    def katı(r, i, aylar=range(10)):
-        v = [r[i + m] for m in aylar]
-        return None if any(x is None for x in v) else sum(v)
+    def uyeler(d):  # düzen satırının bölümleri
+        tur = d[7]
+        return [b for b in toplam if (tur == "Bölüm" and b == d[4])
+                or (tur == "Müdürlük toplamı" and toplam[b][3] == d[3])
+                or (tur == "Direktörlük toplamı" and toplam[b][2] == d[2]) or tur == "Genel toplam"]
 
-    for secim in ("Bütçe", "Revize bütçe"):
+    def topla(satirlar, i, aylar=range(12)):
+        out = []
+        for m in aylar:
+            v = [x[i + m] for x in satirlar]
+            out.append(None if not v or any(y is None for y in v) else sum(v))
+        return out
+
+    def kontrol(ad, ş, b):
+        nonlocal hata
+        if len(ş) != len(b) or not all(esit(x, y) for x, y in zip(ş, b)):
+            print(f"  {ad}: {ş[:4]} ≠ {b[:4]}")
+            hata += 1
+
+    for secim in ("Güncel bütçe", "İlk bütçe (yıl başı)"):
         wb = pq_sablon.build(veri)
         wb["Kontrol Paneli"]["C7"] = secim
         tpl = hesapla(gecici, wb)
         genel = {r[0]: r for r in satirlar(tpl["Genel Özet"], 2, range(1, 6)) if r[1] == "Bölüm"}
         sur = {r[0]: r for r in satirlar(tpl["Bütçe Sürümleri"], 2, range(1, 10)) if r[1] == "Bölüm"}
         for ad, r in toplam.items():
-            bek = katı(r, ri if secim == "Revize bütçe" else bi)
-            for adi, deger, beklenen in (("Genel Özet bütçe", genel[ad][4], bek),
-                                         ("Sürümler bütçe", sur[ad][3], katı(r, bi)),
-                                         ("Sürümler revize", sur[ad][4], katı(r, ri))):
-                if not esit(deger, beklenen):
-                    print(f"  {secim} · {ad} · {adi}: {deger} ≠ {beklenen}")
-                    hata += 1
-        if secim == "Revize bütçe" and not (genel["Giriş"][4] in (None, "") and sur["Giriş"][4] in (None, "")):
-            print("  Giriş revize bütçesi Şubat'ı eksik: boş olmalı")
+            g, i = sum(topla([r], bi, range(10))), sum(topla([r], ri, range(10)))
+            kontrol(f"{secim} · {ad} · Genel Özet bütçe", [genel[ad][4]], [i if secim.startswith("İlk") else g])
+            kontrol(f"{ad} · Bütçe Sürümleri", [sur[ad][3], sur[ad][4]], [g, i])
+        if secim.startswith("İlk"):
+            continue
+        # Bütçe - Bölüm / Müdürlük / Direktörlük
+        for sayfa, tur, ilk_ay in (("Bütçe - Bölüm", "Bölüm", 3), ("Bütçe - Müdürlük", "Müdürlük toplamı", 3),
+                                   ("Bütçe - Direktörlük", "Direktörlük toplamı", 2)):
+            ws = tpl[sayfa]
+            bek = [d for d in duzen if d[7] == tur]
+            got = satirlar(ws, 5, range(1, ilk_ay + 15))
+            if len(got) != len(bek):
+                print(f"  {sayfa}: {len(got)} satır, beklenen {len(bek)}")
+                hata += 1
+            for d, row in zip(bek, got):
+                aylar = topla([toplam[b] for b in uyeler(d)], bi)
+                ilk = topla([toplam[b] for b in uyeler(d)], ri)
+                yil = sum(aylar) if all(v is not None for v in aylar) else None
+                ilk_yil = sum(ilk) if all(v is not None for v in ilk) else None
+                kontrol(f"{sayfa} · {d[5]}", [row[0]] + row[ilk_ay - 1:ilk_ay + 14],
+                        [d[5]] + aylar + [yil, ilk_yil, None if yil is None or ilk_yil is None else yil - ilk_yil])
+        # Bütçe Değişimi: seviye satırları ve kalemler
+        ws = tpl["Bütçe Değişimi"]
+        bek = []
+        for d in duzen:
+            u = uyeler(d)
+            if not u or any(b not in onceki for b in u):
+                continue
+            g, p = topla([toplam[b] for b in u], bi), topla([onceki[b] for b in u], bi)
+            fark = [None if x is None or y is None else x - y for x, y in zip(g, p)]
+            if any(f is not None and abs(f) > 0.01 for f in fark):
+                bek.append([d[5], d[7]] + fark)
+        got = [r for r in satirlar(ws, 5, range(1, 15))]
+        if len(got) != len(bek):
+            print(f"  Bütçe Değişimi: {len(got)} satır, beklenen {len(bek)}")
             hata += 1
-        print(f"  {secim}: {len(toplam)} bölüm, Genel Özet ve Bütçe Sürümleri karşılaştırıldı")
+        for x, y in zip(got, bek):
+            kontrol(f"Bütçe Değişimi · {y[0]}", [x[0], x[1]] + [v if v not in (None, "") and abs(v) > 1e-9 else 0 for v in x[2:]],
+                    [y[0], y[1]] + [v if v is not None else 0 for v in y[2:]])
+        kalem_bek = []
+        gider = {(r[4], r[6]): r for r in veri if r[1] == "Gider" and r[8] == 2026}
+        for r in veri:
+            if r[1] != "OncekiGider" or (r[4], r[6]) not in gider:
+                continue
+            g, p = gider[r[4], r[6]], r
+            ay = sum(1 for m in range(12) if g[bi + m] is not None and p[bi + m] is not None and abs(g[bi + m] - p[bi + m]) > 0.01)
+            if ay:
+                kalem_bek.append((r[4], r[6], ay, sum(g[bi:bi + 12]) - sum(p[bi:bi + 12])))
+        sira = {name: i for i, name in enumerate(toplam)}
+        kalem_bek.sort(key=lambda x: (sira[x[0]], x[1]))
+        kalem_got = [(ws.cell(r, 22).value, ws.cell(r, 23).value, ws.cell(r, 25).value, ws.cell(r, 28).value)
+                     for r in range(5, 505) if ws.cell(r, 49).value not in (None, "")]
+        kontrol("Bütçesi değişen kalemler", [v for t in kalem_got for v in t], [v for t in kalem_bek for v in t])
+        print(f"  Bütçe tabloları 3 sayfa, değişim {len(bek)} satır / {len(kalem_bek)} kalem")
+    print(f"  İlk/güncel bütçe seçimi ve Bütçe Sürümleri: {len(toplam)} bölüm")
 
     # Trend: örnek veri, karşılaştırma bütçesi = bütçe
     veri = pq_veri.build(AYAR)
+    toplam = {r[4]: r for r in veri if r[1] == "Toplam" and r[8] == 2026}
     tpl = hesapla(gecici, pq_sablon.build(veri))
     esik = 1_000_000 / 12
     beklenen = []
@@ -290,7 +352,7 @@ def main():
     hata = guncel_mi()
     klasor = sys.argv[sys.argv.index("--aciklama") + 1] if "--aciklama" in sys.argv else None
     with tempfile.TemporaryDirectory() as d:
-        hata += revize_trend_senaryosu(Path(d))
+        hata += butce_trend_senaryosu(Path(d))
         if klasor:
             hata += onay_senaryosu(Path(d), veri, klasor)
         for s in SENARYOLAR:

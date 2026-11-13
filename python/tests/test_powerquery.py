@@ -26,6 +26,7 @@ class PowerQueryDataTests(unittest.TestCase):
         counts = Counter(r[1] for r in self.rows)
         self.assertEqual(counts["Bolum"], 12)
         self.assertEqual(counts["Girdi"], 13)
+        self.assertEqual(counts["OncekiToplam"], 12)
         self.assertEqual(counts["Revizyon"], 26)
         self.assertEqual(counts["Uyari"], 96)  # ardışık dosya eksik: Ocak–Ağustos × 12 bölüm
         self.assertEqual(len({r[0] for r in self.rows}), len(self.rows))

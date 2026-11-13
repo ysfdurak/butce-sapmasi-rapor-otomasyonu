@@ -16,7 +16,7 @@ let
     AyarDosyasi = "C:\Butce\ornek\Ayarlar.xlsx",   // Ayarlar.xlsx dosyasının tam yolu
     KapanisDonemi = "",                             // boş = klasördeki en son kapanış; örnek: "2026-10"
     MudurlukDosyasi = "",                           // boş = direktörlük raporu; müdürlüğe gidecek dosya: "Depolama"
-    HizliMod = false,                               // true = yalnız kapanış ve önceki ay okunur (revizyon yalnız son ay)
+    HizliMod = false,                               // true = yalnız kapanış, önceki ay ve yılın ilk dosyası (revizyon son ay)
     // ============================================================================
 
     AyAdlari = {"ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık"},
@@ -126,8 +126,6 @@ let
     GiderSutunu = Number.From(Ayar("Maliyet", "gider_sutunu", TarihHucresi[Sutun] - 1)),
     AdetSatiri = Ayar("Maliyet", "islem_adedi_satiri", null),
     DipToplam = Ayar("Maliyet", "dip_toplam_satiri", null),
-    // Revize bütçe: Bütçe başlığıyla aynı satırda bu etiket, altında kapanış yılının 12 ayı (yoksa revize boş kalır).
-    RevizeEtiketi = Kucuk(Ayar("Maliyet", "revize_butce_etiketi", "Revize Bütçe")),
     KalemSayisi = Number.From(Ayar("Maliyet", "gider_kalem_sayisi",
         if DipToplam <> null and Number.From(DipToplam) > IlkGider then Number.From(DipToplam) - IlkGider else 27)),
 
@@ -239,11 +237,6 @@ let
                 (b) => List.Sort(List.Transform(b, each [Donem])) = List.Transform({1 .. 12}, each yil * 100 + _)),
             butce = if List.Count(uygun) = 1 then uygun{0} else error Error.Record("Kaynak", "Kapanış yılının tek 12 aylık bütçe bloğu bulunamadı"),
             butceDonem = List.Transform(butce, each [Donem]),
-            revizeIsaret = List.Select(List.Positions(satirlar{satir}), (c) => Kucuk(satirlar{satir}{c}) = RevizeEtiketi),
-            revizeUygun = List.Select(List.Transform(revizeIsaret, (m) => blok(m - dSutun + 1)),
-                (b) => List.Sort(List.Transform(b, each [Donem])) = List.Transform({1 .. 12}, each yil * 100 + _)),
-            revize = if List.IsEmpty(revizeUygun) then {} else revizeUygun{0},
-            revizeDonem = List.Transform(revize, each [Donem]),
             kalemler = List.Transform({0 .. KalemSayisi - 1}, (k) =>
                 let v = hucre(IlkGider + k, GiderSutunu)
                 in [Kod = k + 1, Satir = IlkGider + k, Gider = if v <> null and Value.Is(v, type text) then Text.Trim(v) else ""]),
@@ -262,8 +255,7 @@ let
             okunan = List.Buffer(List.Transform(kontrol, (k) => [
                 Kod = k[Kod], Ad = k[Gider],
                 G = List.Buffer(List.Transform(gercek, each deger(k[Satir], [Sutun]))),
-                B = List.Buffer(List.Transform(butce, each deger(k[Satir], [Sutun]))),
-                R = List.Buffer(List.Transform(revize, each deger(k[Satir], [Sutun])))])),
+                B = List.Buffer(List.Transform(butce, each deger(k[Satir], [Sutun])))])),
             adetG = if AdetSatiri = null then {} else List.Buffer(List.Transform(gercek, each deger(Number.From(AdetSatiri), [Sutun]))),
             adetB = if AdetSatiri = null then {} else List.Transform(butce, each Sayi(hucre(Number.From(AdetSatiri), [Sutun]))),
             // Gider Eşleştirme: aynı rapor indeksine bağlanan kaynak giderler aylık katı toplamla birleşir.
@@ -279,14 +271,13 @@ let
                         KatiToplam(List.Transform(grup, each Record.Field(_, alan){i}[V])))
                 in
                     if List.Count(adlar) <> 1 then error Error.Record("Kaynak", Text.From(h) & " rapor indeksinde gider adları farklı. Eşleştirmeyi tamamlayın.")
-                    else [Kod = h, Ad = adlar{0}, G = topla("G"), B = topla("B"), R = topla("R")])),
+                    else [Kod = h, Ad = adlar{0}, G = topla("G"), B = topla("B")])),
             // Hataları burada tetikle: try bu fonksiyonun çağrısını yakalar, iç alanları değil.
             hazir = List.Count(butce) + List.Count(kontrol) + (if kapanisVar then 1 else 0)
                 + List.Sum(List.Transform(birlesik, each List.Count([G]))),
             satirListe = List.Combine(List.Transform(birlesik, (k) =>
                 List.Transform(List.Positions(gercekDonem), (i) => {k[Kod], k[Ad], "G", gercekDonem{i}, k[G]{i}})
-                & List.Transform(List.Positions(butceDonem), (i) => {k[Kod], k[Ad], "B", butceDonem{i}, k[B]{i}})
-                & List.Transform(List.Positions(revizeDonem), (i) => {k[Kod], k[Ad], "R", revizeDonem{i}, k[R]{i}})))
+                & List.Transform(List.Positions(butceDonem), (i) => {k[Kod], k[Ad], "B", butceDonem{i}, k[B]{i}})))
                 & List.Transform(List.Positions(adetG), (i) => {null, null, "AG", gercekDonem{i}, adetG{i}[V]})
                 & List.Transform(List.Positions(adetB), (i) => {null, null, "AB", butceDonem{i}, adetB{i}}),
             hucreler = List.Combine(List.Transform(okunan, each [G] & [B])) & adetG,
@@ -297,8 +288,6 @@ let
                     & " tutar sayıya çevrildi (" & sayfaAdi & ": " & ornek(cevrilen) & "). Kaynakta sayı biçimine çevirin."})
                 & (if List.IsEmpty(okunamayan) then {} else {"Sayıya çevrilemeyen " & Text.From(List.Count(okunamayan))
                     & " hücre boş sayıldı (" & sayfaAdi & ": " & ornek(okunamayan) & ")."})
-                & (if not List.IsEmpty(revizeIsaret) and List.IsEmpty(revizeUygun)
-                    then {"Revize bütçe başlığı var ama altında kapanış yılının 12 ayı bulunamadı; revize bütçe boş bırakıldı."} else {})
         in
             if hazir <> null then [Satirlar = List.Buffer(satirListe), Uyarilar = uyarilar] else null,
 
@@ -315,8 +304,10 @@ let
     KapYil = PYil(Kapanis),
     KapAy = PAy(Kapanis),
     OncekiAy = (p) => if PAy(p) = 1 then p - 89 else p - 1,
-    // Tam: kapanış yılının tüm kapanışları (Ocak'ta önceki Aralık da). Hızlı: yalnız kapanış ve önceki ay.
-    Kapsamda = (p) => p <> null and p <= Kapanis and (if HizliMod then p >= OncekiAy(Kapanis)
+    // Hızlı modda ilk bütçe için yılın ilk kapanış dosyası da okunur.
+    IlkDosyaDonemi = List.Min(List.Select(List.RemoveNulls(DonemliDosyalar[Donem]), each PYil(_) = KapYil and _ <= Kapanis)),
+    // Tam: kapanış yılının tüm kapanışları (Ocak'ta önceki Aralık da). Hızlı: kapanış, önceki ay ve yılın ilk dosyası.
+    Kapsamda = (p) => p <> null and p <= Kapanis and (if HizliMod then (p >= OncekiAy(Kapanis) or p = IlkDosyaDonemi)
         else (PYil(p) = KapYil or (KapAy = 1 and p = (KapYil - 1) * 100 + 12))),
     DonemsizUyari = List.Transform(Table.ToRecords(Table.SelectRows(DonemliDosyalar, each [Donem] = null)), (f) =>
         [Ad = null, #"Bölüm" = null, Kaynak = f[Name], Metin = "Dosya adında yıl ve ay yan yana bulunamadı"]),
@@ -359,6 +350,22 @@ let
         type table [Donem = number, Bolum = text, Kaynak = text, Kod = nullable number, Ad = nullable text,
             Tur = text, P = number, Tutar = nullable number])),
     KapanisSnap = Table.Buffer(Table.SelectRows(Snap, each [Donem] = Kapanis)),
+    // İlk bütçe: bölümün kapanış yılındaki ilk okunan kapanış dosyasındaki bütçe (yıl içindeki revizyonlardan önceki hali).
+    IlkDonemler = Table.Group(Table.SelectRows(Snap, each PYil([Donem]) = KapYil), {"Bolum"}, {{"Ilk", each List.Min([Donem]), type number}}),
+    IlkDonemi = Record.FromList(IlkDonemler[Ilk], IlkDonemler[Bolum]),
+    IlkButce = Table.Buffer(Table.TransformColumns(
+        Table.SelectRows(Snap, each [Tur] = "B" and [Donem] = Record.FieldOrDefault(IlkDonemi, [Bolum], null)),
+        {{"Tur", each "R"}})),
+    // Kapanış kalemlerinin adı ve kaynak dosyası (ilk bütçe satırları kapanış satırlarıyla aynı Gider satırına pivotlanır)
+    KapanisKalem = Table.Distinct(Table.SelectColumns(Table.SelectRows(KapanisSnap, each [Tur] = "G"), {"Bolum", "Kod", "Ad", "Kaynak"}), {"Bolum", "Kod"}),
+    KapanisKalemKaydi = Record.FromList(Table.ToRecords(KapanisKalem), List.Transform(Table.ToRecords(KapanisKalem), each [Bolum] & "|" & Text.From([Kod]))),
+    IlkKalem = Table.FromRecords(List.RemoveNulls(List.Transform(Table.ToRecords(IlkButce), (x) =>
+        let k = Record.FieldOrDefault(KapanisKalemKaydi, x[Bolum] & "|" & Text.From(x[Kod]), null)
+        in if k = null then null else x & [Ad = k[Ad], Kaynak = k[Kaynak]])),
+        Table.ColumnNames(Snap), MissingField.UseNull),
+    // Önceki ay bütçesi (aynı yıl): bütçe değişiminin tabanı. Ocak kapanışında yoktur.
+    OncekiButce = Table.Buffer(if KapAy = 1 then Table.FirstN(Snap, 0) else
+        Table.SelectRows(Snap, each [Tur] = "B" and [Donem] = OncekiAy(Kapanis))),
 
     // ---------------------------------------------------------------- Aylık bloklar (Gider, Toplam, Adet)
     AySutunlari = GAdlari & BAdlari & RAdlari,
@@ -375,15 +382,24 @@ let
         in [#"Direktörlük" = b[Direktorluk], #"Müdürlük" = b[Mudurluk], #"Bölüm" = bolum],
     AyKaydi = (r as record) => Record.SelectFields(r, AySutunlari),
 
-    GiderTutar = Table.SelectRows(KapanisSnap, each [Tur] = "G" or [Tur] = "B" or [Tur] = "R"),
+    GiderTutar = Table.Combine({Table.SelectRows(KapanisSnap, each [Tur] = "G" or [Tur] = "B"), IlkKalem}),
     GiderBlok = List.Transform(Table.ToRecords(Aylik(GiderTutar, {"Bolum", "Kod", "Ad", "Kaynak"})), (r) =>
         [Anahtar = "Gider|" & r[Bolum] & "|" & Text.From(r[Kod]) & "|" & Text.From(r[Yil]), Tablo = "Gider"]
         & BilgiAlanlari(r[Bolum])
         & [Ad = r[Ad], Kod = r[Kod], Grup = GiderGrubu(r[Kod]), #"Yıl" = r[Yil], Kaynak = r[Kaynak]] & AyKaydi(r)),
-    ToplamTutar = Table.Group(GiderTutar, {"Bolum", "Tur", "P"}, {{"Tutar", each KatiToplam([Tutar]), type nullable number}}),
+    // Bölüm toplamı: gerçekleşen ve bütçe kapanış kalemlerinden, ilk bütçe ilk dosyanın tüm kalemlerinden (katı toplam)
+    ToplamTutar = Table.Group(Table.Combine({Table.SelectRows(KapanisSnap, each [Tur] = "G" or [Tur] = "B"), IlkButce}),
+        {"Bolum", "Tur", "P"}, {{"Tutar", each KatiToplam([Tutar]), type nullable number}}),
     ToplamBlok = List.Transform(Table.ToRecords(Aylik(ToplamTutar, {"Bolum"})), (r) =>
         [Anahtar = "Toplam|" & r[Bolum] & "|" & Text.From(r[Yil]), Tablo = "Toplam"]
         & BilgiAlanlari(r[Bolum]) & [#"Yıl" = r[Yil]] & AyKaydi(r)),
+    OncekiGiderBlok = List.Transform(Table.ToRecords(Aylik(OncekiButce, {"Bolum", "Kod", "Ad", "Kaynak"})), (r) =>
+        [Anahtar = "OncekiGider|" & r[Bolum] & "|" & Text.From(r[Kod]), Tablo = "OncekiGider"]
+        & BilgiAlanlari(r[Bolum])
+        & [Ad = r[Ad], Kod = r[Kod], Grup = GiderGrubu(r[Kod]), #"Yıl" = r[Yil], Kaynak = r[Kaynak]] & AyKaydi(r)),
+    OncekiToplamBlok = List.Transform(Table.ToRecords(Aylik(
+            Table.Group(OncekiButce, {"Bolum", "Tur", "P"}, {{"Tutar", each KatiToplam([Tutar]), type nullable number}}), {"Bolum"})), (r) =>
+        [Anahtar = "OncekiToplam|" & r[Bolum], Tablo = "OncekiToplam"] & BilgiAlanlari(r[Bolum]) & [#"Yıl" = r[Yil]] & AyKaydi(r)),
     AdetTutar = Table.SelectRows(KapanisSnap, each [Tur] = "AG" or [Tur] = "AB"),
     AdetBlok = List.Transform(Table.ToRecords(Aylik(AdetTutar, {"Bolum"})), (r) =>
         [Anahtar = "Adet|" & r[Bolum] & "|" & Text.From(r[Yil]), Tablo = "Adet"]
@@ -399,7 +415,8 @@ let
         [Anahtar = "Bolum|" & Text.From(b[Sira]), Tablo = "Bolum", #"Bölüm" = b[Bolum], #"Müdürlük" = b[Mudurluk],
          #"Direktörlük" = b[Direktorluk], Ad = if b[Endeks] = null then null else Kucuk(b[Endeks]),
          Kod = List.PositionOf(KontrolGruplari, b[Grup]) + 1, Grup = b[Hedef], Metin = b[Lokasyon],
-         Kaynak = AnlikDosya(Kapanis, b[Bolum]), #"Sayı" = b[Sira]]),
+         Kaynak = AnlikDosya(Kapanis, b[Bolum]), #"Sayı" = b[Sira],
+         #"Yıl" = Record.FieldOrDefault(IlkDonemi, b[Bolum], null)]),
     MudurlukCiftleri = List.Distinct(List.Transform(BolumKayit, each {[Mudurluk], [Direktorluk]})),
     MudurlukBlok = List.Transform(List.Positions(MudurlukCiftleri), (i) =>
         [Anahtar = "Mudurluk|" & Text.From(i + 1), Tablo = "Mudurluk", #"Müdürlük" = MudurlukCiftleri{i}{0},
@@ -650,7 +667,7 @@ let
 
     // ---------------------------------------------------------------- Tek tablo
     Hepsi = KapanisBlok & KimlikBlok & GirdiBlok & AyarBlok & BolumBlok & MudurlukBlok & DuzenBlok & KGrupBlok & KalemBlok & GrupAdBlok & SatirBlok
-        & GiderBlok & ToplamBlok & AdetBlok & KontrolSonuc[Satirlar] & EndeksSonuc[Satirlar] & RevizyonBlok & UyariBlok,
+        & GiderBlok & ToplamBlok & AdetBlok & OncekiGiderBlok & OncekiToplamBlok & KontrolSonuc[Satirlar] & EndeksSonuc[Satirlar] & RevizyonBlok & UyariBlok,
     TekTablo = Table.FromRecords(Hepsi, Sutunlar, MissingField.UseNull),
     Sonuc = Table.TransformColumnTypes(TekTablo,
         {{"Anahtar", type text}, {"Tablo", type text}, {"Direktörlük", type text}, {"Müdürlük", type text}, {"Bölüm", type text},

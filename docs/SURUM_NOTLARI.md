@@ -3,8 +3,10 @@
 ## V5.4 — Kasım 2026
 
 Power Query yolu ana sürüm olarak geliştirilmeye devam ediyor ([rehber](POWER_QUERY.md)):
-- **Hızlı mod:** `HizliMod = true` yalnız kapanış ve önceki ayı okur; revizyonlar yalnız son ay için.
-- **Revize bütçe:** kaynakta `Revize Bütçe` bloğu okunur; Kontrol Paneli'nden karşılaştırma bütçesi seçilir; yeni **Bütçe Sürümleri** sayfası.
+- **Hızlı mod:** `HizliMod = true` yalnız kapanış, önceki ay ve yılın ilk dosyasını okur; revizyonlar yalnız son ay için.
+- **Bütçe tabloları:** Bütçe - Bölüm / Müdürlük / Direktörlük sayfaları (güncel bütçe ay ay, yıl toplamı, ilk bütçeye göre fark).
+- **Bütçe Değişimi:** önceki ay kapanış dosyasına göre bütçesi değişen satırlar ve kalemler.
+- **İlk / güncel bütçe:** ilk bütçe = yılın ilk kapanış dosyasındaki bütçe; Kontrol Paneli'nden karşılaştırma bütçesi seçilir; **Bütçe Sürümleri** sayfası.
 - **Trend:** aylık sapma tablosu ve grafiği; üst üste aleyhte giden kalemler listesi; Yönetici Özeti'nde sayısı.
 - Şirkette ilk deneme için [kontrol listesi](PQ_DENEME.md).
 - Bu özellikler yalnız Power Query yolundadır; Python ve makro sürümleri V5.1 düzeyinde kalır.
