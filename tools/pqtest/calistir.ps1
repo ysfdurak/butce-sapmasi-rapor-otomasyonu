@@ -27,7 +27,8 @@ $q = Get-Content -Raw -Encoding UTF8 (Join-Path $kok "powerquery/Butce_Veri.pq")
 $q = $q -replace 'AyarDosyasi = "[^"]*"', ('AyarDosyasi = "' + $Ayar + '"')
 $q = $q -replace 'KapanisDonemi = "[^"]*"', ('KapanisDonemi = "' + $Kapanis + '"')
 $sarili = "let`r`n    Sorgu = " + $q + "`r`nin`r`n    Text.FromBinary(Json.FromValue({Table.ColumnNames(Sorgu)} & Table.ToRows(Sorgu)))"
-$qdosya = Join-Path $is "Butce.query.pq"
+# Dosya adı kapanışa göre: PQTest aynı adlı sorgunun sonucunu önbellekten döndürebiliyor.
+$qdosya = Join-Path $is ("Butce_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + ".query.pq")
 Set-Content -Path $qdosya -Value $sarili -Encoding UTF8
 Select-String -Path $qdosya -Pattern "^\s*(AyarDosyasi|KapanisDonemi) =" | ForEach-Object { Write-Host $_.Line.Trim() }
 
