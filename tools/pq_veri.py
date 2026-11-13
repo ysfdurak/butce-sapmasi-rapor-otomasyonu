@@ -70,7 +70,9 @@ def strict_sum(values):
 
 
 def build(settings_path, closing=None):
-    from bootstrap import dependencies  # noqa: F401
+    from bootstrap import dependencies
+
+    dependencies()
     import butce
     from birim import read_budget_counts
 
