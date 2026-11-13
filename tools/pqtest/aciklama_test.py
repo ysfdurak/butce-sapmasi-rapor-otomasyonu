@@ -19,7 +19,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(ROOT / "python"))
 
+from bootstrap import dependencies  # noqa: E402
+
+dependencies()
 import pq_aciklama  # noqa: E402
 from karsilastir import bul, esit  # noqa: E402
 
