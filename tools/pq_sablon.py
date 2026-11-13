@@ -19,6 +19,7 @@ from openpyxl.chart import BarChart, LineChart, Reference
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter as L
+from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,15 @@ from pq_veri import COLUMNS  # noqa: E402
 
 MAXD, MAXL, MAXK, MAXI, MAXG, MAXR, MAXW, MAXM, MAXA = 60, 120, 2000, 80, 60, 1500, 1000, 500, 500
 BLOCKS = 40  # Giderler sayfasındaki bölüm bloğu sayısı
+MAXO, MAXF = 2000, 200  # Açıklama Onayı satırı, girdi kaydı satırı
+# Açıklama Onayı sayfası: Butce_Aciklama sorgusunun sütunları (A..W) ve sağındaki formül sütunları (Y..AA)
+ONAY_COLS = ["Anahtar", "Müdürlük", "Bölüm", "Gider kodu", "Gider kalemi", "Açıklama", "Yazan", "Yazma tarihi",
+             "Kapanış", "Aylar", "Gerçekleşen (dosyada)", "Bütçe (dosyada)", "Kaynak dosya", "Dosya tarihi",
+             "Okuma notu", "Kaynakta", "Durum", "Onay notu", "Son işlem", "İşlemi yapan", "İşlem zamanı",
+             "İşlem geçmişi", "Kayıtlı durum"]
+OC = {name: L(i) for i, name in enumerate(ONAY_COLS, 1)}
+ONAY = "'Açıklama Onayı'"
+DURUMLAR = ["Bekliyor", "Onaylandı", "Reddedildi", "Bu döneme aktar"]
 # _Bolum sayfasında aylık sütun blokları (1. ayın sütun numarası - 1)
 RATIO0, DIP0, DIPMISS0 = 54, 66, 78  # BC..BN endeks oranları, BO..BZ aylık dip toplam, CA..CL dip eksik bayrağı
 
@@ -136,6 +146,9 @@ def build_panel(wb):
     ws["A2"] = ("Kaynak dosyalar değiştiğinde: Veri › Tümünü Yenile. Aşağıdaki seçimler (sarı hücreler) değişince "
                 "tüm sayfalar yenileme gerekmeden anında güncellenir.")
     ws["A2"].font = NOTE
+    ws["B3"] = "Dosya"
+    ws["B3"].font = BOLD
+    ws["C3"] = (f'=IF({H}!$B$12="","Direktörlük raporu","Müdürlük dosyası: "&{H}!$B$12&" (yalnız bu müdürlüğün verisi)")')
     ws["B4"] = "Kaynak kapanış"
     ws["C4"] = (f'=IF({KAPYIL}="","Veri yok: önce sorguyu yükleyin (Veri › Tümünü Yenile)",'
                 f'INDEX(\'_H\'!$C$19:$N$19,1,{KAPAY})&" "&{KAPYIL})')
@@ -172,6 +185,11 @@ def build_panel(wb):
     manual = DataValidation(type="list", formula1='"1"', allow_blank=True)
     ws.add_data_validation(manual)
     manual.add("C10:N10")
+    ws["B16"] = "Onaylayan (adınız)"
+    ws["B16"].font = BOLD
+    ws["C16"].fill = INPUT_FILL
+    ws["D16"] = "Açıklama Onayı'nda yaptığınız işlemler bu adla kaydedilir."
+    ws["D16"].font = NOTE
     ws["C13"].number_format = COUNT
     ws["C14"].number_format = "0%"
     ws["B17"] = "Durum"
@@ -179,7 +197,7 @@ def build_panel(wb):
     ws["B18"] = "Veri satırı"
     ws["C18"] = '=MAX(0,COUNTA(Veri!$A:$A)-1)'
     ws["B19"] = "Uyarı"
-    ws["C19"] = f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + 3})"
+    ws["C19"] = f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + MAXG + 3})"
     ws["B20"] = "Önemli sapma"
     ws["C20"] = "=COUNT('_Kalem'!$S$2:$S$2001)"
     ws["B21"] = "Açıklaması eksik önemli sapma"
@@ -189,6 +207,8 @@ def build_panel(wb):
     ws["B23"] = "Seçim uyarısı"
     ws["C23"] = (f'=IF({KAPYIL}="","",IF({YIL}>{KAPYIL},"Rapor yılı kapanıştan sonra olamaz",'
                  f'IF({SELCOUNT}=0,"En az bir ay seçin (kapanış ayından sonraki aylar seçilemez)","Seçimler geçerli")))')
+    ws["B24"] = "Son yenileme"
+    ws["C24"] = f'=IFERROR(INDEX({vcol("Metin")},MATCH("Kimlik",{VKEY},0))&"","")'
     ws["B25"] = "Sayfalar"
     ws["B25"].font = BOLD
     guide = [
@@ -202,7 +222,10 @@ def build_panel(wb):
         ("Hacim ve Birim Maliyet", "Bütçe farkının hacim ve birim maliyet etkisine ayrıştırılması"),
         ("Veri Kontrolü", "Kontrol dosyasıyla dip toplam mutabakatı ve ciro"),
         ("Revizyonlar · Uyarılar", "Önceki kapanışa göre değişen tutarlar; okuma ve veri uyarıları"),
-        ("Açıklamalar", "Bölüm + gider kodu için açıklama girişi (Giderler ve Önemli Sapmalar buradan okur)"),
+        ("Açıklamalar", "Açıklama girişi: müdürlük dosyasında müdürlük, ana raporda finans yazar"),
+        ("Açıklama Onayı", "Müdürlüklerden dönen açıklamalar (Butce_Aciklama sorgusu), onay ve işlem geçmişi"),
+        ("Dağıtım", "Müdürlük dosyalarını hazırlama listesi"),
+        ("Girdi Kaydı", "Raporun okuduğu dosyalar, boyutları ve değiştirilme zamanları"),
     ]
     for i, (name, text) in enumerate(guide, 26):
         ws.cell(i, 2, name).font = Font(bold=True, color="233C57")
@@ -212,6 +235,9 @@ def build_panel(wb):
         ws.column_dimensions[L(c)].width = 6 if c < 15 else 6
     ws.column_dimensions["D"].width = 8
     ws.sheet_view.showGridLines = False
+    for name, ref in (("Kullanici", "'Kontrol Paneli'!$C$16"), ("Rapor_Donemi", "'_H'!$B$21"),
+                      ("Rapor_Aylari", "'_H'!$B$20")):
+        wb.defined_names[name] = DefinedName(name, attr_text=ref)
     return ws
 
 
@@ -222,12 +248,13 @@ def build_helpers(wb):
         3: ("Kapanış ayı", f'=IFERROR(INDEX({vcol("Sayı")},MATCH("Kapanis",{VKEY},0)),"")'),
         4: ("Rapor yılı", f'=IF({P}!$C$5="",B2,{P}!$C$5)'),
         5: ("Bütçe yılı", "=IF(B4=B2,1,0)"),
-        6: ("Kapsam", f'=IF({P}!$C$6="","Tümü",{P}!$C$6)'),
+        6: ("Kapsam", f'=IF(B12<>"",B12,IF({P}!$C$6="","Tümü",{P}!$C$6))'),
         7: ("Seçili ay sayısı", "=SUM(C14:N14)"),
         8: ("Önemlilik tutarı", f'=IF({P}!$C$13<>"",{P}!$C$13,IFERROR(INDEX({vcol("Sayı")},MATCH("Ayar|onemlilik_tutari",{VKEY},0)),1000000))'),
         9: ("Önemlilik oranı", f'=IF({P}!$C$14<>"",{P}!$C$14,IFERROR(INDEX({vcol("Sayı")},MATCH("Ayar|onemlilik_orani",{VKEY},0)),0.1))'),
         10: ("Özet kalem sayısı", f'=MIN(10,IF({P}!$C$15<>"",{P}!$C$15,IFERROR(INDEX({vcol("Sayı")},MATCH("Ayar|ozet_kalem_sayisi",{VKEY},0)),5)))'),
         11: ("Tolerans", f'=IFERROR(INDEX({vcol("Sayı")},MATCH("Ayar|tolerans",{VKEY},0)),0.01)'),
+        12: ("Müdürlük dosyası", f'=IFERROR(INDEX({vcol("Müdürlük")},MATCH("Kimlik",{VKEY},0))&"","")'),
     }
     for r, (label, formula) in rows.items():
         h.cell(r, 1, label)
@@ -245,6 +272,11 @@ def build_helpers(wb):
         h[f"{c}17"] = f"=IF({c}14=1,SUM($C$14:{c}14),0)"
         h[f"{c}18"] = f'=IFERROR(MATCH({m},$C$17:$N$17,0),"")'
         h[f"{c}19"] = MONTHS[m - 1]
+    # Açıklama anahtarı: kapanış ve seçili aylar ("2026:1,2,3"). Açıklama yalnız aynı seçim için geçerlidir.
+    h["A20"], h["A21"] = "Aylar imzası", "Kapanış etiketi"
+    h["B20"] = ('=IF($B$2="","",$B$4&":"&SUBSTITUTE(TRIM(' + "&".join(f'IF({L(2 + m)}14=1,"{m} ","")' for m in range(1, 13))
+                + ')," ",","))')
+    h["B21"] = '=IF($B$2="","",$B$2&"-"&RIGHT("0"&$B$3,2))'
     h.sheet_state = "hidden"
 
     lst = wb.create_sheet("_Liste")
@@ -414,7 +446,7 @@ def build_kalem(wb):
     ws = wb.create_sheet("_Kalem")
     titles = ["k", "rK", "Bölüm", "Müdürlük", "Kod", "Kalem", "Grup", "Anahtar", "Kapsamda", "rG", "A", "B", "rGP", "P",
               "Fark", "Oran", "Önemli", "|fark|", "Sıra", "|aleyhte|", "Aleyhte sıra", "|lehte|", "Lehte sıra", "Yön",
-              "eksik A", "eksik B", "Açıklama"]
+              "eksik A", "eksik B", "Açıklama", "Onay satırı", "Onay durumu", "Onay kontrolü", "Elle açıklama"]
     for i, t in enumerate(titles, 1):
         ws.cell(1, i, t)
     last = MAXK + 1
@@ -445,7 +477,13 @@ def build_kalem(wb):
         ws[f"X{r}"] = f'=IF(ISNUMBER(O{r}),IF(O{r}>0,"Aleyhte",IF(O{r}<0,"Lehte","Bütçede")),"")'
         ws[f"Y{r}"] = f'=IF(C{r}="",0,IF(ISNUMBER(K{r}),0,1))'
         ws[f"Z{r}"] = f'=IF(C{r}="",0,IF(ISNUMBER(L{r}),0,1))'
-        ws[f"AA{r}"] = f"=IF(H{r}=\"\",\"\",IFERROR(INDEX('Açıklamalar'!$D$2:$D${MAXA + 1},MATCH(H{r},'Açıklamalar'!$H$2:$H${MAXA + 1},0))&\"\",\"\"))"
+        # Açıklama: önce bu dosyanın Açıklamalar sayfası; yoksa müdürlükten dönen, onaylı ve tutarı güncel açıklama
+        ws[f"AE{r}"] = f"=IF(H{r}=\"\",\"\",IFERROR(INDEX('Açıklamalar'!$D$2:$D${MAXA + 1},MATCH(H{r},'Açıklamalar'!$H$2:$H${MAXA + 1},0))&\"\",\"\"))"
+        ws[f"AB{r}"] = f'=IF(H{r}="","",IFERROR(MATCH(H{r}&"|"&{H}!$B$21&"|"&{H}!$B$20,{ONAY}!$A:$A,0),""))'
+        ws[f"AC{r}"] = f'=IF(AB{r}="","",INDEX({ONAY}!${OC["Durum"]}:${OC["Durum"]},AB{r})&"")'
+        ws[f"AD{r}"] = f'=IF(AB{r}="","",INDEX({ONAY}!$AA:$AA,AB{r})&"")'
+        ws[f"AA{r}"] = (f'=IF(AE{r}<>"",AE{r},IF(OR(AB{r}="",LEFT(AD{r},6)<>"Güncel"),"",'
+                        f'IF(AC{r}="Onaylandı",INDEX({ONAY}!$F:$F,AB{r})&"",IF(AC{r}="Bekliyor","[Onay bekliyor] "&INDEX({ONAY}!$F:$F,AB{r}),""))))')
     ws.sheet_state = "hidden"
 
 
@@ -549,6 +587,13 @@ def build_lists(wb):
         (f'=IF(AND({KAPYIL}<>"",{BUTCEYILI}=0),{YIL}&" bütçesi bu kapanış dosyasında yok. Bütçe karşılaştırması boş bırakıldı.","")'),
         (f'=IF({KAPYIL}="","",IFERROR(IF(SUMPRODUCT({FLAGS}*ISNUMBER(INDEX({VG},MATCH("Ciro|"&{YIL},{VKEY},0),0)))<{SELCOUNT},"Seçilen dönem için şirket cirosu eksik",""),"Seçilen dönem için şirket cirosu eksik"))'),
     ]
+    G_ = "'_KGrup'"
+    for g in range(2, MAXG + 2):  # kapsam birleşik kontrol grubunu bölüyorsa (Python müdürlük raporundaki uyarı)
+        uy[f"A{r}"] = MAXW + MAXD + 1
+        uy[f"C{r}"] = f"={period}"
+        uy[f"F{r}"] = f'=IF(AND({G_}!$J${g}>0,{G_}!$J${g}<{G_}!$I${g}),{G_}!$C${g}&": Birleşik bölüm kontrolü direktörlük raporunda yer alır","")'
+        uy[f"G{r}"] = f'=IF(F{r}="",0,1)'
+        r += 1
     for formula in extras:
         uy[f"A{r}"] = MAXW + MAXD + 1
         uy[f"C{r}"] = f"={period}"
@@ -712,9 +757,12 @@ def build_birim(wb):
         ws[f"K{r}"] = f'=IF({only_budget},"",IF({lvl}="Bölüm",{bnum("W", brow)},""))'
         ws[f"L{r}"] = (f'=IF({only_budget},"",IF({lvl}="Bölüm",{bnum("AK", brow)},'
                        f'IF({lvl}="Müdürlük toplamı",{dval("AE", k)},"")))')
-        ws[f"M{r}"] = (f'=IF({only_budget},"",IF({lvl}="Bölüm",{bnum("AM", brow)},'
+        # Müdürlük dosyasında diğer bölümlerin verisi olmadığından direktörlük ağırlığı hesaplanmaz
+        ws[f"M{r}"] = (f'=IF(OR({only_budget},{H}!$B$12<>""),"",IF({lvl}="Bölüm",{bnum("AM", brow)},'
                        f'IF(OR({lvl}="Müdürlük toplamı",{lvl}="Direktörlük toplamı"),{dval("AG", k)},"")))')
         ws[f"N{r}"] = f'=IF({only_budget},"",IF({lvl}="Bölüm",{bnum("AH", brow)},""))'
+    ws["Q1"] = f'=IF({H}!$B$12<>"","Direktörlük gider ağırlığı yalnız direktörlük raporunda hesaplanır.","")'
+    ws["Q1"].font = NOTE
     last = MAXL + 1
     fmt(ws, "CEFHIN", 2, last, MONEY)
     fmt(ws, "DG", 2, last, COUNT)
@@ -736,7 +784,8 @@ def build_onemli(wb):
         ws[f"L{r}"] = f"=IFERROR(MATCH({j},{krng('S')},0),\"\")"
         for col, src in zip("ABCDEFGHIJ", ["D", "C", "E", "F", "G", "K", "L", "O", "P", "X"]):
             ws[f"{col}{r}"] = f'=IF({k}="","",INDEX({krng(src)},{k}))'
-        ws[f"K{r}"] = f'=IF({k}="","",IF(INDEX({krng("AA")},{k})<>"","Açıklandı","Açıklama gerekli"))'
+        ws[f"K{r}"] = (f'=IF({k}="","",IF(INDEX({krng("AA")},{k})="","Açıklama gerekli",'
+                       f'IF(LEFT(INDEX({krng("AA")},{k}),15)="[Onay bekliyor]","Onay bekliyor","Açıklandı")))')
     ws["N1"] = "Önemlilik eşiği"
     ws["N1"].font = BOLD
     ws["N2"] = f'="≥ "&FIXED({ESIK},0)&" TL ve ≥ %"&{ORAN}*100&" (tutar ve oran birlikte)"'
@@ -746,7 +795,12 @@ def build_onemli(wb):
     fmt(ws, "I", 2, last, PCT)
     direction_colors(ws, f"J2:J{last}")
     ws.conditional_formatting.add(f"K2:K{last}", FormulaRule(formula=['K2="Açıklama gerekli"'], fill=PatternFill("solid", bgColor="F8CBAD")))
+    ws.conditional_formatting.add(f"K2:K{last}", FormulaRule(formula=['K2="Onay bekliyor"'], fill=PatternFill("solid", bgColor="FFEB9C")))
+    for j in range(1, MAXM + 1):  # açıklama bekleyenlerin sırası (Açıklamalar sayfasındaki liste için)
+        r = j + 1
+        ws[f"M{r}"] = f'=IF(OR(K{r}="",K{r}="Açıklandı"),"",COUNTIF($K$2:K{r},"Açıklama gerekli")+COUNTIF($K$2:K{r},"Onay bekliyor"))'
     ws.column_dimensions["L"].hidden = True
+    ws.column_dimensions["M"].hidden = True
     widths(ws, {"A": 20, "B": 18, "C": 9, "D": 28, "E": 20, "F": 18, "G": 18, "H": 20, "I": 11, "J": 11, "K": 18, "N": 50})
     ws.freeze_panes = "A2"
 
@@ -899,7 +953,7 @@ def build_uyarilar(wb, last_uy):
     ws = wb.create_sheet("Uyarılar")
     U_ = "'_Uy'"
     header(ws, 1, ["Sıra", "Dönem", "Bölüm", "Kaynak", "Uyarı", "k"])
-    for j in range(1, MAXW + MAXD + 3):
+    for j in range(1, MAXW + MAXD + MAXG + 3):
         r = j + 1
         k = f"$F{r}"
         ws[f"F{r}"] = f"=IFERROR(MATCH({j},{U_}!$H$2:$H${last_uy},0),\"\")"
@@ -913,8 +967,15 @@ def build_uyarilar(wb, last_uy):
 
 def build_aciklama(wb):
     ws = wb.create_sheet("Açıklamalar")
-    header(ws, 1, ["Bölüm", "Gider kodu", "Gider kalemi", "Açıklama", "Yazan", "Tarih", "Durum", "anahtar"])
+    header(ws, 1, ["Bölüm", "Gider kodu", "Gider kalemi", "Açıklama", "Yazan", "Tarih", "Durum", "anahtar",
+                   "Gerçekleşen (seçili aylar)", "Bütçe (seçili aylar)", "Aylar", "Kapanış", "Dosya müdürlüğü"])
     for r in range(2, MAXA + 2):
+        # Açıklamanın yazıldığı andaki tutar ve seçim: ana rapor bunlarla "tutar değişti" kontrolü yapar.
+        ws[f"I{r}"] = f'=IF(H{r}="","",IFERROR(INDEX({krng("K")},MATCH(H{r},{krng("H")},0)),""))'
+        ws[f"J{r}"] = f'=IF(H{r}="","",IFERROR(INDEX({krng("L")},MATCH(H{r},{krng("H")},0)),""))'
+        ws[f"K{r}"] = f'=IF(H{r}="","",{H}!$B$20)'
+        ws[f"L{r}"] = f'=IF(H{r}="","",{H}!$B$21)'
+        ws[f"M{r}"] = f'=IF(H{r}="","",{H}!$B$12)'
         ws[f"C{r}"] = f'=IF(OR(A{r}="",B{r}=""),"",IFERROR(INDEX({krng("F")},MATCH(A{r}&"|"&B{r},{krng("H")},0)),"Bu bölümde bu kod yok"))'
         ws[f"H{r}"] = f'=IF(OR(A{r}="",B{r}=""),"",A{r}&"|"&B{r})'
         ws[f"G{r}"] = (f'=IF(H{r}="","",IF(IFERROR(INDEX({krng("Q")},MATCH(H{r},{krng("H")},0)),0)=1,'
@@ -925,14 +986,121 @@ def build_aciklama(wb):
     dv = DataValidation(type="list", formula1=f"{brng('C')}", allow_blank=True)
     ws.add_data_validation(dv)
     dv.add(f"A2:A{MAXA + 1}")
-    ws["J1"] = ("Bölüm ve gider kodunu yazın, açıklamayı D sütununa girin. Giderler sayfasının Açıklama sütunu ve "
-                "Önemli Sapmalar'ın açıklama durumu buradan okunur. (Müdürlük açıklama dosyalarını toplayan sorgu "
-                "sonraki adımda eklenecek.)")
-    ws["J1"].font = NOTE
-    ws["J1"].alignment = Alignment(wrap_text=True, vertical="top")
+    ws["O1"] = ("Bölüm ve gider kodunu yazın, açıklamayı D sütununa girin. Bu dosyanın Giderler ve Önemli Sapmalar "
+                "sayfaları buradan okur. Müdürlük dosyasında yazılan açıklamalar, dosya geri gönderildiğinde ana "
+                "rapordaki Butce_Aciklama sorgusuyla toplanır. Gizli I–M sütunları otomatik doldurulur.")
+    ws["O1"].font = NOTE
+    ws["O1"].alignment = Alignment(wrap_text=True, vertical="top")
+    ws.merge_cells("O1:S2")
+    ws["O3"] = "Açıklama bekleyen önemli sapmalar"
+    ws["O3"].font = BOLD
+    header(ws, 4, ["Bölüm", "Gider kodu", "Gider kalemi", "Gerçekleşen − bütçe (TL)", "Durum"], 15)
+    for j in range(1, MAXM + 1):  # Önemli Sapmalar'dan, açıklaması olmayan veya onay bekleyenler
+        r = j + 4
+        k = f"IFERROR(MATCH({j},'Önemli Sapmalar'!$M$2:$M${MAXM + 1},0),\"\")"
+        for col, src in zip("OPQRS", "BCDHK"):
+            ws[f"{col}{r}"] = f"=IF({k}=\"\",\"\",INDEX('Önemli Sapmalar'!${src}$2:${src}${MAXM + 1},{k}))"
+        ws[f"R{r}"].number_format = MONEY
     ws.column_dimensions["H"].hidden = True
-    widths(ws, {"A": 18, "B": 10, "C": 28, "D": 60, "E": 14, "F": 12, "G": 14, "J": 60})
+    for c in "IJKLM":
+        ws.column_dimensions[c].hidden = True
+    widths(ws, {"A": 18, "B": 10, "C": 28, "D": 60, "E": 14, "F": 12, "G": 14, "O": 18, "P": 9, "Q": 28, "R": 18, "S": 16})
     ws.freeze_panes = "A2"
+
+
+def build_onay(wb):
+    """Açıklama Onayı: A..W Butce_Aciklama sorgusunun tablosu (A1'e yüklenir), Y..AA kontrol formülleri."""
+    ws = wb.create_sheet("Açıklama Onayı")
+    for i, t in enumerate(["kalem satırı", "Güncel gerçekleşen", "Güncel bütçe", "Kontrol"]):
+        ws.cell(1, 24 + i, t)
+    header(ws, 1, ["Güncel gerçekleşen", "Güncel bütçe", "Kontrol"], 25)
+    A, C, D, I, J, K, Lc, O, Pc = (OC[n] for n in ("Anahtar", "Bölüm", "Gider kodu", "Kapanış", "Aylar",
+                                                    "Gerçekleşen (dosyada)", "Bütçe (dosyada)", "Okuma notu", "Kaynakta"))
+    for r in range(2, MAXO + 2):
+        ws[f"X{r}"] = (f'=IF(OR(${A}{r}="",LEFT(${A}{r},6)="Dosya|"),"",'
+                       f'IFERROR(MATCH(${C}{r}&"|"&${D}{r},{krng("H")},0),""))')
+        ws[f"Y{r}"] = f'=IF(X{r}="","",INDEX({krng("K")},X{r}))'
+        ws[f"Z{r}"] = f'=IF(X{r}="","",INDEX({krng("L")},X{r}))'
+        changed = (f'OR(ISNUMBER(Y{r})<>ISNUMBER(${K}{r}),ISNUMBER(Z{r})<>ISNUMBER(${Lc}{r}),'
+                   f'ABS(N(Y{r})-N(${K}{r}))>{TOLERANS},ABS(N(Z{r})-N(${Lc}{r}))>{TOLERANS})')
+        ws[f"AA{r}"] = (f'=IF(${A}{r}="","",IF(${O}{r}<>"",${O}{r},IF(${I}{r}<>{H}!$B$21,"Önceki kapanış ("&${I}{r}&")",'
+                        f'IF(${J}{r}<>{H}!$B$20,"Ay seçimi farklı (dosya: "&${J}{r}&")",'
+                        f'IF(X{r}="","Bölüm/kod bu raporda yok",'
+                        f'IF(AND(${Pc}{r}="Aktarıldı",${K}{r}="",${Lc}{r}=""),"Güncel (önceki dönemden aktarıldı)",'
+                        f'IF({changed},"Tutar değişti","Güncel")))))))')
+    fmt(ws, "YZ", 2, MAXO + 1, MONEY)
+    last = MAXO + 1
+    ws.conditional_formatting.add(f"AA2:AA{last}", FormulaRule(formula=['LEFT(AA2,6)="Güncel"'], fill=PatternFill("solid", bgColor="C6EFCE")))
+    ws.conditional_formatting.add(f"AA2:AA{last}", FormulaRule(formula=['AND(AA2<>"",LEFT(AA2,6)<>"Güncel")'], fill=PatternFill("solid", bgColor="FFEB9C")))
+    dv = DataValidation(type="list", formula1='"' + ",".join(DURUMLAR) + '"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"{OC['Durum']}2:{OC['Durum']}{last}")
+    for c in (OC["Durum"], OC["Onay notu"]):
+        for r in range(2, 202):
+            ws[f"{c}{r}"].fill = INPUT_FILL
+    ws["AC1"] = ("Bu sayfanın A1 hücresine Butce_Aciklama sorgusu yüklenir. Durum (sarı) ve Onay notu sütunlarını siz "
+                 "doldurursunuz; Tümünü Yenile'de korunur ve işlem geçmişine Kontrol Paneli'ndeki adınızla yazılır. "
+                 "Rapor, yalnız Kontrol = Güncel olan Onaylandı açıklamalarını gösterir (Bekliyor: [Onay bekliyor]). "
+                 "Bu döneme aktar: önceki kapanışın açıklamasını bu kapanışa onaylı olarak taşır. "
+                 "Kayıtlı durum sütununu değiştirmeyin.")
+    ws["AC1"].font = NOTE
+    ws["AC1"].alignment = Alignment(wrap_text=True, vertical="top")
+    ws.merge_cells("AC1:AH8")
+    ws.column_dimensions["X"].hidden = True
+    widths(ws, {"Y": 18, "Z": 18, "AA": 30, "AC": 16})
+    ws.freeze_panes = "B2"
+
+
+def build_dagitim(wb):
+    ws = wb.create_sheet("Dağıtım")
+    ws["A1"] = "Müdürlük dosyalarını hazırlama"
+    ws["A1"].font = TITLE
+    steps = [
+        "Müdürlük dosyası yalnız o müdürlüğün verisini içerir; diğer bölümlerin tutarları dosyaya girmez.",
+        "1. Bu raporu Dosya › Farklı Kaydet ile aşağıdaki önerilen adla kaydedin.",
+        "2. Yeni dosyada Veri › Sorgular ve Bağlantılar › Butce_Veri › sağ tık › Düzenle › Gelişmiş Düzenleyici.",
+        "3. MudurlukDosyasi satırına aşağıdaki değeri yazın › Bitti › Kapat ve Yükle. Kaydedip müdürlüğe gönderin.",
+        "4. Müdürlük açıklamaları dosyadaki Açıklamalar sayfasına yazar ve dosyayı geri gönderir.",
+        "5. Dönen dosyaları açıklama klasörüne koyun; ana raporda Tümünü Yenile › Açıklama Onayı sayfasında onaylayın.",
+    ]
+    for i, text in enumerate(steps, 2):
+        ws.cell(i, 1, text).font = NOTE if i == 2 else Font(color="263746")
+    header(ws, 9, ["Müdürlük", "Önerilen dosya adı", "Sorgudaki satır", "Bölüm sayısı"])
+    for i in range(1, MAXD + 1):
+        r = i + 9
+        m = f"'_Liste'!$A${i + 1}"
+        ws[f"A{r}"] = f'=IF({m}="","",{m})'
+        ws[f"B{r}"] = f'=IF(A{r}="","",A{r}&"_"&{H}!$B$21&".xlsx")'
+        ws[f"C{r}"] = f'=IF(A{r}="","","MudurlukDosyasi = "&CHAR(34)&A{r}&CHAR(34)&",")'
+        ws[f"D{r}"] = f'=IF(A{r}="","",COUNTIF({brng("D")},A{r}))'
+    widths(ws, {"A": 28, "B": 40, "C": 40, "D": 12})
+    ws.sheet_view.showGridLines = False
+
+
+def build_girdi(wb):
+    ws = wb.create_sheet("Girdi Kaydı")
+    ws["A1"] = "Raporun okuduğu dosyalar"
+    ws["A1"].font = TITLE
+    ws["A2"] = ("Her yenilemede güncellenir. Kaynak dosya sonradan değişirse boyut veya değiştirilme zamanı farklı olur; "
+                "aylık raporu Farklı Kaydet ile saklamak, o ayın girdileriyle birlikte arşivlenmesini sağlar.")
+    ws["A2"].font = NOTE
+    header(ws, 4, ["Tür", "Dosya", "Dönem", "Boyut (KB)", "Değiştirilme zamanı", "Durum"])
+    for k in range(1, MAXF + 1):
+        r = k + 4
+        f = find(f'"Girdi|{k}"')
+        ws[f"G{r}"] = "=" + f
+        g = f"$G{r}"
+        ws[f"A{r}"] = f'=IF({g}="","",INDEX({vcol("Grup")},{g})&"")'
+        ws[f"B{r}"] = f'=IF({g}="","",INDEX({vcol("Ad")},{g})&"")'
+        ws[f"C{r}"] = (f'=IF({g}="","",IF(ISNUMBER(INDEX({vcol("Yıl")},{g})),INDEX({vcol("Yıl")},{g})&"-"&'
+                       f'RIGHT("0"&INDEX({vcol("Sayı")},{g}),2),""))')
+        ws[f"D{r}"] = f'=IF({g}="","",IF(ISNUMBER(INDEX({vcol("Kod")},{g})),INDEX({vcol("Kod")},{g})/1024,""))'
+        ws[f"E{r}"] = f'=IF({g}="","",INDEX({vcol("Metin")},{g})&"")'
+        ws[f"F{r}"] = f'=IF({g}="","",INDEX({vcol("Kaynak")},{g})&"")'
+    fmt(ws, "D", 5, MAXF + 4, "#,##0.0")
+    ws.column_dimensions["G"].hidden = True
+    widths(ws, {"A": 12, "B": 40, "C": 10, "D": 12, "E": 20, "F": 18})
+    ws.freeze_panes = "A5"
 
 
 def build_ozet(wb):
@@ -957,7 +1125,7 @@ def build_ozet(wb):
         ("Yıllık bütçe (TL)", f'=IF({BUTCEYILI}=0,"",IFERROR(INDEX({drng("U")},{top}),""))', MONEY),
         ("Tahmin − yıllık bütçe (TL)", '=IF(AND(ISNUMBER(B10),ISNUMBER(B11)),B10-B11,"")', MONEY),
         ("Veri kontrolü", "=COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"Doğrulandı\")&\" / \"&COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"?*\")&\" kontrol doğrulandı\"", None),
-        ("Uyarı sayısı", f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + 3})", "0"),
+        ("Uyarı sayısı", f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + MAXG + 3})", "0"),
         ("Önemli sapma", f'=IF({BUTCEYILI}=0,"Uygulanmadı",COUNT({krng("S")})&" kalem ("&COUNT({krng("U")})&" aleyhte)")', None),
         ("Önemlilik eşiği", f'="≥ "&FIXED({ESIK},0)&" TL ve ≥ %"&{ORAN}*100', None),
     ]
@@ -1113,9 +1281,12 @@ def build(rows=None):
     build_uyarilar(wb, last_uy)
     build_ozet(wb)
     build_pano(wb)
+    build_onay(wb)
+    build_dagitim(wb)
+    build_girdi(wb)
     order = ["Kontrol Paneli", "Yönetici Özeti", "Pano", "Genel Özet", "Giderler", "Birim Maliyet", "Önemli Sapmalar",
              "Yıl Sonu Tahmini", "Hacim ve Birim Maliyet", "Veri Kontrolü", "Revizyonlar", "Uyarılar", "Açıklamalar",
-             "Veri"]
+             "Açıklama Onayı", "Dağıtım", "Girdi Kaydı", "Veri"]
     wb._sheets.sort(key=lambda s: order.index(s.title) if s.title in order else 100)
     wb.calculation.fullCalcOnLoad = True
     wb.active = 0

@@ -2,12 +2,13 @@
 
 Şirket bilgisayarında **Python kurulamıyor ve makrolar kapalıysa** bu yolu kullanın. Yalnız Excel'in yerleşik özellikleri kullanılır: Power Query ve formüller (Excel 2016, 2019, 2021, Microsoft 365). Lisans, eklenti, makro veya kurulum gerekmez. Formüllerde yeni sürümlere özgü işlevler (FILTER, XLOOKUP, LET…) kullanılmadı; şablon tüm bu sürümlerde aynı çalışır.
 
-İki dosya:
+Üç dosya:
 
 | Dosya | Görevi |
 | --- | --- |
 | [`powerquery/Butce_Rapor_Sablonu.xlsx`](../powerquery/Butce_Rapor_Sablonu.xlsx) | Raporlar ve panolar (formüllerle). Kontrol Paneli'ndeki seçimler değişince her şey anında güncellenir. |
-| [`powerquery/Butce_Veri.pq`](../powerquery/Butce_Veri.pq) | Tek Power Query sorgusu. Ayarlar, maliyet, kontrol ve endeks dosyalarını okur; şablonun **Veri** sayfasına tek tablo yükler. |
+| [`powerquery/Butce_Veri.pq`](../powerquery/Butce_Veri.pq) | Ana sorgu. Ayarlar, maliyet, kontrol ve endeks dosyalarını okur; şablonun **Veri** sayfasına tek tablo yükler. Müdürlük dosyası için yalnız o müdürlüğün verisini yükleyebilir. |
+| [`powerquery/Butce_Aciklama.pq`](../powerquery/Butce_Aciklama.pq) | Açıklama sorgusu. Müdürlüklerden dönen dosyalardaki açıklamaları **Açıklama Onayı** sayfasına toplar; onay durumunu ve işlem geçmişini korur. |
 
 ## Python / makro sürümüyle karşılaştırma
 
@@ -19,8 +20,13 @@
 | Kontrol dosyası mutabakatı (bölüm / birleşik / Opex / ciro) | ✓ | ✓ (Veri Kontrolü) |
 | Revizyonlar (ardışık kapanış dosyaları) ve uyarılar | ✓ | ✓ |
 | Kapsam: direktörlük veya tek müdürlük, ay seçimi, önceki yıl | ✓ | ✓ (Kontrol Paneli) |
-| Açıklama girişi | Müdürlük dosyalarından toplanır | Açıklamalar sayfasına yazılır (dosyalardan toplama: sonraki aşama) |
-| Müdürlük dosyalarını ayrı ayrı üretme, onay izi, girdi arşivi | ✓ | — (Kapsam seçip **Farklı Kaydet**) |
+| Müdürlük dosyaları (yalnız kendi verisi) | Tek çalıştırmada hepsi | Müdürlük başına bir kez: kopya + sorguda `MudurlukDosyasi` (Dağıtım sayfası) |
+| Açıklama toplama | Dönen dosyalardan, tutar kontrolüyle | ✓ Butce_Aciklama sorgusu; kapanış, ay seçimi ve tutar kontrolü |
+| Onay ve onay izi | Onay, kim/ne zaman, silinmeyen günlük | ✓ Durum sütunu; her işlem zaman · kişi · işlem olarak satırın geçmişine eklenir |
+| Önceki dönem açıklamalarını taşıma | Taslak olarak, toplu onay | ✓ Durum = **Bu döneme aktar** |
+| Girdi arşivi | Girdi dosyalarının kopyası | Girdi Kaydı (dosya adı, boyut, değiştirilme zamanı) + aylık **Farklı Kaydet**; Excel dosya kopyalayamaz |
+
+Bilinçli fark: müdürlük dosyasında diğer bölümlerin verisi bulunmadığından Birim Maliyet'teki **Direktörlük gider ağırlığı** boş kalır (direktörlük raporunda vardır).
 
 Hesap kuralları aynıdır: bir ay boşsa toplam boş kalır (sıfır sayılmaz), Lehte/Aleyhte yönü, önemlilik eşiği (tutar **ve** oran), endeksli önceki yıl karşılaştırması, kontrol toleransı.
 
@@ -46,7 +52,7 @@ Daha önce boş bir dosyaya kurduğunuz eski `Butce_Veri` sorgusu bu şablonla �
 | Yeni kapanış dosyaları klasöre konduğunda | **Veri › Tümünü Yenile** (tek tuş). Tüm sayfalar ve grafikler güncellenir. |
 | Kapsam, ay veya eşik değiştirmek için | Kontrol Paneli'ndeki sarı hücreler. Yenileme gerekmez, anında hesaplanır. |
 | Müdürlüğe ayrı dosya göndermek için | Kapsam'da müdürlüğü seçin › **Dosya › Farklı Kaydet**. |
-| Açıklama eklemek için | **Açıklamalar** sayfası: bölüm + gider kodu + açıklama. Giderler ve Önemli Sapmalar'da görünür. |
+| Açıklama eklemek için | **Açıklamalar** sayfası: bölüm + gider kodu + açıklama. Giderler ve Önemli Sapmalar'da görünür; sağdaki liste açıklama bekleyen önemli sapmaları gösterir. |
 
 Kontrol Paneli seçimleri:
 
@@ -54,6 +60,50 @@ Kontrol Paneli seçimleri:
 - **Kapsam:** `Tümü` = direktörlük raporu; bir müdürlük seçilirse yalnız o müdürlük.
 - **Ay seçimi:** Yıl başından kapanışa · Yalnız kapanış ayı · Elle seçim (Elle seçimde ayların altına `1`).
 - **Önemlilik tutarı / oranı, Özet kalem sayısı:** boş bırakılırsa Ayarlar.xlsx'teki değerler.
+
+## Müdürlük dosyaları (dağıtım)
+
+Müdürlük dosyası yalnız o müdürlüğün bölümlerini içerir; diğer bölümlerin tutarları dosyaya hiç girmez. **Dağıtım** sayfası müdürlükleri, önerilen dosya adlarını ve sorguya yazılacak satırı listeler. Her müdürlük için bir kez:
+
+1. Ana raporu **Dosya › Farklı Kaydet** ile önerilen adla kaydedin (ör. `Depolama_2026-10.xlsx`).
+2. Yeni dosyada **Veri › Sorgular ve Bağlantılar** › `Butce_Veri` sağ tık › **Düzenle** › **Gelişmiş Düzenleyici**.
+3. `MudurlukDosyasi = "Depolama",` yazın › **Bitti** › **Kapat ve Yükle**. Kontrol Paneli'nde "Müdürlük dosyası: Depolama" görünür.
+4. Kaydedip müdürlüğe gönderin. Müdürlük açıklamalarını **Açıklamalar** sayfasına yazar, dosyayı kaydedip geri gönderir. Müdürlüğün **Tümünü Yenile**'ye basması gerekmez.
+
+Sonraki aylarda aynı müdürlük dosyasını açıp **Tümünü Yenile** yapmanız yeterli (sorgu müdürlük ayarını hatırlar).
+
+## Açıklama toplama ve onay
+
+Bir kez kurulum (ana raporda):
+
+1. Ayarlar.xlsx'in yanında `pq_aciklama` klasörü açın (başka yer için sorgudaki `AciklamaKlasoru` satırı).
+2. **Veri › Veri Al › Boş Sorgu › Gelişmiş Düzenleyici** › `Butce_Aciklama.pq`'yi yapıştırın, `AyarDosyasi` satırını düzenleyin.
+3. Sorgunun adı `Butce_Aciklama` › **Kapat ve Şuraya Yükle… › Tablo › Var olan çalışma sayfası** › `='Açıklama Onayı'!$A$1`.
+4. Kontrol Paneli › **Onaylayan (adınız)** hücresine adınızı yazın.
+
+Her ay:
+
+1. Müdürlüklerden dönen dosyaları `pq_aciklama` klasörüne koyun › **Veri › Tümünü Yenile**.
+2. **Açıklama Onayı** sayfasında her satır için **Kontrol** sütununa bakın:
+   - `Güncel`: açıklama bu kapanış ve ay seçimi için yazılmış, tutarlar değişmemiş.
+   - `Tutar değişti`: açıklama yazıldıktan sonra tutar değişmiş (revizyon); müdürlükten güncel açıklama isteyin.
+   - `Önceki kapanış (…)` / `Ay seçimi farklı`: başka dönem için yazılmış. Uygunsa **Bu döneme aktar**.
+   - `Bu bölümde bu kod yok`, `Çakışma…`, `Dosya okunamadı…`: dosyayı düzeltin.
+3. **Durum** sütununda seçin: `Onaylandı`, `Reddedildi`, `Bekliyor` veya `Bu döneme aktar`; gerekirse **Onay notu** yazın.
+4. **Tümünü Yenile**. İşlem, adınız ve zamanla **İşlem geçmişi** sütununa eklenir; Giderler ve Önemli Sapmalar güncellenir.
+
+Kurallar:
+
+- Rapor yalnız `Onaylandı` + `Güncel` açıklamaları gösterir. `Bekliyor` olanlar `[Onay bekliyor]` önekiyle görünür ve Önemli Sapmalar'da durum **Onay bekliyor** olur.
+- Ana raporun kendi Açıklamalar sayfasına yazılan açıklama (finans) her zaman önceliklidir.
+- Müdürlük açıklama metnini değiştirip yeniden gönderirse durum `Bekliyor`'a döner ve geçmişe yazılır.
+- Kaynak dosyası klasörden kaldırılan açıklama tablodan silinmez (Kaynakta = Yok); onay izi korunur.
+- Sorgu kendi önceki tablosunu okuyarak durumları korur. Tablo satırlarını elle silmeyin; **Kayıtlı durum** sütununu değiştirmeyin.
+- İlk yenilemede gizlilik düzeyi sorulursa **Kuruluş** seçin (Geçerli Çalışma Kitabı dahil).
+
+## Girdi kaydı ve arşiv
+
+**Girdi Kaydı** sayfası her yenilemede raporun okuduğu dosyaları listeler: tür, dönem, boyut, değiştirilme zamanı ve durum (Okundu / Kapsam dışı / Dönem bulunamadı / Bulunamadı). Kontrol Paneli'nde **Son yenileme** zamanı görünür. Excel dosya kopyalayamadığı için girdi arşivi şöyle tutulur: kapanış dosyaları klasörde kalır (revizyonlar zaten bunlardan hesaplanır) ve her ayın raporu **Farklı Kaydet** ile ayrı saklanır; o raporun Girdi Kaydı hangi dosya sürümlerinden üretildiğini gösterir.
 
 ## Nasıl çalışır
 
@@ -73,8 +123,8 @@ Endeks.xlsx  ─┘                                                Kontrol Panel
 
 Her değişiklikte CI üç şeyi otomatik denetler:
 
-1. **Gerçek M motoru:** Sorgu, Excel'deki Power Query ile aynı motorla (Microsoft Power Query SDK, PQTest) örnek verilerle çalıştırılır; çıkan tablo Python benzetimiyle satır satır karşılaştırılır (en son kapanış ve 2026-09).
-2. **Şablon formülleri:** Şablon bu veriyle LibreOffice'te hesaplanır; Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Uyarılar Python motorunun raporlarıyla karşılaştırılır (direktörlük yıl başından, yalnız kapanış ayı, Depolama · Ocak/Mart/Mayıs).
+1. **Gerçek M motoru:** İki sorgu da Excel'deki Power Query ile aynı motorla (Microsoft Power Query SDK, PQTest) örnek verilerle çalıştırılır ve Python benzetimiyle satır satır karşılaştırılır: Butce_Veri için en son kapanış, 2026-09 ve Depolama müdürlük dosyası; Butce_Aciklama için üç ardışık yenileme (yeni açıklamalar → onay, ret, aktarma, metni değişen ve kaynağı kaldırılan satırlar → değişiklik yokken geçmişe bir şey yazılmaması).
+2. **Şablon formülleri:** Şablon bu veriyle LibreOffice'te hesaplanır; Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Uyarılar Python motorunun raporlarıyla karşılaştırılır (direktörlük yıl başından, yalnız kapanış ayı, Depolama · Ocak/Mart/Mayıs, Depolama müdürlük dosyası). Açıklama Onayı'nın kontrol sütunu ve onaylı açıklamaların rapora yansıması da denetlenir.
 3. **Birim testleri:** blok sayıları, tekil anahtarlar, boş ay kuralı.
 
 Elle kontrol: örnek verilerle Ekim 2026, Ocak–Ekim, Tümü: gerçekleşen **3.449.383.390,31 TL**, bütçe **3.440.938.980,13 TL**.
@@ -85,6 +135,7 @@ Elle kontrol: örnek verilerle Ekim 2026, Ocak–Ekim, Tümü: gerçekleşen **3
 | --- | --- |
 | Kontrol Paneli: "Veri yok" | Sorgu `Veri!$A$1`'e yüklenmedi. **Veri › Sorgular ve Bağlantılar** › `Butce_Veri` sağ tık › **Yükle…** › Var olan sayfa `=Veri!$A$1`. |
 | `DataFormat.Error` / dosya bulunamadı | `AyarDosyasi` yolu veya Ayarlar'daki `maliyet_klasoru`, `kontrol_dosyasi`, `endeks_dosyasi` yanlış. |
+| Açıklama Onayı'ndaki durumlar yenilemede kayboluyor | Sorgu Açıklama Onayı tablosunu okuyamıyor: tablo `'Açıklama Onayı'!$A$1`'de olmalı; satır ve sütunları silinmemeli. |
 | `Formula.Firewall` hatası | **Veri › Veri Al › Sorgu Seçenekleri › Geçerli Çalışma Kitabı › Gizlilik › Gizlilik düzeylerini yoksay**. |
 | Uyarılar: `Bütçe başlığı bulunamadı` | Sayfada "Bütçe" başlığı yok. Ayarlar'daki `butce_etiketi` ile sayfayı karşılaştırın. |
 | Uyarılar: `tek 12 aylık bütçe bloğu bulunamadı` | Bütçe başlığının altındaki 12 ay dosyanın yılıyla eşleşmiyor veya eksik. |
@@ -93,4 +144,4 @@ Elle kontrol: örnek verilerle Ekim 2026, Ocak–Ekim, Tümü: gerçekleşen **3
 | Uyarılar: `Kontrol/Endeks dosyası okunamadı` | Dosya adı veya sayfa adı Ayarlar'la uyuşmuyor; diğer raporlar yine üretilir. |
 | Yenileme çok uzun sürüyor | Maliyet klasöründe yalnız kapanış dosyaları olsun; eski yılların dosyalarını alt klasöre taşıyın (alt klasörler okunmaz). |
 
-Şablon sınırları: 60 bölüm, Genel Özet'te 120 satır, Giderler'de 80 satır × 40 bölüm, 2.000 bölüm-kalem, 1.500 revizyon, 1.000 uyarı. Gerekirse `tools/pq_sablon.py` başındaki sabitler büyütülüp şablon yeniden üretilir.
+Şablon sınırları: 2.000 açıklama satırı, 60 bölüm, Genel Özet'te 120 satır, Giderler'de 80 satır × 40 bölüm, 2.000 bölüm-kalem, 1.500 revizyon, 1.000 uyarı. Gerekirse `tools/pq_sablon.py` başındaki sabitler büyütülüp şablon yeniden üretilir.

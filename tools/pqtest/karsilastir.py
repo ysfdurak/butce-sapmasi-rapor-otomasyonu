@@ -1,6 +1,6 @@
 """PQTest çıktısındaki Power Query tablosunu Python benzetimiyle (tools/pq_veri.py) karşılaştırır.
 
-Kullanım: python tools/pqtest/karsilastir.py <pqtest çıktısı.json> <Ayarlar.xlsx> [kapanış yyyy-mm]
+Kullanım: python tools/pqtest/karsilastir.py <pqtest çıktısı.json> <Ayarlar.xlsx> [kapanış yyyy-mm|-] [müdürlük|-]
 """
 
 import json
@@ -12,15 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pq_veri  # noqa: E402
 
 
-def bul(nesne):
+def bul(nesne, onek='[["Anahtar"'):
     """Çıktı JSON'unda sorgunun döndürdüğü tablo metnini ('[["Anahtar", ...') arar."""
-    if isinstance(nesne, str) and nesne.startswith('[["Anahtar"'):
+    if isinstance(nesne, str) and nesne.startswith(onek):
         return nesne
     if isinstance(nesne, dict):
         nesne = list(nesne.values())
     if isinstance(nesne, list):
         for x in nesne:
-            sonuc = bul(x)
+            sonuc = bul(x, onek)
             if sonuc:
                 return sonuc
     return None
@@ -44,8 +44,10 @@ def main():
     basliklar, pq = tablo[0], tablo[1:]
     if basliklar != pq_veri.COLUMNS:
         raise SystemExit(f"Sütunlar farklı: {basliklar}")
-    kapanis = tuple(map(int, sys.argv[3].split("-"))) if len(sys.argv) > 3 and sys.argv[3] else None
-    beklenen = pq_veri.build(sys.argv[2], kapanis)
+    arg = [a if a not in ("", "-") else None for a in sys.argv[3:5]] + [None, None]
+    kapanis = tuple(map(int, arg[0].split("-"))) if arg[0] else None
+    mudurluk = arg[1]
+    beklenen = pq_veri.build(sys.argv[2], kapanis, mudurluk)
     print("PQ   :", len(pq), dict(Counter(r[1] for r in pq)))
     print("Beklenen:", len(beklenen), dict(Counter(r[1] for r in beklenen)))
     pq_k = {r[0]: r for r in pq}
@@ -58,7 +60,8 @@ def main():
     farkli = 0
     for k in set(pq_k) & set(bek_k):
         a, b = pq_k[k], bek_k[k]
-        alanlar = [basliklar[i] for i in range(len(a)) if not esit(a[i], b[i])]
+        # Kimlik satırındaki yenileme zamanı (DateTime.LocalNow) karşılaştırılmaz
+        alanlar = [basliklar[i] for i in range(len(a)) if not esit(a[i], b[i]) and not (k == "Kimlik" and basliklar[i] == "Metin")]
         if alanlar:
             farkli += 1
             if farkli <= 15:

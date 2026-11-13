@@ -1,5 +1,13 @@
 # Sürüm notları
 
+## V5.3 — Kasım 2026
+
+Makrosuz yolun eksikleri tamamlandı ([rehber](POWER_QUERY.md)):
+- **Müdürlük dosyaları:** `Butce_Veri` sorgusuna `MudurlukDosyasi` satırı; dosyaya yalnız o müdürlüğün verisi yüklenir. Dağıtım sayfası müdürlükleri ve dosya adlarını listeler.
+- **Açıklama toplama:** yeni `Butce_Aciklama` sorgusu dönen müdürlük dosyalarını Açıklama Onayı sayfasına toplar; kapanış, ay seçimi ve tutar değişikliği kontrolü.
+- **Onay izi:** Durum (Onaylandı / Reddedildi / Bekliyor / Bu döneme aktar) ve onay notu yenilemede korunur; her işlem kişi ve zamanla satırın işlem geçmişine eklenir; kaynak dosyası kaldırılan açıklama silinmez.
+- **Girdi kaydı:** okunan dosyaların boyutu ve değiştirilme zamanı; Kontrol Paneli'nde son yenileme.
+
 ## V5.2 — Kasım 2026
 
 - **Makrosuz yol tam kapsamlı:** `powerquery/Butce_Rapor_Sablonu.xlsx` + yeni `Butce_Veri.pq`. Python/makro sürümündeki raporların tamamı (Yönetici Özeti, Pano, Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Birim Maliyet, Veri Kontrolü, Revizyonlar, Uyarılar) formüllerle üretilir. Kapsam, ay ve eşik seçimleri Kontrol Paneli'nden anında; yeni dosyalar için **Veri › Tümünü Yenile**. Excel 2016 ve sonrasıyla uyumlu. [Rehber](POWER_QUERY.md)

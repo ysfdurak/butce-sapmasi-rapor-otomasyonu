@@ -3,7 +3,10 @@
 Her senaryoda: şablon örnek veriyle (tools/pq_veri.py) doldurulur, Kontrol Paneli seçimleri yazılır, LibreOffice
 ile hesaplanır ve aynı seçimle `butce.run` çıktısıyla sayfa sayfa karşılaştırılır.
 
-Kullanım: python tools/pqtest/sablon_dogrula.py   (soffice PATH'te olmalı)
+Ayrıca --aciklama KLASÖR verilirse (tools/pqtest/aciklama_ornek.py çıktısı) Açıklama Onayı sayfası açıklama
+sorgusunun benzetim çıktısıyla doldurulur ve kontrol sütunu ile rapora yansıyan açıklamalar denetlenir.
+
+Kullanım: python tools/pqtest/sablon_dogrula.py [--aciklama KLASÖR]   (soffice PATH'te olmalı)
 """
 
 import shutil
@@ -33,6 +36,9 @@ SENARYOLAR = [
     ("Direktörlük · yıl başından", "Tümü", "Yıl başından kapanışa", [], "1,2,3,4,5,6,7,8,9,10", "Genel.xlsx"),
     ("Direktörlük · kapanış ayı", "Tümü", "Yalnız kapanış ayı", [], "10", "Genel.xlsx"),
     ("Depolama · Ocak, Mart, Mayıs", "Depolama", "Elle seçim", [1, 3, 5], "1,3,5", "Mudurluk_02_Depolama_*.xlsx"),
+    # Müdürlük dosyası: sorgu yalnız Depolama verisini yükler (MudurlukDosyasi), kapsam kendiliğinden Depolama
+    ("Müdürlük dosyası · Depolama", "Tümü", "Yıl başından kapanışa", [], "1,2,3,4,5,6,7,8,9,10",
+     "Mudurluk_02_Depolama_*.xlsx", "Depolama"),
 ]
 
 
@@ -63,20 +69,14 @@ def karsilastir(ad, t, p):
     return hata
 
 
-def senaryo(gecici, veri, ad, kapsam, mod, aylar, py_aylar, py_dosya):
+def senaryo(gecici, veri, ad, kapsam, mod, aylar, py_aylar, py_dosya, mudurluk=None):
     print("==", ad)
-    wb = pq_sablon.build(veri)
+    wb = pq_sablon.build(pq_veri.build(AYAR, mudurluk=mudurluk) if mudurluk else veri)
     panel = wb["Kontrol Paneli"]
     panel["C6"], panel["C8"] = kapsam, mod
     for m in aylar:
         panel.cell(10, 2 + m, 1)
-    kaynak = gecici / "sablon.xlsx"
-    wb.save(kaynak)
-    hesap = gecici / "hesap"
-    shutil.rmtree(hesap, ignore_errors=True)
-    subprocess.run(["soffice", "--headless", "--calc", "--convert-to", "xlsx:Calc MS Excel 2007 XML",
-                    "--outdir", str(hesap), str(kaynak)], check=True, capture_output=True, timeout=300)
-    tpl = load_workbook(hesap / "sablon.xlsx", data_only=True)
+    tpl = hesapla(gecici, wb)
 
     cikti = gecici / "python"
     shutil.rmtree(cikti, ignore_errors=True)
@@ -90,7 +90,13 @@ def senaryo(gecici, veri, ad, kapsam, mod, aylar, py_aylar, py_dosya):
                        ("Hacim ve Birim Maliyet", 12)):
         # Python "eşiği aşan sapma yok" gibi tek hücrelik bilgi satırlarını atla
         p = [r for r in satirlar(py[sayfa], 2, range(1, son)) if any(v not in (None, "") for v in r[1:])]
-        hata += karsilastir(sayfa, satirlar(tpl[sayfa], 2, range(1, son)), p)
+        t = satirlar(tpl[sayfa], 2, range(1, son))
+        if mudurluk and sayfa == "Birim Maliyet":  # direktörlük ağırlığı müdürlük dosyasında bilinçli olarak boş
+            if any(r[12] not in (None, "") for r in t):
+                print("  Birim Maliyet: müdürlük dosyasında direktörlük ağırlığı boş olmalı")
+                hata += 1
+            t, p = [r[:12] + r[13:] for r in t], [r[:12] + r[13:] for r in p]
+        hata += karsilastir(sayfa, t, p)
     tg, pg = tpl["Giderler"], py["Giderler"]
     bolumler = {b[0] for b in satirlar(tpl["Genel Özet"], 2, [1])}
 
@@ -140,10 +146,82 @@ def guncel_mi():
     return 0
 
 
+def hesapla(gecici, wb):
+    kaynak = gecici / "sablon.xlsx"
+    wb.save(kaynak)
+    hesap = gecici / "hesap"
+    shutil.rmtree(hesap, ignore_errors=True)
+    subprocess.run(["soffice", "--headless", "--calc", "--convert-to", "xlsx:Calc MS Excel 2007 XML",
+                    "--outdir", str(hesap), str(kaynak)], check=True, capture_output=True, timeout=300)
+    return load_workbook(hesap / "sablon.xlsx", data_only=True)
+
+
+def onay_senaryosu(gecici, veri, klasor):
+    """Açıklama Onayı: kontrol sütunu ve onaylı açıklamanın rapora yansıması."""
+    import pq_aciklama
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import aciklama_test as t
+
+    print("== Açıklama Onayı")
+    r1 = pq_aciklama.build(AYAR, klasor, [], "Test", t.DONEM, t.AYLAR, t.SIMDI)
+    rows = pq_aciklama.build(AYAR, klasor, t.kullanici_islemleri(r1), "F. Onaylayan", t.DONEM, t.AYLAR, t.SIMDI)
+    for r in rows:  # tutarı sonradan değişmiş gibi
+        if r["Anahtar"].startswith("Giriş|1|2026-10"):
+            r["Durum"] = "Onaylandı"
+        if r["Anahtar"].startswith("Sayım|3|2026-10"):
+            r["Gerçekleşen (dosyada)"] += 1000
+    wb = pq_sablon.build(veri)
+    ws = wb["Açıklama Onayı"]
+    for c, name in enumerate(pq_aciklama.COLUMNS, 1):
+        ws.cell(1, c, name)
+    for i, r in enumerate(rows, 2):
+        for c, name in enumerate(pq_aciklama.COLUMNS, 1):
+            ws.cell(i, c, r[name])
+    tpl = hesapla(gecici, wb)
+    ws, kalem, onemli = tpl["Açıklama Onayı"], tpl["_Kalem"], tpl["Önemli Sapmalar"]
+    kontrol = {ws.cell(r, 1).value: ws.cell(r, 27).value for r in range(2, len(rows) + 2)}
+    metin = {kalem.cell(r, 8).value: kalem.cell(r, 27).value or "" for r in range(2, kalem.max_row + 1) if kalem.cell(r, 8).value}
+    durum = {(onemli.cell(r, 2).value, onemli.cell(r, 3).value): onemli.cell(r, 11).value for r in range(2, 502)
+             if onemli.cell(r, 2).value}
+    k = f"|{t.DONEM}|{t.AYLAR}"
+    beklenen_kontrol = {
+        "Giriş|1" + k: "Güncel", "Yerleştirme|1" + k: "Güncel", "Toplama|1" + k: "Güncel", "Tartım|1" + k: "Güncel",
+        "Sayım|3" + k: "Tutar değişti", "Giriş|99" + k: "Bu bölümde bu kod yok",
+        "Giriş|3" + k: "Güncel (önceki dönemden aktarıldı)", "Giriş|3|2026-09|2026:1,2,3,4,5,6,7,8,9": "Önceki kapanış (2026-09)",
+        "Paketleme|1" + k: "Tutar değişti",
+        "Dosya|Notlar.xlsx": "Dosya okunamadı: Açıklamalar sayfası yok; dosya rapor şablonundan hazırlanmamış",
+    }
+    beklenen_metin = {
+        "Giriş|1": "Kadro planı Mart'a kaydı; boş pozisyonlar Kasım'da doluyor.",
+        "Yerleştirme|1": "Yeni WMS ile yerleştirme ekibi küçüldü.",
+        "Tartım|1": "[Onay bekliyor] Vardiya sayısı 3'ten 2'ye indi; tasarruf kalıcı.",
+        "Toplama|1": "", "Sayım|3": "", "Paketleme|1": "",
+        "Giriş|3": "Eylül: denetim öncesi fazla mesai.",
+    }
+    hata = 0
+    for a, b in beklenen_kontrol.items():
+        if kontrol.get(a) != b:
+            print(f"  Kontrol {a}: {kontrol.get(a)!r} ≠ {b!r}")
+            hata += 1
+    for a, b in beklenen_metin.items():
+        if metin.get(a) != b:
+            print(f"  Açıklama {a}: {metin.get(a)!r} ≠ {b!r}")
+            hata += 1
+    for (bolum, kod), bek in (("Giriş", 1), "Açıklandı"), (("Tartım", 1), "Onay bekliyor"), (("Toplama", 1), "Açıklama gerekli"):
+        if (bolum, kod) in durum and durum[bolum, kod] != bek:
+            print(f"  Önemli Sapmalar {bolum} {kod}: {durum[bolum, kod]!r} ≠ {bek!r}")
+            hata += 1
+    print(f"  Açıklama Onayı: {len(beklenen_kontrol)} kontrol, {len(beklenen_metin)} rapor açıklaması, fark {hata}")
+    return hata
+
+
 def main():
     veri = pq_veri.build(AYAR)
     hata = guncel_mi()
+    klasor = sys.argv[sys.argv.index("--aciklama") + 1] if "--aciklama" in sys.argv else None
     with tempfile.TemporaryDirectory() as d:
+        if klasor:
+            hata += onay_senaryosu(Path(d), veri, klasor)
         for s in SENARYOLAR:
             hata += senaryo(Path(d), veri, *s)
     print("Toplam fark:", hata)

@@ -12,9 +12,10 @@
 // hizalandığından kaynağın boş üst satırları/sütunları sonucu etkilemez.
 // Performans: tekrar kullanılan her şey Table.Buffer / List.Buffer ile belleğe alınır.
 let
-    // ===================== YALNIZ BU İKİ SATIRI DÜZENLEYİN =====================
+    // ===================== YALNIZ BU ÜÇ SATIRI DÜZENLEYİN ======================
     AyarDosyasi = "C:\Butce\ornek\Ayarlar.xlsx",   // Ayarlar.xlsx dosyasının tam yolu
     KapanisDonemi = "",                             // boş = klasördeki en son kapanış; örnek: "2026-10"
+    MudurlukDosyasi = "",                           // boş = direktörlük raporu; müdürlüğe gidecek dosya: "Depolama"
     // ============================================================================
 
     AyAdlari = {"ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık"},
@@ -130,7 +131,7 @@ let
     BolumTablosu = BaslikIle(Sayfa("Bölüm Eşleştirme"), "Maliyet sayfası / bölüm"),
     BolumSatirlari = List.Buffer(Table.ToRecords(BolumTablosu)),
     MetinAlani = (r as record, alan as text) => let v = Record.FieldOrDefault(r, alan, null) in if Bos(v) then null else Text.Trim(Text.From(v)),
-    BolumKayit = List.Buffer(List.Transform(List.Positions(BolumSatirlari), (i) =>
+    TumBolumKayit = List.Buffer(List.Transform(List.Positions(BolumSatirlari), (i) =>
         let
             r = BolumSatirlari{i},
             ad = MetinAlani(r, "Maliyet sayfası / bölüm"),
@@ -141,11 +142,22 @@ let
              Endeks = MetinAlani(r, "Endeks dosyasındaki bölüm"),
              Lokasyon = if MetinAlani(r, "Lokasyon") = null then "Tanımsız" else MetinAlani(r, "Lokasyon"),
              Hedef = hedef, Grup = Kucuk(dir) & "|" & Kucuk(hedef)])),
+    TumAdlari = List.Buffer(List.Transform(TumBolumKayit, each [Bolum])),
+    TumAnahtarlari = List.Buffer(List.Transform(TumBolumKayit, each [Anahtar])),
+    Direktorlukler = List.Buffer(List.Distinct(List.Transform(TumBolumKayit, each Kucuk([Direktorluk])))),
+    // Müdürlük dosyası: yalnız o müdürlüğün bölümleri okunur ve tabloya yazılır (diğer bölümlerin verisi dosyaya girmez).
+    MudurlukVar = MudurlukDosyasi <> "",
+    SecilenBolumler = if MudurlukVar then List.Select(TumBolumKayit, each Kucuk([Mudurluk]) = Kucuk(MudurlukDosyasi)) else TumBolumKayit,
+    BolumKayit = List.Buffer(
+        if List.IsEmpty(SecilenBolumler) then error Error.Record("Ayar", "Müdürlük bulunamadı: " & MudurlukDosyasi)
+        else List.Transform(List.Positions(SecilenBolumler), (i) => SecilenBolumler{i} & [Sira = i + 1])),
     BolumAdlari = List.Buffer(List.Transform(BolumKayit, each [Bolum])),
-    BolumAnahtarlari = List.Buffer(List.Transform(BolumKayit, each [Anahtar])),
     BolumBilgi = Record.FromList(BolumKayit, BolumAdlari),
-    Direktorlukler = List.Buffer(List.Distinct(List.Transform(BolumKayit, each Kucuk([Direktorluk])))),
-    KontrolGruplari = List.Buffer(List.Distinct(List.Transform(BolumKayit, each [Grup]))),
+    // Kontrol grubu yalnız tüm üyeleri kapsamdaysa alınır; müdürlük dışına taşan birleşik grup direktörlük raporundadır.
+    KontrolGruplari = List.Buffer(List.Select(List.Distinct(List.Transform(BolumKayit, each [Grup])), (g) =>
+        List.AllTrue(List.Transform(List.Select(TumBolumKayit, each [Grup] = g), each List.Contains(BolumAdlari, [Bolum]))))),
+    KapsamDisiGruplar = List.Sort(List.Distinct(List.Transform(
+        List.Select(BolumKayit, each not List.Contains(KontrolGruplari, [Grup])), each [Hedef])), Comparer.Ordinal),
 
     Gruplar = List.Buffer(Table.ToRecords(BaslikIle(Sayfa("Gider Grupları"), "İlk indeks"))),
     GiderGrubu = (kod as number) as text =>
@@ -301,7 +313,7 @@ let
         in
             List.Select(
                 List.Transform(Table.ToRecords(kitap), (s) => [Dosya = f[Name], Donem = f[Donem], Sayfa = s[Name], Data = s[Data],
-                    Sira = List.PositionOf(BolumAnahtarlari, Kucuk(s[Name]))]),
+                    Sira = List.PositionOf(TumAnahtarlari, Kucuk(s[Name]))]),
                 each not List.Contains(OrtakSayfalar, Kucuk([Sayfa])))))),
     Eslesen = List.Buffer(List.Select(SayfaListesi, each [Sira] >= 0)),
     EslesenAnahtar = List.Buffer(List.Transform(Eslesen, each Text.From([Donem]) & "|" & Text.From([Sira]))),
@@ -309,13 +321,15 @@ let
         let
             s = SayfaListesi{i},
             etiket = Etiket(s[Donem]),
-            ad = if s[Sira] >= 0 then BolumAdlari{s[Sira]} else s[Sayfa],
+            ad = if s[Sira] >= 0 then TumAdlari{s[Sira]} else s[Sayfa],
+            kapsamda = s[Sira] < 0 or List.Contains(BolumAdlari, ad),
             k = Text.From(s[Donem]) & "|" & Text.From(s[Sira]),
             adet = List.Count(List.Select(EslesenAnahtar, each _ = k)),
-            sonuc = if s[Sira] < 0 or adet > 1 then null else (try OkuBolum(s[Data], s[Donem], s[Sayfa])),
+            sonuc = if s[Sira] < 0 or adet > 1 or not kapsamda then null else (try OkuBolum(s[Data], s[Donem], s[Sayfa])),
             uyari = (m) => [Ad = etiket, #"Bölüm" = ad, Kaynak = s[Dosya], Metin = m]
         in
-            if s[Sira] < 0 then [Gecerli = false, Uyarilar = {uyari("Bölüm eşleştirmesi bulunamadı")}]
+            if not kapsamda then [Gecerli = false, Uyarilar = {}]
+            else if s[Sira] < 0 then [Gecerli = false, Uyarilar = {uyari("Bölüm eşleştirmesi bulunamadı")}]
             else if adet > 1 then [Gecerli = false, Uyarilar = {uyari("Aynı bölüm ve kapanış için birden fazla kaynak")}]
             else if sonuc[HasError] then [Gecerli = false, Uyarilar = {uyari(Text.From(sonuc[Error][Message]))}]
             else [Gecerli = true, Donem = s[Donem], Bolum = ad, Kaynak = s[Dosya], Satirlar = sonuc[Value][Satirlar],
@@ -474,7 +488,9 @@ let
                     List.Generate(() => r + 3, (k) => k < nR and baslik(k) <> "" and not List.Contains(Direktorlukler, baslik(k)), (k) => k + 1),
                     (k) => [D = baslik(r), T = baslik(k), R = k]))),
             anahtarlar = List.Transform(eslesmeler, each [D] & "|" & [T]),
-            kontrol = List.Combine(List.Transform(List.Positions(eslesmeler), (i) =>
+            // Müdürlük dosyasında yalnız kapsamdaki kontrol gruplarının satırları
+            alinacak = List.Select(List.Positions(eslesmeler), (i) => not MudurlukVar or List.Contains(KontrolGruplari, anahtarlar{i})),
+            kontrol = List.Combine(List.Transform(alinacak, (i) =>
                 let
                     e = eslesmeler{i},
                     n = List.Count(List.Select(List.FirstN(anahtarlar, i + 1), each _ = anahtarlar{i}))
@@ -514,9 +530,11 @@ let
                 else if ardisik then true else error Error.Record("Endeks", "Endeks ayları ardışık değil"),
             pListe = List.Transform(donemler, each [P]),
             satirlar = List.Select({capa[R] + 1 .. nR - 1}, (r) => Kucuk(h(r, capa[C])) <> ""),
+            istenen = List.Transform(List.Select(BolumKayit, each [Endeks] <> null), each Kucuk([Endeks])),
             adlar = List.Transform(satirlar, (r) => Kucuk(h(r, capa[C]))),
             tekil = if List.Count(List.Distinct(adlar)) = List.Count(adlar) then true else error Error.Record("Endeks", "Mükerrer endeks bölümü"),
-            endeks = List.Combine(List.Transform(satirlar, (r) =>
+            endeks = List.Combine(List.Transform(
+                List.Select(satirlar, (r) => not MudurlukVar or List.Contains(istenen, Kucuk(h(r, capa[C])))), (r) =>
                 List.Transform(Yillik(pListe, List.Transform(donemler, each Sayi(h(r, [C])))), (y) =>
                     [Anahtar = "Endeks|" & Kucuk(h(r, capa[C])) & "|" & Text.From(y[Yil]), Tablo = "Endeks",
                      Ad = Kucuk(h(r, capa[C])), #"Yıl" = y[Yil]] & Aylar(y[Ay], BosAy)))),
@@ -575,13 +593,44 @@ let
         else List.Transform(
             List.Select(Ciftler, (c) => AnlikDosya(c[Eski], b[Bolum]) = null or AnlikDosya(c[Yeni], b[Bolum]) = null),
             (c) => [Ad = Etiket(c[Yeni]), #"Bölüm" = b[Bolum], Kaynak = null, Metin = ArdisikUyari]))),
+    KapsamDisiUyari = List.Transform(KapsamDisiGruplar, (t) => [Ad = Etiket(Kapanis), #"Bölüm" = null, Kaynak = null,
+        Metin = t & ": Birleşik bölüm kontrolü direktörlük raporunda yer alır"]),
     UyariListesi = DonemsizUyari & List.Combine(List.Transform(SayfaSonuclari, each [Uyarilar]))
-        & KontrolSonuc[Uyarilar] & EndeksSonuc[Uyarilar] & ArdisikEksik,
+        & KontrolSonuc[Uyarilar] & EndeksSonuc[Uyarilar] & ArdisikEksik & KapsamDisiUyari,
     UyariBlok = List.Transform(List.Positions(UyariListesi), (i) =>
         [Anahtar = "Uyari|" & Text.From(i + 1), Tablo = "Uyari"] & UyariListesi{i}),
 
+    // ---------------------------------------------------------------- Kimlik ve girdi kaydı
+    KimlikBlok = {[Anahtar = "Kimlik", Tablo = "Kimlik", Ad = if MudurlukVar then "Müdürlük" else "Direktörlük",
+        #"Müdürlük" = if MudurlukVar then BolumKayit{0}[Mudurluk] else null,
+        Metin = DateTime.ToText(DateTime.LocalNow(), "yyyy-MM-dd HH:mm")]},
+    // Raporun okuduğu dosyalar: ad, tür, boyut, değiştirilme zamanı. Kaynak dosya sonradan değişirse buradan anlaşılır.
+    DosyaBilgisi = (yol as text) =>
+        let
+            klasor = Text.BeforeDelimiter(yol, "\", {0, RelativePosition.FromEnd}),
+            ad = Text.AfterDelimiter(yol, "\", {0, RelativePosition.FromEnd}),
+            t = try Table.SelectRows(Folder.Contents(klasor), each Kucuk([Name]) = Kucuk(ad)) otherwise null
+        in
+            if t = null or Table.IsEmpty(t) then null else t{0},
+    Girdi = (f, ad as text, tur as text, durum as text, p) =>
+        [Ad = ad, Grup = tur, Kod = if f = null then null else f[Attributes][Size],
+         Metin = if f = null then null else DateTime.ToText(f[Date modified], "yyyy-MM-dd HH:mm:ss"),
+         Kaynak = if f = null then "Bulunamadı" else durum,
+         #"Yıl" = if p = null then null else PYil(p), #"Sayı" = if p = null then null else PAy(p)],
+    DosyaAdi = (yol as text) => Text.AfterDelimiter(yol, "\", {0, RelativePosition.FromEnd}),
+    GirdiListesi =
+        {Girdi(DosyaBilgisi(AyarDosyasi), DosyaAdi(AyarDosyasi), "Ayarlar", "Okundu", null),
+         Girdi(DosyaBilgisi(Yol(KontrolDosyasi)), DosyaAdi(Yol(KontrolDosyasi)), "Kontrol",
+            if List.IsEmpty(KontrolSonuc[Uyarilar]) then "Okundu" else "Okunamadı", null),
+         Girdi(DosyaBilgisi(Yol(EndeksDosyasi)), DosyaAdi(Yol(EndeksDosyasi)), "Endeks",
+            if List.IsEmpty(EndeksSonuc[Uyarilar]) then "Okundu" else "Okunamadı", null)}
+        & List.Transform(Table.ToRecords(DonemliDosyalar), (f) => Girdi(f, f[Name], "Maliyet",
+            if f[Donem] = null then "Dönem bulunamadı" else if Kapsamda(f[Donem]) then "Okundu" else "Kapsam dışı", f[Donem])),
+    GirdiBlok = List.Transform(List.Positions(GirdiListesi), (i) =>
+        [Anahtar = "Girdi|" & Text.From(i + 1), Tablo = "Girdi"] & GirdiListesi{i}),
+
     // ---------------------------------------------------------------- Tek tablo
-    Hepsi = KapanisBlok & AyarBlok & BolumBlok & MudurlukBlok & DuzenBlok & KGrupBlok & KalemBlok & GrupAdBlok & SatirBlok
+    Hepsi = KapanisBlok & KimlikBlok & GirdiBlok & AyarBlok & BolumBlok & MudurlukBlok & DuzenBlok & KGrupBlok & KalemBlok & GrupAdBlok & SatirBlok
         & GiderBlok & ToplamBlok & AdetBlok & KontrolSonuc[Satirlar] & EndeksSonuc[Satirlar] & RevizyonBlok & UyariBlok,
     TekTablo = Table.FromRecords(Hepsi, Sutunlar, MissingField.UseNull),
     Sonuc = Table.TransformColumnTypes(TekTablo,

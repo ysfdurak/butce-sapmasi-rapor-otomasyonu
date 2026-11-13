@@ -25,6 +25,7 @@ class PowerQueryDataTests(unittest.TestCase):
     def test_blocks_and_unique_keys(self):
         counts = Counter(r[1] for r in self.rows)
         self.assertEqual(counts["Bolum"], 12)
+        self.assertEqual(counts["Girdi"], 13)
         self.assertEqual(counts["Revizyon"], 26)
         self.assertEqual(counts["Uyari"], 96)  # ardışık dosya eksik: Ocak–Ağustos × 12 bölüm
         self.assertEqual(len({r[0] for r in self.rows}), len(self.rows))
@@ -37,6 +38,24 @@ class PowerQueryDataTests(unittest.TestCase):
         total = index["Toplam|Giriş|2026"]
         self.assertAlmostEqual(total[g], sum(r[g] for r in items), places=2)
         self.assertIsNone(pq_veri.strict_sum([1, None]))  # bir kalem boşsa ay toplamı boş
+
+    def test_identity_and_input_log(self):
+        index = {r[0]: r for r in self.rows}
+        self.assertEqual(index["Kimlik"][5], "Direktörlük")
+        inputs = [r for r in self.rows if r[1] == "Girdi"]
+        self.assertEqual([r[7] for r in inputs[:3]], ["Ayarlar", "Kontrol", "Endeks"])
+        self.assertEqual({r[9] for r in inputs[3:]}, {"Okundu"})  # örnekte yalnız 2026 kapanışları
+        self.assertTrue(all(r[6] > 0 for r in inputs))  # boyut
+
+    def test_manager_file_contains_only_its_departments(self):
+        rows = pq_veri.build(SETTINGS, mudurluk="Depolama")
+        names = {"Yerleştirme", "Stok Yönetimi", "Sayım"}
+        self.assertEqual({r[4] for r in rows if r[1] in ("Gider", "Toplam", "Adet", "Revizyon", "Kalem", "Bolum")}, names)
+        self.assertEqual({r[0] for r in rows if r[0] == "Kimlik"}, {"Kimlik"})
+        self.assertEqual([r[3] for r in rows if r[0] == "Kimlik"], ["Depolama"])
+        self.assertEqual(sum(r[1] == "KGrup" for r in rows), 3)
+        with self.assertRaises(ValueError):
+            pq_veri.build(SETTINGS, mudurluk="Yok Böyle")
 
     def test_template_builds_empty_and_filled(self):
         empty = pq_sablon.build()

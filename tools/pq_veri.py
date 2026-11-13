@@ -29,6 +29,12 @@ Bloklar ve anahtarlar:
   Revizyon|<sıra>                Metin=kapanış, Grup=tür, Bölüm, Müdürlük, Kod, Ad, Yıl/Sayı=etkilenen ay,
                                  G1=eski, G2=yeni, Kaynak=eski dosya → yeni dosya
   Uyari|<sıra>                   Ad=dönem, Bölüm, Kaynak, Metin=uyarı
+  Kimlik                         Ad=Direktörlük/Müdürlük, Müdürlük=müdürlük dosyasıysa adı, Metin=yenileme zamanı
+  Girdi|<sıra>                   Ad=dosya, Grup=Ayarlar/Kontrol/Endeks/Maliyet, Kod=bayt, Metin=değiştirilme zamanı,
+                                 Kaynak=Okundu/Kapsam dışı/Dönem bulunamadı/Bulunamadı, Yıl/Sayı=dosya dönemi
+
+Müdürlük dosyası (mudurluk parametresi): yalnız o müdürlüğün bölümleri okunur; birleşik kontrol grubu müdürlük dışına
+taşıyorsa grup alınmaz ve "Birleşik bölüm kontrolü direktörlük raporunda yer alır" uyarısı yazılır.
 """
 
 import sys
@@ -69,7 +75,8 @@ def strict_sum(values):
     return None if not values or any(v is None for v in values) else sum(values)
 
 
-def build(settings_path, closing=None):
+def build(settings_path, closing=None, mudurluk=None):
+    """mudurluk verilirse yalnız o müdürlüğün verisi (müdürlüğe gönderilecek dosya)."""
     from bootstrap import dependencies
 
     dependencies()
@@ -84,8 +91,17 @@ def build(settings_path, closing=None):
         closing = max(butce.filename_period(p) for p in butce.cost_files(cost_dir))
     warnings = []
     snapshots = butce.read_snapshots(cost_dir, config, closing, warnings)
-    departments = config["bolumler"]
-    directors = {butce.key(m["direktorluk"]) for m in departments.values()}
+    all_departments = config["bolumler"]
+    if mudurluk:
+        departments = {n: m for n, m in all_departments.items() if butce.key(m["mudurluk"]) == butce.key(mudurluk)}
+        if not departments:
+            raise ValueError(f"Müdürlük bulunamadı: {mudurluk}")
+        snapshots = {k: v for k, v in snapshots.items() if k[1] in departments}
+        warnings = [w for w in warnings if w[1] is None or w[1] in departments or w[1] not in all_departments]
+    else:
+        departments = all_departments
+    directors = {butce.key(m["direktorluk"]) for m in all_departments.values()}
+    config = {**config, "bolumler": departments}
     company, controls, company_budget = butce.read_control(
         root / config["kontrol_dosyasi"], config["kontrol"], closing[0], directors
     )
@@ -93,6 +109,9 @@ def build(settings_path, closing=None):
     budget_counts = read_budget_counts(root, config, snapshots, closing)
     year = closing[0]
     rows = [row("Kapanis", "Kapanis", Yıl=year, Sayı=closing[1])]
+    rows.append(row("Kimlik", "Kimlik", Ad="Müdürlük" if mudurluk else "Direktörlük",
+                    Müdürlük=next(iter(departments.values()))["mudurluk"] if mudurluk else None))
+    rows += input_rows(butce, settings_path, config, cost_dir, closing)
 
     rules = {"tolerans": config["kontrol"]["tolerans"], **(config.get("rapor") or {})}
     for code, value in rules.items():
@@ -100,11 +119,13 @@ def build(settings_path, closing=None):
 
     # Kontrol grupları: (direktörlük anahtarı, kontrol bölümü anahtarı) görünüş sırasıyla.
     groups = {}
-    for name, m in departments.items():
+    for name, m in all_departments.items():
         target = m.get("kontrol_bolumu") or name
         groups.setdefault((butce.key(m["direktorluk"]), butce.key(target)), [target, m["direktorluk"], []])[2].append(
             name
         )
+    cross = sorted({g[0] for g in groups.values() if set(g[2]) & set(departments) and not set(g[2]) <= set(departments)})
+    groups = {k: g for k, g in groups.items() if set(g[2]) <= set(departments)}
     group_index = {k: i for i, k in enumerate(groups, 1)}
     for i, (name, m) in enumerate(departments.items(), 1):
         snap = snapshots.get((closing, name))
@@ -113,7 +134,7 @@ def build(settings_path, closing=None):
             row(
                 f"Bolum|{i}", "Bolum", Bölüm=name, Müdürlük=m["mudurluk"], Direktörlük=m["direktorluk"],
                 Ad=butce.key(m.get("endeks")) if m.get("endeks") else None,
-                Kod=group_index[(butce.key(m["direktorluk"]), butce.key(target))], Grup=target,
+                Kod=group_index.get((butce.key(m["direktorluk"]), butce.key(target)), 0), Grup=target,
                 Metin=m.get("lokasyon"), Kaynak=snap[3] if snap else None, Sayı=i,
             )
         )
@@ -189,7 +210,7 @@ def build(settings_path, closing=None):
     rows.append(row(f"Satir|{k}", "Satir", Metin="toplam", Grup="TOPLAM", Ad="Tüm giderler", Sayı=k))
 
     for (dkey, tkey), matches in controls.items():
-        if dkey not in directors:
+        if dkey not in directors or (mudurluk and (dkey, tkey) not in groups):
             continue
         for n, series in enumerate(matches, 1):
             for y in sorted({p[0] for p in series}):
@@ -197,7 +218,8 @@ def build(settings_path, closing=None):
                                 G=months_of(series, y)))
     for y in sorted({p[0] for p in company} | {p[0] for p in company_budget}):
         rows.append(row(f"Ciro|{y}", "Ciro", Yıl=y, G=months_of(company, y), B=months_of(company_budget, y)))
-    for name in sorted({n for n, _ in indices}):
+    wanted = {butce.key(m["endeks"]) for m in departments.values() if m.get("endeks")}
+    for name in sorted({n for n, _ in indices if not mudurluk or n in wanted}):
         for y in sorted({p[0] for n, p in indices if n == name}):
             rows.append(row(f"Endeks|{name}|{y}", "Endeks", Ad=name, Yıl=y,
                             G=[indices.get((name, (y, mm))) for mm in range(1, 13)]))
@@ -214,9 +236,38 @@ def build(settings_path, closing=None):
             if not (snapshots.get((before, name)) and snapshots.get((after, name))):
                 warnings.append([butce.label(after), name, None,
                                  "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı."])
+    for target in cross:
+        warnings.append([butce.label(closing), None, None, f"{target}: Birleşik bölüm kontrolü direktörlük raporunda yer alır"])
     for i, (period_label, name, source, message) in enumerate(warnings, 1):
         rows.append(row(f"Uyari|{i}", "Uyari", Ad=period_label, Bölüm=name, Kaynak=source, Metin=message))
     return rows
+
+
+def input_rows(butce, settings_path, config, cost_dir, closing):
+    """Girdi kaydı: raporun okuduğu dosyalar, boyutları ve değiştirilme zamanları."""
+    from datetime import datetime
+
+    def info(path, kind, status=None, period=None):
+        exists = path.is_file()
+        stat = path.stat() if exists else None
+        return dict(Ad=path.name, Grup=kind, Kod=stat.st_size if exists else None,
+                    Metin=datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S") if exists else None,
+                    Kaynak=status or ("Okundu" if exists else "Bulunamadı"),
+                    Yıl=period[0] if period else None, Sayı=period[1] if period else None)
+
+    root = settings_path.parent
+    items = [info(settings_path, "Ayarlar"), info(root / config["kontrol_dosyasi"], "Kontrol"),
+             info(root / config["endeks_dosyasi"], "Endeks")]
+    for path in sorted(cost_dir.iterdir(), key=lambda p: p.name):
+        if not path.is_file() or path.suffix.lower() != ".xlsx" or path.name.startswith("~$"):
+            continue
+        try:
+            p = butce.filename_period(path)
+        except ValueError:
+            items.append(info(path, "Maliyet", "Dönem bulunamadı"))
+            continue
+        items.append(info(path, "Maliyet", "Okundu" if butce.in_closing_scope(p, closing) else "Kapsam dışı", p))
+    return [row(f"Girdi|{i}", "Girdi", **item) for i, item in enumerate(items, 1)]
 
 
 if __name__ == "__main__":
