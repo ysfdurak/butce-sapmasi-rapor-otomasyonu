@@ -54,4 +54,3 @@ foreach ($ifade in $kaynaklar) {
     }
 }
 & $pqtest run-test -e $mez -q $qdosya -p 2>&1 | Out-File $Cikti -Encoding utf8
-Get-Content $Cikti -TotalCount 120

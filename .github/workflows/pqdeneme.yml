@@ -10,8 +10,12 @@ jobs:
       - name: PQTest
         shell: pwsh
         run: ./tools/pqtest/calistir.ps1 -Ayar "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx" -Cikti "$env:RUNNER_TEMP\pq.json"
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - uses: actions/setup-python@v5
         with:
-          name: pq
-          path: ${{ runner.temp }}/pq.json
+          python-version: "3.13"
+      - name: Karşılaştır
+        shell: pwsh
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python tools/pqtest/karsilastir.py "$env:RUNNER_TEMP\pq.json" python/ornek/Ayarlar.xlsx
