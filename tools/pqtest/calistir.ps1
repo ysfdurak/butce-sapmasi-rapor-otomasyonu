@@ -45,6 +45,8 @@ foreach ($ifade in $kaynaklar) {
         $sablon = (& $pqtest credential-template -e $mez -q $kq -p --authenticationKind $ak 2>&1) -join "`n"
         Write-Host "== $ifade / $ak"; Write-Host $sablon
         if ($LASTEXITCODE -eq 0) {
+            # Windows: geçerli kullanıcı (kullanıcı adı/parola boş bırakılır)
+            $sablon = $sablon -replace '(?s)"AuthenticationProperties":\s*\{.*?\}', '"AuthenticationProperties": {}'
             $sonuc = ($sablon | & $pqtest set-credential -e $mez -q $kq -p 2>&1) -join "`n"
             Write-Host $sonuc
             if ($LASTEXITCODE -eq 0) { break }

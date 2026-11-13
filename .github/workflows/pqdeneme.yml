@@ -14,4 +14,4 @@ jobs:
         if: always()
         with:
           name: pq
-          path: ${{ runner.temp }}/pq*
+          path: ${{ runner.temp }}/pq.json
