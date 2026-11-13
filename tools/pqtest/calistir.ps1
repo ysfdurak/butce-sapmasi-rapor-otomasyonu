@@ -28,12 +28,28 @@ $sarili = "let`r`n    Sorgu = " + $q + "`r`nin`r`n    Text.FromBinary(Json.FromV
 $qdosya = Join-Path $is "Butce.query.pq"
 Set-Content -Path $qdosya -Value $sarili -Encoding UTF8
 
-& $pqtest credential-template -e $mez -q $qdosya -p 2>&1 | Tee-Object -Variable sablon
-'{"AuthenticationKind":"Windows","AuthenticationProperties":{},"PrivacySetting":"None","Permissions":[]}' | Out-Null
-foreach ($ak in @("Windows", "Anonymous")) {
-    & $pqtest credential-template -e $mez -q $qdosya -p --authenticationKind $ak 2>&1 | Out-File "$is/cred_$ak.json" -Encoding utf8
-    Get-Content "$is/cred_$ak.json"
+# Kimlik bilgisi: PQTest her veri kaynağı için ayrı ister; her kaynağa tek kaynaklı küçük bir sorgu yazılır.
+$ayarKlasoru = Split-Path -Parent $Ayar
+$kaynaklar = @(
+    "File.Contents(""$Ayar"")",
+    "File.Contents(""$ayarKlasoru\Kontrol.xlsx"")",
+    "File.Contents(""$ayarKlasoru\Endeks_2026_10.xlsx"")",
+    "Folder.Files(""$ayarKlasoru\maliyet"")"
+)
+$i = 0
+foreach ($ifade in $kaynaklar) {
+    $i++
+    $kq = Join-Path $is "Kaynak$i.query.pq"
+    Set-Content -Path $kq -Value $ifade -Encoding UTF8
+    foreach ($ak in @("Windows", "Anonymous")) {
+        $sablon = (& $pqtest credential-template -e $mez -q $kq -p --authenticationKind $ak 2>&1) -join "`n"
+        Write-Host "== $ifade / $ak"; Write-Host $sablon
+        if ($LASTEXITCODE -eq 0) {
+            $sonuc = ($sablon | & $pqtest set-credential -e $mez -q $kq -p 2>&1) -join "`n"
+            Write-Host $sonuc
+            if ($LASTEXITCODE -eq 0) { break }
+        }
+    }
 }
-Get-Content "$is/cred_Windows.json" -Raw | & $pqtest set-credential -e $mez -q $qdosya -p 2>&1
 & $pqtest run-test -e $mez -q $qdosya -p 2>&1 | Out-File $Cikti -Encoding utf8
-Get-Content $Cikti -TotalCount 60
+Get-Content $Cikti -TotalCount 120

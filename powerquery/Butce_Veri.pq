@@ -166,7 +166,7 @@ let
         let
             t = try BaslikIle(Sayfa("Ortak Sayfalar"), "Sayfa adı") otherwise null
         in
-            List.Buffer(if t = null then {} else List.Transform(Table.Column(t, Table.ColumnNames(t){0}), Anahtar)),
+            List.Buffer(if t = null then {} else List.Transform(Table.Column(t, Table.ColumnNames(t){0}), Kucuk)),
 
     // ---------------------------------------------------------------- Dosya dönemi ("Ekim 2026 - Dosya 1.xlsx")
     DosyaDonemi = (dosya as text) =>
