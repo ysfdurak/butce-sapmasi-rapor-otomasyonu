@@ -35,10 +35,7 @@ def esit(a, b):
 
 
 def main():
-    metin_ham = Path(sys.argv[1]).read_text(encoding="utf-8-sig")
-    i = metin_ham.find("KapanisDonemi = ")
-    print("Çalıştırılan sorgu:", metin_ham[i:i + 40].replace("\\\"", '"'))
-    ham = json.loads(metin_ham)
+    ham = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8-sig"))
     metin = bul(ham)
     if metin is None:
         print(json.dumps(ham, ensure_ascii=False, indent=1)[:6000])
@@ -49,7 +46,6 @@ def main():
         raise SystemExit(f"Sütunlar farklı: {basliklar}")
     kapanis = tuple(map(int, sys.argv[3].split("-"))) if len(sys.argv) > 3 and sys.argv[3] else None
     beklenen = pq_veri.build(sys.argv[2], kapanis)
-    print("Kapanış satırı:", [r for r in pq if r[0] == "Kapanis"])
     print("PQ   :", len(pq), dict(Counter(r[1] for r in pq)))
     print("Beklenen:", len(beklenen), dict(Counter(r[1] for r in beklenen)))
     pq_k = {r[0]: r for r in pq}

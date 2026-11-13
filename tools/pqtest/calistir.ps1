@@ -24,13 +24,12 @@ Move-Item "$is/Deneme.zip" $mez -Force
 
 # Sorgu: iki ayar satırı doldurulur, tablo JSON metni olarak döndürülür.
 $q = Get-Content -Raw -Encoding UTF8 (Join-Path $kok "powerquery/Butce_Veri.pq")
-$q = $q -replace 'AyarDosyasi = "[^"]*"', ('AyarDosyasi = "' + $Ayar + '"')
-$q = $q -replace 'KapanisDonemi = "[^"]*"', ('KapanisDonemi = "' + $Kapanis + '"')
+# Yalnız satır başındaki tanımlar: koşuldaki `KapanisDonemi = ""` karşılaştırmasına dokunulmaz.
+$q = $q -replace '(?m)^(\s*)AyarDosyasi = "[^"]*"', ('${1}AyarDosyasi = "' + $Ayar + '"')
+$q = $q -replace '(?m)^(\s*)KapanisDonemi = "[^"]*"', ('${1}KapanisDonemi = "' + $Kapanis + '"')
 $sarili = "let`r`n    Sorgu = " + $q + "`r`nin`r`n    Text.FromBinary(Json.FromValue({Table.ColumnNames(Sorgu)} & Table.ToRows(Sorgu)))"
-# Dosya adı kapanışa göre: PQTest aynı adlı sorgunun sonucunu önbellekten döndürebiliyor.
 $qdosya = Join-Path $is ("Butce_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + ".query.pq")
 Set-Content -Path $qdosya -Value $sarili -Encoding UTF8
-Select-String -Path $qdosya -Pattern "^\s*(AyarDosyasi|KapanisDonemi) =" | ForEach-Object { Write-Host $_.Line.Trim() }
 
 # Kimlik bilgisi: PQTest her veri kaynağını ayrı ister; her kaynak için tek kaynaklı küçük bir sorgu yazılır.
 # Yerel dosya için Windows kimliği, kullanıcı adı/parola boş (geçerli kullanıcı).
@@ -51,9 +50,3 @@ foreach ($ifade in $kaynaklar) {
 
 $sure = Measure-Command { & $pqtest run-test -e $mez -q $qdosya -p | Out-File $Cikti -Encoding utf8 }
 Write-Host ("PQTest süresi: {0:N1} sn" -f $sure.TotalSeconds)
-
-if ($env:PQ_HATA_AYIKLA) {
-    $d = Join-Path $is ("Dene_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + ".query.pq")
-    Set-Content -Path $d -Encoding UTF8 -Value ($q -replace '\nin\s+Sonuc\s*$', "`nin Text.FromBinary(Json.FromValue({KapanisDonemi, Kapanis, KapAy, KapYil, Text.AfterDelimiter(KapanisDonemi, ""-"")}))")
-    & $pqtest run-test -e $mez -q $d -p | Select-String -Pattern '"Value"|\[\\"|Message' | ForEach-Object { Write-Host $_.Line.Trim() }
-}

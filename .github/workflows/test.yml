@@ -63,7 +63,6 @@ jobs:
         shell: pwsh
         env:
           PYTHONIOENCODING: utf-8
-          PQ_HATA_AYIKLA: "1"
         run: |
           $ayar = "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx"
           foreach ($kapanis in @("", "2026-09")) {
