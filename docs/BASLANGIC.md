@@ -29,7 +29,7 @@ Paketin `wheels/` klasöründe openpyxl ve et_xmlfile bulunur. Başlatıcı bunl
 
 ## Makrosuz yol (Power Query)
 
-Python kurulamıyor ve makrolar kapalıysa Excel'in yerleşik Power Query özelliğiyle tek sorgu yapıştırılarak dilimleyicili bir PivotTable panosu kurulabilir: [Power Query rehberi](POWER_QUERY.md).
+Python kurulamıyor ve makrolar kapalıysa: hazır rapor şablonuna tek Power Query sorgusu yapıştırılır, raporların ve panonun tamamı formüllerle üretilir; sonraki aylarda tek tuş (**Tümünü Yenile**): [Power Query rehberi](POWER_QUERY.md).
 
 ## Beklenen demo değerleri
 

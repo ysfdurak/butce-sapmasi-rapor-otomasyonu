@@ -19,8 +19,10 @@ Kutular Windows'ta kullanıcı tarafından işaretlenmek üzere bilerek boştur.
 
 ## Makrosuz Power Query yolu
 
-- [ ] [Rehberdeki](POWER_QUERY.md) adımlarla sorgu hatasız yükleniyor; Ekim 2026 / Ocak–Ekim toplamı gerçekleşen 3.449.383.390,31, bütçe 3.440.938.980,13.
-- [ ] Müdürlük / Bölüm / Gider grubu / Ay dilimleyicileri ve PivotChart çalışıyor; **Tümünü Yenile** yeni ay dosyasını alıyor.
+- [ ] [Rehberdeki](POWER_QUERY.md) adımlarla sorgu şablonun `Veri!$A$1` hücresine yükleniyor; Kontrol Paneli'nde veri satırı > 0.
+- [ ] Genel Özet direktörlük toplamı (Ocak–Ekim): gerçekleşen 3.449.383.390,31, bütçe 3.440.938.980,13.
+- [ ] Kapsam = Depolama, ay seçimi değiştirilince tüm sayfalar yenilemeden güncelleniyor; Pano grafikleri değişiyor.
+- [ ] Yeni ay dosyası klasöre konup **Tümünü Yenile** yapılınca kapanış ayı ve Revizyonlar güncelleniyor.
 
 ## Excel makro
 
