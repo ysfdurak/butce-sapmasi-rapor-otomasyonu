@@ -3,6 +3,8 @@
 // bölüm sayfalarını tek tabloya çevirir: bölüm × gider kalemi × ay için Gerçekleşen, Bütçe ve Sapma.
 // Konumlar Ayarlar.xlsx › Dosya ve Konum Ayarları'ndan alınır; tablo Bütçe başlığına göre bulunduğundan
 // kaynak sayfasının boş üst satırları/sütunları sonucu etkilemez.
+// Performans: Power Query tablo ve listeleri her kullanımda yeniden okur; bu yüzden tekrar kullanılan her şey
+// Table.Buffer / List.Buffer ile belleğe alınır (aksi hâlde her hücre için kaynak dosya baştan okunur).
 let
     // ===================== YALNIZ BU İKİ SATIRI DÜZENLEYİN =====================
     AyarDosyasi = "C:\Butce\ornek\Ayarlar.xlsx",   // Ayarlar.xlsx dosyasının tam yolu
@@ -30,7 +32,7 @@ let
             tablo = Table.PromoteHeaders(atla, [PromoteAllScalars = true])
         in
             Table.SelectRows(tablo, each List.First(Record.FieldValues(_)) <> null),
-    Konum = BaslikIle(Sayfa("Dosya ve Konum Ayarları"), "Alan"),
+    Konum = Table.Buffer(BaslikIle(Sayfa("Dosya ve Konum Ayarları"), "Alan")),
     Ayar = (alan as text, kod as text, varsayilan) =>
         let
             r = Table.SelectRows(Konum, each [Alan] = alan and [#"Ayar kodu"] = kod)
@@ -52,10 +54,10 @@ let
     KalemSayisi = Number.From(Ayar("Maliyet", "gider_kalem_sayisi",
         if DipToplam <> null and Number.From(DipToplam) > IlkGider then Number.From(DipToplam) - IlkGider else 27)),
 
-    Bolumler = Table.AddColumn(
+    Bolumler = Table.Buffer(Table.AddColumn(
         BaslikIle(Sayfa("Bölüm Eşleştirme"), "Maliyet sayfası / bölüm"),
-        "Anahtar", each Anahtar([#"Maliyet sayfası / bölüm"])),
-    Gruplar = Table.ToRecords(BaslikIle(Sayfa("Gider Grupları"), "İlk indeks")),
+        "Anahtar", each Anahtar([#"Maliyet sayfası / bölüm"]))),
+    Gruplar = List.Buffer(Table.ToRecords(BaslikIle(Sayfa("Gider Grupları"), "İlk indeks"))),
     GiderGrubu = (kod as number) as text =>
         let
             g = List.Select(Gruplar, each Number.From([#"İlk indeks"]) <= kod and kod <= Number.From([#"Son indeks"]))
@@ -65,7 +67,11 @@ let
         let
             t = try BaslikIle(Sayfa("Gider Eşleştirme"), "Kaynak sıra indeksi") otherwise null
         in
-            if t = null then #table({"Kaynak sıra indeksi", "Rapor indeksi", "Rapor gider adı"}, {}) else t,
+            if t = null then #table({"Kaynak sıra indeksi", "Rapor indeksi", "Rapor gider adı"}, {}) else Table.Buffer(t),
+    // Kaynak sıra indeksi → {rapor indeksi, rapor gider adı}; satır başına tablo taraması yerine kayıt araması.
+    EslesmeKaydi = Record.FromList(
+        List.Transform(Table.ToRecords(GiderEslestirme), each {Number.From([#"Rapor indeksi"]), Text.From([#"Rapor gider adı"])}),
+        List.Transform(Table.ToRecords(GiderEslestirme), each Text.From(Number.From([#"Kaynak sıra indeksi"])))),
 
     // ---------------------------------------------------------------- Dosya dönemi ("Ekim 2026 - Dosya 1.xlsx")
     Donem = (dosya as text) =>
@@ -108,7 +114,7 @@ let
     // ---------------------------------------------------------------- Bir bölüm sayfası → uzun tablo
     Oku = (veri as table, yil as number) as table =>
         let
-            satirlar = Table.ToRows(veri),
+            satirlar = List.Buffer(List.Transform(Table.ToRows(Table.Buffer(veri)), List.Buffer)),
             butceMi = (v) => List.Contains({"bütçe", "butce"}, Anahtar(v)),
             isaretSatiri = List.First(List.Select(List.Positions(satirlar), (i) => List.AnyTrue(List.Transform(satirlar{i}, butceMi))), null),
             satir = if isaretSatiri = null then error Error.Record("Kaynak", "Bütçe başlığı bulunamadı") else isaretSatiri,
@@ -165,7 +171,7 @@ let
         let
             r = try Oku([Data], Number.IntegerDivide([Donem], 100))
         in
-            if r[HasError] then error Error.Record("Kaynak okunamadı", [Name] & " / " & [#"Sayfa adı"] & ": " & r[Error][Message]) else r[Value]),
+            if r[HasError] then error Error.Record("Kaynak okunamadı", [Name] & " / " & [#"Sayfa adı"] & ": " & r[Error][Message]) else Table.Buffer(r[Value])),
     Uzun = Table.ExpandTableColumn(
         Table.ExpandTableColumn(Table.SelectColumns(Okunan, {"Name", "Bolum", "Satirlar"}), "Bolum",
             {"Maliyet sayfası / bölüm", "Müdürlük", "Kontrol direktörlüğü", "Lokasyon"},
@@ -175,12 +181,12 @@ let
     // Gider Eşleştirme: aynı rapor indeksine bağlanan kaynak giderler toplanır.
     Eslesmeli = Table.AddColumn(
         Table.AddColumn(Uzun, "Gider kodu", each
-            let e = Table.SelectRows(GiderEslestirme, (x) => Number.From(x[#"Kaynak sıra indeksi"]) = [Kaynak kodu])
-            in if Table.RowCount(e) = 0 then [Kaynak kodu] else Number.From(e{0}[#"Rapor indeksi"]), Int64.Type),
+            let e = Record.FieldOrDefault(EslesmeKaydi, Text.From([Kaynak kodu]), null)
+            in if e = null then [Kaynak kodu] else e{0}, Int64.Type),
         "Gider kalemi", each
-            let e = Table.SelectRows(GiderEslestirme, (x) => Number.From(x[#"Kaynak sıra indeksi"]) = [Kaynak kodu])
-            in if Table.RowCount(e) = 0 then [Kaynak gider] else Text.From(e{0}[#"Rapor gider adı"]), type text),
-    Toplanan = Table.Group(Eslesmeli, {"Direktörlük", "Müdürlük", "Bölüm", "Lokasyon", "Gider kodu", "Gider kalemi", "Tür", "Dönem", "Name"},
+            let e = Record.FieldOrDefault(EslesmeKaydi, Text.From([Kaynak kodu]), null)
+            in if e = null then [Kaynak gider] else e{1}, type text),
+    Toplanan = Table.Group(Table.Buffer(Eslesmeli), {"Direktörlük", "Müdürlük", "Bölüm", "Lokasyon", "Gider kodu", "Gider kalemi", "Tür", "Dönem", "Name"},
         {{"Tutar", each List.Sum([Tutar]), type nullable number}}),
     Genis = Table.Pivot(Toplanan, {"Gerçekleşen", "Bütçe"}, "Tür", "Tutar", List.Sum),
     Sonuc0 = Table.AddColumn(Genis, "Gider grubu", each GiderGrubu([Gider kodu]), type text),
