@@ -35,7 +35,10 @@ def esit(a, b):
 
 
 def main():
-    ham = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8-sig"))
+    metin_ham = Path(sys.argv[1]).read_text(encoding="utf-8-sig")
+    i = metin_ham.find("KapanisDonemi = ")
+    print("Çalıştırılan sorgu:", metin_ham[i:i + 40].replace("\\\"", '"'))
+    ham = json.loads(metin_ham)
     metin = bul(ham)
     if metin is None:
         print(json.dumps(ham, ensure_ascii=False, indent=1)[:6000])
