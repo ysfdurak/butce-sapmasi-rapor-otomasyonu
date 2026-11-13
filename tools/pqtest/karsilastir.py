@@ -46,6 +46,7 @@ def main():
         raise SystemExit(f"Sütunlar farklı: {basliklar}")
     kapanis = tuple(map(int, sys.argv[3].split("-"))) if len(sys.argv) > 3 and sys.argv[3] else None
     beklenen = pq_veri.build(sys.argv[2], kapanis)
+    print("Kapanış satırı:", [r for r in pq if r[0] == "Kapanis"])
     print("PQ   :", len(pq), dict(Counter(r[1] for r in pq)))
     print("Beklenen:", len(beklenen), dict(Counter(r[1] for r in beklenen)))
     pq_k = {r[0]: r for r in pq}

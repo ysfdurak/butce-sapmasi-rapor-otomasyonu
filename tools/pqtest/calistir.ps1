@@ -29,6 +29,7 @@ $q = $q -replace 'KapanisDonemi = "[^"]*"', ('KapanisDonemi = "' + $Kapanis + '"
 $sarili = "let`r`n    Sorgu = " + $q + "`r`nin`r`n    Text.FromBinary(Json.FromValue({Table.ColumnNames(Sorgu)} & Table.ToRows(Sorgu)))"
 $qdosya = Join-Path $is "Butce.query.pq"
 Set-Content -Path $qdosya -Value $sarili -Encoding UTF8
+Select-String -Path $qdosya -Pattern "^\s*(AyarDosyasi|KapanisDonemi) =" | ForEach-Object { Write-Host $_.Line.Trim() }
 
 # Kimlik bilgisi: PQTest her veri kaynağını ayrı ister; her kaynak için tek kaynaklı küçük bir sorgu yazılır.
 # Yerel dosya için Windows kimliği, kullanıcı adı/parola boş (geçerli kullanıcı).
