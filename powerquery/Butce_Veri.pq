@@ -12,17 +12,19 @@
 // hizalandığından kaynağın boş üst satırları/sütunları sonucu etkilemez.
 // Performans: tekrar kullanılan her şey Table.Buffer / List.Buffer ile belleğe alınır.
 let
-    // ===================== YALNIZ BU ÜÇ SATIRI DÜZENLEYİN ======================
+    // ===================== YALNIZ BU DÖRT SATIRI DÜZENLEYİN ====================
     AyarDosyasi = "C:\Butce\ornek\Ayarlar.xlsx",   // Ayarlar.xlsx dosyasının tam yolu
     KapanisDonemi = "",                             // boş = klasördeki en son kapanış; örnek: "2026-10"
     MudurlukDosyasi = "",                           // boş = direktörlük raporu; müdürlüğe gidecek dosya: "Depolama"
+    HizliMod = false,                               // true = yalnız kapanış ve önceki ay okunur (revizyon yalnız son ay)
     // ============================================================================
 
     AyAdlari = {"ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık"},
     GAdlari = List.Transform({1 .. 12}, each "G" & Text.From(_)),
     BAdlari = List.Transform({1 .. 12}, each "B" & Text.From(_)),
+    RAdlari = List.Transform({1 .. 12}, each "R" & Text.From(_)),
     Sutunlar = {"Anahtar", "Tablo", "Direktörlük", "Müdürlük", "Bölüm", "Ad", "Kod", "Grup", "Yıl", "Kaynak", "Metin", "Sayı"}
-        & GAdlari & BAdlari,
+        & GAdlari & BAdlari & RAdlari,
     ArdisikUyari = "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı.",
 
     // ---------------------------------------------------------------- Ortak yardımcılar
@@ -124,6 +126,8 @@ let
     GiderSutunu = Number.From(Ayar("Maliyet", "gider_sutunu", TarihHucresi[Sutun] - 1)),
     AdetSatiri = Ayar("Maliyet", "islem_adedi_satiri", null),
     DipToplam = Ayar("Maliyet", "dip_toplam_satiri", null),
+    // Revize bütçe: Bütçe başlığıyla aynı satırda bu etiket, altında kapanış yılının 12 ayı (yoksa revize boş kalır).
+    RevizeEtiketi = Kucuk(Ayar("Maliyet", "revize_butce_etiketi", "Revize Bütçe")),
     KalemSayisi = Number.From(Ayar("Maliyet", "gider_kalem_sayisi",
         if DipToplam <> null and Number.From(DipToplam) > IlkGider then Number.From(DipToplam) - IlkGider else 27)),
 
@@ -235,6 +239,11 @@ let
                 (b) => List.Sort(List.Transform(b, each [Donem])) = List.Transform({1 .. 12}, each yil * 100 + _)),
             butce = if List.Count(uygun) = 1 then uygun{0} else error Error.Record("Kaynak", "Kapanış yılının tek 12 aylık bütçe bloğu bulunamadı"),
             butceDonem = List.Transform(butce, each [Donem]),
+            revizeIsaret = List.Select(List.Positions(satirlar{satir}), (c) => Kucuk(satirlar{satir}{c}) = RevizeEtiketi),
+            revizeUygun = List.Select(List.Transform(revizeIsaret, (m) => blok(m - dSutun + 1)),
+                (b) => List.Sort(List.Transform(b, each [Donem])) = List.Transform({1 .. 12}, each yil * 100 + _)),
+            revize = if List.IsEmpty(revizeUygun) then {} else revizeUygun{0},
+            revizeDonem = List.Transform(revize, each [Donem]),
             kalemler = List.Transform({0 .. KalemSayisi - 1}, (k) =>
                 let v = hucre(IlkGider + k, GiderSutunu)
                 in [Kod = k + 1, Satir = IlkGider + k, Gider = if v <> null and Value.Is(v, type text) then Text.Trim(v) else ""]),
@@ -253,7 +262,8 @@ let
             okunan = List.Buffer(List.Transform(kontrol, (k) => [
                 Kod = k[Kod], Ad = k[Gider],
                 G = List.Buffer(List.Transform(gercek, each deger(k[Satir], [Sutun]))),
-                B = List.Buffer(List.Transform(butce, each deger(k[Satir], [Sutun])))])),
+                B = List.Buffer(List.Transform(butce, each deger(k[Satir], [Sutun]))),
+                R = List.Buffer(List.Transform(revize, each deger(k[Satir], [Sutun])))])),
             adetG = if AdetSatiri = null then {} else List.Buffer(List.Transform(gercek, each deger(Number.From(AdetSatiri), [Sutun]))),
             adetB = if AdetSatiri = null then {} else List.Transform(butce, each Sayi(hucre(Number.From(AdetSatiri), [Sutun]))),
             // Gider Eşleştirme: aynı rapor indeksine bağlanan kaynak giderler aylık katı toplamla birleşir.
@@ -269,13 +279,14 @@ let
                         KatiToplam(List.Transform(grup, each Record.Field(_, alan){i}[V])))
                 in
                     if List.Count(adlar) <> 1 then error Error.Record("Kaynak", Text.From(h) & " rapor indeksinde gider adları farklı. Eşleştirmeyi tamamlayın.")
-                    else [Kod = h, Ad = adlar{0}, G = topla("G"), B = topla("B")])),
+                    else [Kod = h, Ad = adlar{0}, G = topla("G"), B = topla("B"), R = topla("R")])),
             // Hataları burada tetikle: try bu fonksiyonun çağrısını yakalar, iç alanları değil.
             hazir = List.Count(butce) + List.Count(kontrol) + (if kapanisVar then 1 else 0)
                 + List.Sum(List.Transform(birlesik, each List.Count([G]))),
             satirListe = List.Combine(List.Transform(birlesik, (k) =>
                 List.Transform(List.Positions(gercekDonem), (i) => {k[Kod], k[Ad], "G", gercekDonem{i}, k[G]{i}})
-                & List.Transform(List.Positions(butceDonem), (i) => {k[Kod], k[Ad], "B", butceDonem{i}, k[B]{i}})))
+                & List.Transform(List.Positions(butceDonem), (i) => {k[Kod], k[Ad], "B", butceDonem{i}, k[B]{i}})
+                & List.Transform(List.Positions(revizeDonem), (i) => {k[Kod], k[Ad], "R", revizeDonem{i}, k[R]{i}})))
                 & List.Transform(List.Positions(adetG), (i) => {null, null, "AG", gercekDonem{i}, adetG{i}[V]})
                 & List.Transform(List.Positions(adetB), (i) => {null, null, "AB", butceDonem{i}, adetB{i}}),
             hucreler = List.Combine(List.Transform(okunan, each [G] & [B])) & adetG,
@@ -286,6 +297,8 @@ let
                     & " tutar sayıya çevrildi (" & sayfaAdi & ": " & ornek(cevrilen) & "). Kaynakta sayı biçimine çevirin."})
                 & (if List.IsEmpty(okunamayan) then {} else {"Sayıya çevrilemeyen " & Text.From(List.Count(okunamayan))
                     & " hücre boş sayıldı (" & sayfaAdi & ": " & ornek(okunamayan) & ")."})
+                & (if not List.IsEmpty(revizeIsaret) and List.IsEmpty(revizeUygun)
+                    then {"Revize bütçe başlığı var ama altında kapanış yılının 12 ayı bulunamadı; revize bütçe boş bırakıldı."} else {})
         in
             if hazir <> null then [Satirlar = List.Buffer(satirListe), Uyarilar = uyarilar] else null,
 
@@ -301,7 +314,10 @@ let
         else Number.From(Text.BeforeDelimiter(KapanisDonemi, "-")) * 100 + Number.From(Text.AfterDelimiter(KapanisDonemi, "-")),
     KapYil = PYil(Kapanis),
     KapAy = PAy(Kapanis),
-    Kapsamda = (p) => p <> null and p <= Kapanis and (PYil(p) = KapYil or (KapAy = 1 and p = (KapYil - 1) * 100 + 12)),
+    OncekiAy = (p) => if PAy(p) = 1 then p - 89 else p - 1,
+    // Tam: kapanış yılının tüm kapanışları (Ocak'ta önceki Aralık da). Hızlı: yalnız kapanış ve önceki ay.
+    Kapsamda = (p) => p <> null and p <= Kapanis and (if HizliMod then p >= OncekiAy(Kapanis)
+        else (PYil(p) = KapYil or (KapAy = 1 and p = (KapYil - 1) * 100 + 12))),
     DonemsizUyari = List.Transform(Table.ToRecords(Table.SelectRows(DonemliDosyalar, each [Donem] = null)), (f) =>
         [Ad = null, #"Bölüm" = null, Kaynak = f[Name], Metin = "Dosya adında yıl ve ay yan yana bulunamadı"]),
     KapsamDosyalari = Table.SelectRows(DonemliDosyalar, each Kapsamda([Donem])),
@@ -345,10 +361,11 @@ let
     KapanisSnap = Table.Buffer(Table.SelectRows(Snap, each [Donem] = Kapanis)),
 
     // ---------------------------------------------------------------- Aylık bloklar (Gider, Toplam, Adet)
-    AySutunlari = GAdlari & BAdlari,
+    AySutunlari = GAdlari & BAdlari & RAdlari,
     Aylik = (t as table, alanlar as list) as table =>
         let
-            t1 = Table.AddColumn(t, "Sutun", each (if [Tur] = "B" or [Tur] = "AB" then "B" else "G") & Text.From(PAy([P]))),
+            t1 = Table.AddColumn(t, "Sutun", each (if [Tur] = "B" or [Tur] = "AB" then "B" else if [Tur] = "R" then "R" else "G")
+                & Text.From(PAy([P]))),
             t2 = Table.AddColumn(t1, "Yil", each PYil([P])),
             t3 = Table.SelectColumns(t2, alanlar & {"Yil", "Sutun", "Tutar"})
         in
@@ -358,7 +375,7 @@ let
         in [#"Direktörlük" = b[Direktorluk], #"Müdürlük" = b[Mudurluk], #"Bölüm" = bolum],
     AyKaydi = (r as record) => Record.SelectFields(r, AySutunlari),
 
-    GiderTutar = Table.SelectRows(KapanisSnap, each [Tur] = "G" or [Tur] = "B"),
+    GiderTutar = Table.SelectRows(KapanisSnap, each [Tur] = "G" or [Tur] = "B" or [Tur] = "R"),
     GiderBlok = List.Transform(Table.ToRecords(Aylik(GiderTutar, {"Bolum", "Kod", "Ad", "Kaynak"})), (r) =>
         [Anahtar = "Gider|" & r[Bolum] & "|" & Text.From(r[Kod]) & "|" & Text.From(r[Yil]), Tablo = "Gider"]
         & BilgiAlanlari(r[Bolum])
@@ -549,8 +566,9 @@ let
 
     // ---------------------------------------------------------------- Revizyonlar (ardışık kapanış dosyaları)
     // Ocak: önceki Aralık ↔ Ocak, geçen yılın 12 ayı gerçekleşen. Diğer aylar: (m−1) ↔ m; 1..m−1 gerçekleşen, 12 ay bütçe.
-    Ciftler = (if KapAy = 1 then {[Eski = (KapYil - 1) * 100 + 12, Yeni = Kapanis]} else {})
+    TumCiftler = (if KapAy = 1 then {[Eski = (KapYil - 1) * 100 + 12, Yeni = Kapanis]} else {})
         & List.Transform({2 .. KapAy}, (m) => [Eski = KapYil * 100 + m - 1, Yeni = KapYil * 100 + m]),
+    Ciftler = if HizliMod then List.LastN(TumCiftler, 1) else TumCiftler,
     Karsilastirmalar = List.Combine(List.Transform(List.Positions(Ciftler), (i) =>
         let c = Ciftler{i}
         in
@@ -602,6 +620,7 @@ let
 
     // ---------------------------------------------------------------- Kimlik ve girdi kaydı
     KimlikBlok = {[Anahtar = "Kimlik", Tablo = "Kimlik", Ad = if MudurlukVar then "Müdürlük" else "Direktörlük",
+        Grup = if HizliMod then "Hızlı" else "Tam",
         #"Müdürlük" = if MudurlukVar then BolumKayit{0}[Mudurluk] else null,
         Metin = DateTime.ToText(DateTime.LocalNow(), "yyyy-MM-dd HH:mm")]},
     // Raporun okuduğu dosyalar: ad, tür, boyut, değiştirilme zamanı. Kaynak dosya sonradan değişirse buradan anlaşılır.

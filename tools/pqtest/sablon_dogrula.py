@@ -215,11 +215,82 @@ def onay_senaryosu(gecici, veri, klasor):
     return hata
 
 
+def revize_trend_senaryosu(gecici):
+    """Revize bütçe seçimi, Bütçe Sürümleri ve Trend sayfaları (Python motorunda karşılığı yok: veriden beklenen)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import revize_ornek
+
+    print("== Revize bütçe ve trend")
+    hata = 0
+    revize_ornek.main(gecici / "revize")
+    veri = pq_veri.build(gecici / "revize" / "Ayarlar.xlsx")
+    c = pq_veri.COLUMNS
+    gi, bi, ri = c.index("G1"), c.index("B1"), c.index("R1")
+    toplam = {r[4]: r for r in veri if r[1] == "Toplam" and r[8] == 2026}
+
+    def katı(r, i, aylar=range(10)):
+        v = [r[i + m] for m in aylar]
+        return None if any(x is None for x in v) else sum(v)
+
+    for secim in ("Bütçe", "Revize bütçe"):
+        wb = pq_sablon.build(veri)
+        wb["Kontrol Paneli"]["C7"] = secim
+        tpl = hesapla(gecici, wb)
+        genel = {r[0]: r for r in satirlar(tpl["Genel Özet"], 2, range(1, 6)) if r[1] == "Bölüm"}
+        sur = {r[0]: r for r in satirlar(tpl["Bütçe Sürümleri"], 2, range(1, 10)) if r[1] == "Bölüm"}
+        for ad, r in toplam.items():
+            bek = katı(r, ri if secim == "Revize bütçe" else bi)
+            for adi, deger, beklenen in (("Genel Özet bütçe", genel[ad][4], bek),
+                                         ("Sürümler bütçe", sur[ad][3], katı(r, bi)),
+                                         ("Sürümler revize", sur[ad][4], katı(r, ri))):
+                if not esit(deger, beklenen):
+                    print(f"  {secim} · {ad} · {adi}: {deger} ≠ {beklenen}")
+                    hata += 1
+        if secim == "Revize bütçe" and not (genel["Giriş"][4] in (None, "") and sur["Giriş"][4] in (None, "")):
+            print("  Giriş revize bütçesi Şubat'ı eksik: boş olmalı")
+            hata += 1
+        print(f"  {secim}: {len(toplam)} bölüm, Genel Özet ve Bütçe Sürümleri karşılaştırıldı")
+
+    # Trend: örnek veri, karşılaştırma bütçesi = bütçe
+    veri = pq_veri.build(AYAR)
+    tpl = hesapla(gecici, pq_sablon.build(veri))
+    esik = 1_000_000 / 12
+    beklenen = []
+    for r in veri:
+        if r[1] != "Gider" or r[8] != 2026:
+            continue
+        fark = [r[gi + m] - r[bi + m] if r[gi + m] is not None and r[bi + m] is not None else None for m in range(10)]
+        seri = 0
+        for f in reversed(fark):
+            if f is None or f < esik:
+                break
+            seri += 1
+        if seri >= 3:
+            beklenen.append((r[3], r[4], r[6], r[5], seri, sum(1 for f in fark if f is not None and f >= esik),
+                             sum(fark[10 - seri:]), fark[9]))
+    beklenen.sort(key=lambda x: (-x[4], -x[6]))
+    tr = tpl["Trend"]
+    liste = [tuple(tr.cell(r, col).value for col in range(17, 25)) for r in range(20, 520) if tr.cell(r, 26).value not in (None, "")]
+    if len(liste) != len(beklenen) or any(not all(esit(a, b) for a, b in zip(x, y)) for x, y in zip(liste, beklenen)):
+        print(f"  Trend listesi farklı: şablon {len(liste)}, beklenen {len(beklenen)}")
+        for x, y in list(zip(liste, beklenen))[:3]:
+            print("    Ş", x, "\n    B", y)
+        hata += 1
+    kapsam = [tr.cell(8, 3 + m).value for m in range(12)]
+    bek = [sum(t[gi + m] - t[bi + m] for t in toplam.values()) for m in range(10)]
+    if not all(esit(a, b) for a, b in zip(kapsam[:10], bek)) or any(v not in (None, "") for v in kapsam[10:]):
+        print("  Trend kapsam toplamı farklı:", kapsam[:3], bek[:3])
+        hata += 1
+    print(f"  Trend: {len(beklenen)} kalem üst üste ≥3 ay aleyhte, fark {hata}")
+    return hata
+
+
 def main():
     veri = pq_veri.build(AYAR)
     hata = guncel_mi()
     klasor = sys.argv[sys.argv.index("--aciklama") + 1] if "--aciklama" in sys.argv else None
     with tempfile.TemporaryDirectory() as d:
+        hata += revize_trend_senaryosu(Path(d))
         if klasor:
             hata += onay_senaryosu(Path(d), veri, klasor)
         for s in SENARYOLAR:

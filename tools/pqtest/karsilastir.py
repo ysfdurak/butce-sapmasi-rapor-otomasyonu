@@ -1,6 +1,6 @@
 """PQTest çıktısındaki Power Query tablosunu Python benzetimiyle (tools/pq_veri.py) karşılaştırır.
 
-Kullanım: python tools/pqtest/karsilastir.py <pqtest çıktısı.json> <Ayarlar.xlsx> [kapanış yyyy-mm|-] [müdürlük|-]
+Kullanım: python tools/pqtest/karsilastir.py <pqtest çıktısı.json> <Ayarlar.xlsx> [--kapanis yyyy-mm] [--mudurluk ad] [--hizli]
 """
 
 import json
@@ -44,10 +44,17 @@ def main():
     basliklar, pq = tablo[0], tablo[1:]
     if basliklar != pq_veri.COLUMNS:
         raise SystemExit(f"Sütunlar farklı: {basliklar}")
-    arg = [a if a not in ("", "-") else None for a in sys.argv[3:5]] + [None, None]
-    kapanis = tuple(map(int, arg[0].split("-"))) if arg[0] else None
-    mudurluk = arg[1]
-    beklenen = pq_veri.build(sys.argv[2], kapanis, mudurluk)
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cikti")
+    ap.add_argument("ayar")
+    ap.add_argument("--kapanis", default="")
+    ap.add_argument("--mudurluk", default="")
+    ap.add_argument("--hizli", action="store_true")
+    a = ap.parse_args()
+    kapanis = tuple(map(int, a.kapanis.split("-"))) if a.kapanis else None
+    beklenen = pq_veri.build(a.ayar, kapanis, a.mudurluk or None, a.hizli)
     print("PQ   :", len(pq), dict(Counter(r[1] for r in pq)))
     print("Beklenen:", len(beklenen), dict(Counter(r[1] for r in beklenen)))
     pq_k = {r[0]: r for r in pq}

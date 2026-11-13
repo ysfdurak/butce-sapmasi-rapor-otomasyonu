@@ -1,5 +1,14 @@
 # Sürüm notları
 
+## V5.4 — Kasım 2026
+
+Power Query yolu ana sürüm olarak geliştirilmeye devam ediyor ([rehber](POWER_QUERY.md)):
+- **Hızlı mod:** `HizliMod = true` yalnız kapanış ve önceki ayı okur; revizyonlar yalnız son ay için.
+- **Revize bütçe:** kaynakta `Revize Bütçe` bloğu okunur; Kontrol Paneli'nden karşılaştırma bütçesi seçilir; yeni **Bütçe Sürümleri** sayfası.
+- **Trend:** aylık sapma tablosu ve grafiği; üst üste aleyhte giden kalemler listesi; Yönetici Özeti'nde sayısı.
+- Şirkette ilk deneme için [kontrol listesi](PQ_DENEME.md).
+- Bu özellikler yalnız Power Query yolundadır; Python ve makro sürümleri V5.1 düzeyinde kalır.
+
 ## V5.3 — Kasım 2026
 
 Makrosuz yolun eksikleri tamamlandı ([rehber](POWER_QUERY.md)):

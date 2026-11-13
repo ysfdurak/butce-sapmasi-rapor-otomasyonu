@@ -29,7 +29,8 @@ Bloklar ve anahtarlar:
   Revizyon|<sıra>                Metin=kapanış, Grup=tür, Bölüm, Müdürlük, Kod, Ad, Yıl/Sayı=etkilenen ay,
                                  G1=eski, G2=yeni, Kaynak=eski dosya → yeni dosya
   Uyari|<sıra>                   Ad=dönem, Bölüm, Kaynak, Metin=uyarı
-  Kimlik                         Ad=Direktörlük/Müdürlük, Müdürlük=müdürlük dosyasıysa adı, Metin=yenileme zamanı
+  R1..R12                        Gider/Toplam satırlarında revize bütçe (kaynakta "Revize Bütçe" bloğu varsa)
+  Kimlik                         Grup=Tam/Hızlı, Ad=Direktörlük/Müdürlük, Müdürlük=müdürlük dosyasıysa adı, Metin=yenileme zamanı
   Girdi|<sıra>                   Ad=dosya, Grup=Ayarlar/Kontrol/Endeks/Maliyet, Kod=bayt, Metin=değiştirilme zamanı,
                                  Kaynak=Okundu/Kapsam dışı/Dönem bulunamadı/Bulunamadı, Yıl/Sayı=dosya dönemi
 
@@ -47,6 +48,7 @@ COLUMNS = (
     ["Anahtar", "Tablo", "Direktörlük", "Müdürlük", "Bölüm", "Ad", "Kod", "Grup", "Yıl", "Kaynak", "Metin", "Sayı"]
     + [f"G{m}" for m in range(1, 13)]
     + [f"B{m}" for m in range(1, 13)]
+    + [f"R{m}" for m in range(1, 13)]
 )
 
 
@@ -58,7 +60,7 @@ def row(key, table, **fields):
     values = {c: None for c in COLUMNS}
     values.update(Anahtar=key, Tablo=table)
     for name, value in fields.items():
-        if name in ("G", "B"):
+        if name in ("G", "B", "R"):
             for m, v in enumerate(value, 1):
                 values[f"{name}{m}"] = _num(v)
         else:
@@ -75,8 +77,11 @@ def strict_sum(values):
     return None if not values or any(v is None for v in values) else sum(values)
 
 
-def build(settings_path, closing=None, mudurluk=None):
-    """mudurluk verilirse yalnız o müdürlüğün verisi (müdürlüğe gönderilecek dosya)."""
+def build(settings_path, closing=None, mudurluk=None, hizli=False):
+    """mudurluk verilirse yalnız o müdürlüğün verisi (müdürlüğe gönderilecek dosya).
+
+    hizli: yalnız kapanış ve önceki ayın dosyaları okunur; revizyon ve ardışık dosya uyarısı yalnız son ay için.
+    """
     from bootstrap import dependencies
 
     dependencies()
@@ -91,6 +96,11 @@ def build(settings_path, closing=None, mudurluk=None):
         closing = max(butce.filename_period(p) for p in butce.cost_files(cost_dir))
     warnings = []
     snapshots = butce.read_snapshots(cost_dir, config, closing, warnings)
+    previous = (closing[0] - 1, 12) if closing[1] == 1 else (closing[0], closing[1] - 1)
+    if hizli:
+        snapshots = {k: v for k, v in snapshots.items() if k[0] in (closing, previous)}
+        warnings = [w for w in warnings if w[0] is None or w[0] in (butce.label(closing), butce.label(previous))]
+    pairs = list(butce.revision_pairs(*closing))[-1:] if hizli else list(butce.revision_pairs(*closing))
     all_departments = config["bolumler"]
     if mudurluk:
         departments = {n: m for n, m in all_departments.items() if butce.key(m["mudurluk"]) == butce.key(mudurluk)}
@@ -109,9 +119,9 @@ def build(settings_path, closing=None, mudurluk=None):
     budget_counts = read_budget_counts(root, config, snapshots, closing)
     year = closing[0]
     rows = [row("Kapanis", "Kapanis", Yıl=year, Sayı=closing[1])]
-    rows.append(row("Kimlik", "Kimlik", Ad="Müdürlük" if mudurluk else "Direktörlük",
+    rows.append(row("Kimlik", "Kimlik", Ad="Müdürlük" if mudurluk else "Direktörlük", Grup="Hızlı" if hizli else "Tam",
                     Müdürlük=next(iter(departments.values()))["mudurluk"] if mudurluk else None))
-    rows += input_rows(butce, settings_path, config, cost_dir, closing)
+    rows += input_rows(butce, settings_path, config, cost_dir, closing, previous if hizli else None)
 
     rules = {"tolerans": config["kontrol"]["tolerans"], **(config.get("rapor") or {})}
     for code, value in rules.items():
@@ -171,6 +181,7 @@ def build(settings_path, closing=None, mudurluk=None):
         if snap is None:
             continue
         items, _, counts, source = snap
+        revised = read_revised(butce, cost_dir / source, name, config, closing)
         actual_years = {p[0] for item in items.values() for p in item[1]}
         for code, (item, actual, budget) in sorted(items.items()):
             kalem.append((name, m["mudurluk"], code, item, group_of(code)))
@@ -181,6 +192,7 @@ def build(settings_path, closing=None, mudurluk=None):
                         f"Gider|{name}|{code}|{y}", "Gider", Bölüm=name, Müdürlük=m["mudurluk"],
                         Direktörlük=m["direktorluk"], Ad=item, Kod=code, Grup=group_of(code), Yıl=y, Kaynak=source,
                         G=months_of(actual, y), B=months_of(budget, y) if y == year else [None] * 12,
+                        R=months_of(revised.get(code, {}), y) if y == year else [None] * 12,
                     )
                 )
         for y in sorted(actual_years | {year}):
@@ -190,8 +202,10 @@ def build(settings_path, closing=None, mudurluk=None):
                 if y == year
                 else [None] * 12
             )
+            totals_r = [strict_sum(revised.get(code, {}).get((y, mm)) for code in items) for mm in range(1, 13)]
             rows.append(row(f"Toplam|{name}|{y}", "Toplam", Bölüm=name, Müdürlük=m["mudurluk"],
-                            Direktörlük=m["direktorluk"], Yıl=y, G=totals_g, B=totals_b))
+                            Direktörlük=m["direktorluk"], Yıl=y, G=totals_g, B=totals_b,
+                            R=totals_r if y == year else [None] * 12))
             planned = budget_counts.get(name, {})
             rows.append(row(f"Adet|{name}|{y}", "Adet", Bölüm=name, Müdürlük=m["mudurluk"],
                             Direktörlük=m["direktorluk"], Yıl=y, G=months_of(counts, y),
@@ -232,7 +246,7 @@ def build(settings_path, closing=None, mudurluk=None):
     for name in departments:
         if snapshots.get((closing, name)) is None:
             continue  # "Kapanış dosyası yok" uyarısını şablon kendisi üretir
-        for before, after, _ in butce.revision_pairs(*closing):
+        for before, after, _ in pairs:
             if not (snapshots.get((before, name)) and snapshots.get((after, name))):
                 warnings.append([butce.label(after), name, None,
                                  "Ardışık dosya eksik. Bu kapanış için revizyon karşılaştırması yapılamadı."])
@@ -243,7 +257,47 @@ def build(settings_path, closing=None, mudurluk=None):
     return rows
 
 
-def input_rows(butce, settings_path, config, cost_dir, closing):
+def read_revised(butce, path, name, config, closing):
+    """Kapanış dosyasındaki Revize Bütçe bloğu: {rapor kodu: {(yıl, ay): tutar}} (Gider Eşleştirme uygulanmış)."""
+    from openpyxl import load_workbook
+    from openpyxl.utils import get_column_letter
+
+    cfg = config["maliyet"]
+    label = butce.key(cfg.get("revize_butce_etiketi") or "Revize Bütçe")
+    book = load_workbook(path, data_only=True)
+    try:
+        sheet = next(ws for ws in book if butce.key(ws.title) == butce.key(name))
+        _, row, _, _ = butce.excel_bounds(cfg["butce_etiketi"], "Bütçe", allow_cell=True)
+        cols = None
+        for c in range(1, sheet.max_column + 1):
+            if butce.key(sheet.cell(row, c).value) != label:
+                continue
+            block = butce.dated_columns(sheet, f"{get_column_letter(c)}{row + 1}", c + 11, closing[0], month_labels=True)
+            if set(block) == {(closing[0], m) for m in range(1, 13)}:
+                cols = block
+                break
+        if cols is None:
+            return {}
+
+        def value(r, c):
+            v = sheet.cell(r, c).value
+            n = butce.number(v)
+            return n if n is not None else butce.text_number(v)
+
+        first = cfg["ilk_gider_satiri"]
+        raw = {code: {p: value(first + code - 1, c) for p, c in cols.items()}
+               for code in range(1, butce.item_count(cfg) + 1)}
+    finally:
+        book.close()
+    mappings = config.get("gider_eslestirme", {})
+    merged = {}
+    for code, values in raw.items():
+        target = mappings.get(code, (code, None))[0]
+        merged.setdefault(target, []).append(values)
+    return {t: {p: butce.total(v[p] for v in vs) for p in vs[0]} for t, vs in merged.items()}
+
+
+def input_rows(butce, settings_path, config, cost_dir, closing, previous=None):
     """Girdi kaydı: raporun okuduğu dosyalar, boyutları ve değiştirilme zamanları."""
     from datetime import datetime
 
@@ -266,7 +320,8 @@ def input_rows(butce, settings_path, config, cost_dir, closing):
         except ValueError:
             items.append(info(path, "Maliyet", "Dönem bulunamadı"))
             continue
-        items.append(info(path, "Maliyet", "Okundu" if butce.in_closing_scope(p, closing) else "Kapsam dışı", p))
+        scope = (p in (closing, previous)) if previous else butce.in_closing_scope(p, closing)
+        items.append(info(path, "Maliyet", "Okundu" if scope else "Kapsam dışı", p))
     return [row(f"Girdi|{i}", "Girdi", **item) for i, item in enumerate(items, 1)]
 
 

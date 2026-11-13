@@ -1,11 +1,12 @@
 # powerquery/Butce_Veri.pq sorgusunu gerçek M motoruyla çalıştırır; sonucu JSON olarak yazar.
 # tools/pqtest/karsilastir.py bu çıktıyı Python benzetimiyle (tools/pq_veri.py) karşılaştırır.
-# Kullanım (Windows, CI): pwsh tools/pqtest/calistir.ps1 -Ayar <Ayarlar.xlsx tam yolu> -Cikti <sonuc.json> [-Kapanis 2026-09] [-Mudurluk Depolama]
+# Kullanım (Windows, CI): pwsh tools/pqtest/calistir.ps1 -Ayar <Ayarlar.xlsx tam yolu> -Cikti <sonuc.json> [-Kapanis 2026-09] [-Mudurluk Depolama] [-Hizli]
 param(
     [Parameter(Mandatory = $true)][string]$Ayar,
     [Parameter(Mandatory = $true)][string]$Cikti,
     [string]$Kapanis = "",
-    [string]$Mudurluk = ""
+    [string]$Mudurluk = "",
+    [switch]$Hizli
 )
 . (Join-Path $PSScriptRoot "ortak.ps1")
 PQTest-Hazirla
@@ -19,4 +20,5 @@ $q = Get-Content -Raw -Encoding UTF8 (Join-Path $kok "powerquery/Butce_Veri.pq")
 $q = PQTest-Degistir $q "AyarDosyasi" $Ayar
 $q = PQTest-Degistir $q "KapanisDonemi" $Kapanis
 $q = PQTest-Degistir $q "MudurlukDosyasi" $Mudurluk
-PQTest-Calistir $q ("Butce_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + "_" + $Mudurluk) $Cikti
+$q = PQTest-DegistirDeger $q "HizliMod" $(if ($Hizli) { "true" } else { "false" })
+PQTest-Calistir $q ("Butce_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + "_" + $Mudurluk + $(if ($Hizli) { "_hizli" } else { "" }) + "_" + (Split-Path -Leaf (Split-Path -Parent $Ayar))) $Cikti

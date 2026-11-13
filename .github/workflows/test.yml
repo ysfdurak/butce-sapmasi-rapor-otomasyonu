@@ -69,12 +69,25 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
         run: |
-          $ayar = "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx"
-          foreach ($durum in @("-|-", "2026-09|-", "-|Depolama")) {
-            $kapanis, $mudurluk = $durum.Split("|") | ForEach-Object { if ($_ -eq "-") { "" } else { $_ } }
-            Write-Host "== Kapanış: $(if ($kapanis) { $kapanis } else { 'en son' }) · $(if ($mudurluk) { $mudurluk } else { 'direktörlük' })"
-            ./tools/pqtest/calistir.ps1 -Ayar $ayar -Cikti "$env:RUNNER_TEMP\pq.json" -Kapanis $kapanis -Mudurluk $mudurluk
-            python tools/pqtest/karsilastir.py "$env:RUNNER_TEMP\pq.json" python/ornek/Ayarlar.xlsx ($durum.Split("|")[0]) ($durum.Split("|")[1])
+          python tools/pqtest/revize_ornek.py "$env:RUNNER_TEMP\revize"
+          $ornek = "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx"
+          $revize = "$env:RUNNER_TEMP\revize\Ayarlar.xlsx"
+          $durumlar = @(
+            @{ Ad = "en son · direktörlük"; Ayar = $ornek; Arg = @{} },
+            @{ Ad = "2026-09 · direktörlük"; Ayar = $ornek; Arg = @{ Kapanis = "2026-09" } },
+            @{ Ad = "en son · Depolama müdürlük dosyası"; Ayar = $ornek; Arg = @{ Mudurluk = "Depolama" } },
+            @{ Ad = "en son · hızlı mod"; Ayar = $ornek; Arg = @{ Hizli = $true } },
+            @{ Ad = "revize bütçeli kaynak"; Ayar = $revize; Arg = @{} }
+          )
+          foreach ($d in $durumlar) {
+            Write-Host "== $($d.Ad)"
+            $a = $d.Arg
+            ./tools/pqtest/calistir.ps1 -Ayar $d.Ayar -Cikti "$env:RUNNER_TEMP\pq.json" @a
+            $p = @("$env:RUNNER_TEMP\pq.json", $d.Ayar)
+            if ($a.Kapanis) { $p += @("--kapanis", $a.Kapanis) }
+            if ($a.Mudurluk) { $p += @("--mudurluk", $a.Mudurluk) }
+            if ($a.Hizli) { $p += "--hizli" }
+            python tools/pqtest/karsilastir.py @p
             if ($LASTEXITCODE -ne 0) { exit 1 }
           }
       - name: Açıklama sorgusu (3 yenileme adımı), Python benzetimiyle karşılaştır

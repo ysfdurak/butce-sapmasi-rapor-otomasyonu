@@ -38,6 +38,11 @@ function PQTest-Degistir([string]$Metin, [string]$Ad, [string]$Deger) {
     return $Metin -replace ('(?m)^(\s*)' + [regex]::Escape($Ad) + ' = "[^"]*"'), ('${1}' + $Ad + ' = "' + $Deger + '"')
 }
 
+function PQTest-DegistirDeger([string]$Metin, [string]$Ad, [string]$Deger) {
+    # Tırnaksız değer (true/false): satır başındaki `Ad = deger` tanımı.
+    return $Metin -replace ('(?m)^(\s*)' + [regex]::Escape($Ad) + ' = (true|false)'), ('${1}' + $Ad + ' = ' + $Deger)
+}
+
 function PQTest-Calistir([string]$Sorgu, [string]$Ad, [string]$Cikti) {
     # Sorgunun tablosunu JSON metni olarak döndürür ve PQTest çıktısını dosyaya yazar.
     $sarili = "let`r`n    Sorgu = " + $Sorgu + "`r`nin`r`n    Text.FromBinary(Json.FromValue({Table.ColumnNames(Sorgu)} & Table.ToRows(Sorgu)))"

@@ -39,12 +39,15 @@ ONAY = "'Açıklama Onayı'"
 DURUMLAR = ["Bekliyor", "Onaylandı", "Reddedildi", "Bu döneme aktar"]
 # _Bolum sayfasında aylık sütun blokları (1. ayın sütun numarası - 1)
 RATIO0, DIP0, DIPMISS0 = 54, 66, 78  # BC..BN endeks oranları, BO..BZ aylık dip toplam, CA..CL dip eksik bayrağı
+EXTRA0 = 91  # CM: bütçe sürümleri ve aylık fark sütunları
 
 # ----------------------------------------------------------------------------- Veri tablosu sütunları
 V = {name: L(i) for i, name in enumerate(COLUMNS, 1)}
 VKEY = "Veri!$A:$A"
 VG = "Veri!$M:$X"  # G1..G12
-VB = "Veri!$Y:$AJ"  # B1..B12
+VBO = "Veri!$Y:$AJ"  # B1..B12: kaynaktaki (orijinal) bütçe
+VR = "Veri!$AK:$AV"  # R1..R12: revize bütçe
+VB = "ButceAraligi"  # karşılaştırma bütçesi: Kontrol Paneli C7'ye göre VBO veya VR (ad tanımı)
 
 
 def vcol(name):
@@ -166,6 +169,15 @@ def build_panel(wb):
             ws.cell(r, 3).fill = INPUT_FILL
         ws.cell(r, 16 if r == 8 else 4, note).font = NOTE
     ws["C6"] = "Tümü"
+    ws["B7"] = "Karşılaştırma bütçesi"
+    ws["B7"].font = BOLD
+    ws["C7"] = "Bütçe"
+    ws["C7"].fill = INPUT_FILL
+    ws["D7"] = "Revize bütçe: kaynaktaki Revize Bütçe bloğu; tüm raporlar ona göre hesaplanır."
+    ws["D7"].font = NOTE
+    butce_dv = DataValidation(type="list", formula1='"Bütçe,Revize bütçe"')
+    ws.add_data_validation(butce_dv)
+    butce_dv.add("C7")
     ws["C8"] = "Yıl başından kapanışa"
     ws["C8"].fill = INPUT_FILL
     dv = DataValidation(type="list", formula1='"Yıl başından kapanışa,Yalnız kapanış ayı,Elle seçim"')
@@ -206,9 +218,11 @@ def build_panel(wb):
     ws["C22"] = ("=COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"?*\")-COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"Doğrulandı\")")
     ws["B23"] = "Seçim uyarısı"
     ws["C23"] = (f'=IF({KAPYIL}="","",IF({YIL}>{KAPYIL},"Rapor yılı kapanıştan sonra olamaz",'
-                 f'IF({SELCOUNT}=0,"En az bir ay seçin (kapanış ayından sonraki aylar seçilemez)","Seçimler geçerli")))')
+                 f'IF({SELCOUNT}=0,"En az bir ay seçin (kapanış ayından sonraki aylar seçilemez)",'
+                 f'IF(AND($C$7="Revize bütçe",COUNT({VR})=0),"Kaynakta Revize Bütçe bloğu yok: bütçe sütunları boş","Seçimler geçerli"))))')
     ws["B24"] = "Son yenileme"
-    ws["C24"] = f'=IFERROR(INDEX({vcol("Metin")},MATCH("Kimlik",{VKEY},0))&"","")'
+    ws["C24"] = (f'=IFERROR(INDEX({vcol("Metin")},MATCH("Kimlik",{VKEY},0))&IF(INDEX({vcol("Grup")},MATCH("Kimlik",{VKEY},0))="Hızlı",'
+                 f'" · hızlı mod (yalnız kapanış ve önceki ay; revizyon yalnız son ay)",""),"")')
     ws["B25"] = "Sayfalar"
     ws["B25"].font = BOLD
     guide = [
@@ -226,6 +240,8 @@ def build_panel(wb):
         ("Açıklama Onayı", "Müdürlüklerden dönen açıklamalar (Butce_Aciklama sorgusu), onay ve işlem geçmişi"),
         ("Dağıtım", "Müdürlük dosyalarını hazırlama listesi"),
         ("Girdi Kaydı", "Raporun okuduğu dosyalar, boyutları ve değiştirilme zamanları"),
+        ("Bütçe Sürümleri", "Bütçe, revize bütçe ve gerçekleşen karşılaştırması"),
+        ("Trend", "Aylık sapma trendi ve üst üste aleyhte giden kalemler"),
     ]
     for i, (name, text) in enumerate(guide, 26):
         ws.cell(i, 2, name).font = Font(bold=True, color="233C57")
@@ -236,7 +252,8 @@ def build_panel(wb):
     ws.column_dimensions["D"].width = 8
     ws.sheet_view.showGridLines = False
     for name, ref in (("Kullanici", "'Kontrol Paneli'!$C$16"), ("Rapor_Donemi", "'_H'!$B$21"),
-                      ("Rapor_Aylari", "'_H'!$B$20")):
+                      ("Rapor_Aylari", "'_H'!$B$20"),
+                      ("ButceAraligi", f"CHOOSE(IF('Kontrol Paneli'!$C$7=\"Revize bütçe\",2,1),{VBO},{VR})")):
         wb.defined_names[name] = DefinedName(name, attr_text=ref)
     return ws
 
@@ -277,6 +294,10 @@ def build_helpers(wb):
     h["B20"] = ('=IF($B$2="","",$B$4&":"&SUBSTITUTE(TRIM(' + "&".join(f'IF({L(2 + m)}14=1,"{m} ","")' for m in range(1, 13))
                 + ')," ",","))')
     h["B21"] = '=IF($B$2="","",$B$2&"-"&RIGHT("0"&$B$3,2))'
+    h["A22"], h["A23"], h["A24"] = "Trend son ay", "Trend aylık eşik", "Trend en az seri"
+    h["B22"] = '=IF(OR($B$2="",$B$5=0),"",$B$3)'  # yalnız bütçe yılında, kapanış ayına kadar
+    h["B23"] = "=IF(Trend!$C$3=\"\",$B$8/12,Trend!$C$3)"
+    h["B24"] = "=IF(Trend!$C$4=\"\",3,Trend!$C$4)"
     h.sheet_state = "hidden"
 
     lst = wb.create_sheet("_Liste")
@@ -313,7 +334,7 @@ def build_bolum(wb):
         ("X", lambda r: "=" + pos(f"P{r}")),
         ("rAdetP", lambda r: f'=IF(C{r}="","",{find(chr(34) + "Adet|" + chr(34) + f"&C{r}&" + chr(34) + "|" + chr(34) + f"&({YIL}-1)")})'),
         ("Y", lambda r: "=" + pos(f"R{r}")),
-        ("Qb", lambda r: f'=IF({BUTCEYILI}=1,{pos(f"P{r}", VB)},"")'),
+        ("Qb", lambda r: f'=IF({BUTCEYILI}=1,{pos(f"P{r}", VBO)},"")'),
         ("rEnd", lambda r: f'=IF(F{r}="","",{find(chr(34) + "Endeks|" + chr(34) + f"&F{r}&" + chr(34) + "|" + chr(34) + f"&{YIL}")})'),
         ("rEndP", lambda r: f'=IF(F{r}="","",{find(chr(34) + "Endeks|" + chr(34) + f"&F{r}&" + chr(34) + "|" + chr(34) + f"&({YIL}-1)")})'),
         ("Endeks oranı", lambda r: f'=IF(OR(U{r}="",V{r}=""),"",IF(COUNT({L(RATIO0 + 1)}{r}:{L(RATIO0 + 12)}{r})<{SELCOUNT},"",SUM({L(RATIO0 + 1)}{r}:{L(RATIO0 + 12)}{r})/{SELCOUNT}))'),
@@ -365,6 +386,30 @@ def build_bolum(wb):
             ws.cell(r, DIP0 + m, f'=IF($K{r}="","",IF(ISNUMBER(INDEX({VG},$K{r},{m})),INDEX({VG},$K{r},{m}),""))')
             ws.cell(r, DIPMISS0 + m, f'=IF($C{r}="",0,IF(ISNUMBER({L(DIP0 + m)}{r}),0,1))')
     BOLUM_COLS.update({title: L(first_miss + j) for j, (title, _) in enumerate(miss)})
+    # Bütçe sürümleri (CM, CN) ve eksik bayrakları (CO, CP); aylık gerçekleşen − karşılaştırma bütçesi (CQ..DB) ve
+    # eksik bayrakları (DC..DN)
+    extra = EXTRA0
+    ws.cell(1, extra, "Bütçe (orijinal)")
+    ws.cell(1, extra + 1, "Revize bütçe")
+    ws.cell(1, extra + 2, "eksik orijinal")
+    ws.cell(1, extra + 3, "eksik revize")
+    for m in range(1, 13):
+        ws.cell(1, extra + 3 + m, f"Aylık fark {m}")
+        ws.cell(1, extra + 15 + m, f"Aylık fark eksik {m}")
+    for r in range(2, MAXD + 2):
+        ws.cell(r, extra, f'=IF({BUTCEYILI}=1,{sel(f"K{r}", VBO)},"")')
+        ws.cell(r, extra + 1, f'=IF({BUTCEYILI}=1,{sel(f"K{r}", VR)},"")')
+        ws.cell(r, extra + 2, f'=IF(C{r}="",0,IF(ISNUMBER({L(extra)}{r}),0,1))')
+        ws.cell(r, extra + 3, f'=IF(C{r}="",0,IF(ISNUMBER({L(extra + 1)}{r}),0,1))')
+        for m in range(1, 13):
+            g, b = f"INDEX({VG},$K{r},{m})", f"INDEX({VB},$K{r},{m})"
+            ws.cell(r, extra + 3 + m, f'=IF(OR($K{r}="",{BUTCEYILI}=0),"",IF(AND(ISNUMBER({g}),ISNUMBER({b})),{g}-{b},""))')
+            ws.cell(r, extra + 15 + m, f'=IF($C{r}="",0,IF(ISNUMBER({L(extra + 3 + m)}{r}),0,1))')
+    BOLUM_COLS.update({"Bütçe (orijinal)": L(extra), "Revize bütçe": L(extra + 1), "eksik orijinal": L(extra + 2),
+                       "eksik revize": L(extra + 3)})
+    for m in range(1, 13):
+        BOLUM_COLS[f"Aylık fark {m}"] = L(extra + 3 + m)
+        BOLUM_COLS[f"Aylık fark eksik {m}"] = L(extra + 15 + m)
     ws.sheet_state = "hidden"
 
 
@@ -419,7 +464,10 @@ def build_duzen(wb):
         ("BM", lambda r: f'=IF(AND({num(f"Z{r}", f"AA{r}")}),IF(AA{r}=0,"",Z{r}/AA{r}),"")'),  # AJ
         ("BM sıra", lambda r: f'=IF(AND(H{r}=1,ISNUMBER(AJ{r})),COUNTIFS($H$2:H{r},1,$AJ$2:AJ{r},">-1E+307"),"")'),  # AK
         ("Opex", lambda r: f'=O{r}'),  # AL
-    ]
+        ("Bütçe (orijinal)", lambda r: f'=IF({BUTCEYILI}=1,{strict(r, BOLUM_COLS["Bütçe (orijinal)"], "eksik orijinal")[1:]},"")'),  # AM
+        ("Revize bütçe", lambda r: f'=IF({BUTCEYILI}=1,{strict(r, BOLUM_COLS["Revize bütçe"], "eksik revize")[1:]},"")'),  # AN
+    ] + [(f"Aylık fark {m}", (lambda m: lambda r: strict(r, BOLUM_COLS[f"Aylık fark {m}"], f"Aylık fark eksik {m}"))(m))
+         for m in range(1, 13)]  # AO..AZ
     for i, t in enumerate(titles + [t for t, _ in values], 1):
         ws.cell(1, i, t)
     for r in range(2, MAXL + 2):
@@ -446,10 +494,11 @@ def build_kalem(wb):
     ws = wb.create_sheet("_Kalem")
     titles = ["k", "rK", "Bölüm", "Müdürlük", "Kod", "Kalem", "Grup", "Anahtar", "Kapsamda", "rG", "A", "B", "rGP", "P",
               "Fark", "Oran", "Önemli", "|fark|", "Sıra", "|aleyhte|", "Aleyhte sıra", "|lehte|", "Lehte sıra", "Yön",
-              "eksik A", "eksik B", "Açıklama", "Onay satırı", "Onay durumu", "Onay kontrolü", "Elle açıklama"]
+              "eksik A", "eksik B", "Açıklama", "Onay satırı", "Onay durumu", "Onay kontrolü", "Elle açıklama",
+              "Üst üste aleyhte ay", "Aleyhte ay", "Seri toplamı", "Son ay farkı", "Seri uygun", "Seri puanı", "Seri sırası"]
     for i, t in enumerate(titles, 1):
         ws.cell(1, i, t)
-    last = MAXK + 1
+    last = last_row = MAXK + 1
     for r in range(2, last + 1):
         ws[f"A{r}"] = "=ROW()-1"
         ws[f"B{r}"] = "=" + find(f'"Kalem|"&A{r}')
@@ -482,6 +531,17 @@ def build_kalem(wb):
         ws[f"AB{r}"] = f'=IF(H{r}="","",IFERROR(MATCH(H{r}&"|"&{H}!$B$21&"|"&{H}!$B$20,{ONAY}!$A:$A,0),""))'
         ws[f"AC{r}"] = f'=IF(AB{r}="","",INDEX({ONAY}!${OC["Durum"]}:${OC["Durum"]},AB{r})&"")'
         ws[f"AD{r}"] = f'=IF(AB{r}="","",INDEX({ONAY}!$AA:$AA,AB{r})&"")'
+        # Trend: kapanış ayında biten üst üste aleyhte ay serisi (aylık fark ≥ aylık eşik)
+        tg, tb, mm, lm, te = f"INDEX({VG},J{r},0)", f"INDEX({VB},J{r},0)", f"{H}!$C$13:$N$13", f"{H}!$B$22", f"{H}!$B$23"
+        bad = f"ISNUMBER({tg})*ISNUMBER({tb})*(({tg}-{tb})>={te})"
+        ws[f"AF{r}"] = f'=IF(OR(J{r}="",I{r}<>1,{lm}=""),"",{lm}-SUMPRODUCT(MAX((1-{bad})*({mm}<={lm})*{mm})))'
+        ws[f"AG{r}"] = f'=IF(AF{r}="","",SUMPRODUCT({bad}*({mm}<={lm})))'
+        ws[f"AH{r}"] = f'=IF(OR(AF{r}="",N(AF{r})=0),"",SUMPRODUCT(({mm}>{lm}-AF{r})*({mm}<={lm})*({tg}-{tb})))'
+        ws[f"AI{r}"] = (f'=IF(AF{r}="","",IF(AND(ISNUMBER(INDEX({VG},J{r},{lm})),ISNUMBER(INDEX({VB},J{r},{lm}))),'
+                        f'INDEX({VG},J{r},{lm})-INDEX({VB},J{r},{lm}),""))')
+        ws[f"AJ{r}"] = f'=IF(AND(ISNUMBER(AF{r}),N(AF{r})>={H}!$B$24),1,0)'
+        ws[f"AK{r}"] = f'=IF(AJ{r}=1,AF{r}*1E+14+AH{r},"")'
+        ws[f"AL{r}"] = f'=IF(ISNUMBER(AK{r}),RANK(AK{r},$AK$2:$AK${last_row})+COUNTIF($AK$2:AK{r},AK{r})-1,"")'
         ws[f"AA{r}"] = (f'=IF(AE{r}<>"",AE{r},IF(OR(AB{r}="",LEFT(AD{r},6)<>"Güncel"),"",'
                         f'IF(AC{r}="Onaylandı",INDEX({ONAY}!$F:$F,AB{r})&"",IF(AC{r}="Bekliyor","[Onay bekliyor] "&INDEX({ONAY}!$F:$F,AB{r}),""))))')
     ws.sheet_state = "hidden"
@@ -915,7 +975,7 @@ def build_kontrol(wb):
         mi = f"INDEX({SELLIST},1,{i})"
         ws[f"M{r}"] = f'=IF({mi}="","",{YIL}&"-"&RIGHT("0"&{mi},2))'
         ws[f"N{r}"] = f'=IF(OR({mi}="",{crow}=""),"",IF(ISNUMBER(INDEX({VG},{crow},{mi})),INDEX({VG},{crow},{mi}),""))'
-        ws[f"O{r}"] = f'=IF(OR({mi}="",{crow}=""),"",IF(ISNUMBER(INDEX({VB},{crow},{mi})),INDEX({VB},{crow},{mi}),""))'
+        ws[f"O{r}"] = f'=IF(OR({mi}="",{crow}=""),"",IF(ISNUMBER(INDEX({VBO},{crow},{mi})),INDEX({VBO},{crow},{mi}),""))'
     fmt(ws, "NO", 4, 15, MONEY)
     ws.column_dimensions["J"].hidden = True
     ws.column_dimensions["K"].hidden = True
@@ -1103,6 +1163,98 @@ def build_girdi(wb):
     ws.freeze_panes = "A5"
 
 
+def build_surumler(wb):
+    ws = wb.create_sheet("Bütçe Sürümleri")
+    header(ws, 1, ["Bölüm / müdürlük / direktörlük", "Satır türü", "Gerçekleşen (TL)", "Bütçe (TL)", "Revize bütçe (TL)",
+                   "Revize − bütçe (TL)", "Gerçekleşen − bütçe (TL)", "Gerçekleşen − revize (TL)", "Revize'ye göre sapma (%)", "k"])
+    ws["L1"] = f'=IF({BUTCEYILI}=0,"Seçili yıl bütçe yılı değil.",IF(COUNT({VR})=0,"Kaynakta Revize Bütçe bloğu yok (Ayarlar › Maliyet › revize_butce_etiketi).",""))'
+    ws["L1"].font = NOTE
+    for j in range(1, MAXL + 1):
+        r = j + 1
+        k = f"$J{r}"
+        ws[f"J{r}"] = f"=IFERROR(MATCH({j},{drng('I')},0),\"\")"
+        ws[f"A{r}"] = "=" + dval("C", k)
+        ws[f"B{r}"] = "=" + dval("D", k)
+        ws[f"C{r}"] = "=" + dval("O", k)
+        ws[f"D{r}"] = "=" + dval("AM", k)
+        ws[f"E{r}"] = "=" + dval("AN", k)
+        ws[f"F{r}"] = f'=IF({num(f"D{r}", f"E{r}")},E{r}-D{r},"")'
+        ws[f"G{r}"] = f'=IF({num(f"C{r}", f"D{r}")},C{r}-D{r},"")'
+        ws[f"H{r}"] = f'=IF({num(f"C{r}", f"E{r}")},C{r}-E{r},"")'
+        ws[f"I{r}"] = f'=IF({num(f"H{r}", f"E{r}")},IF(E{r}=0,"",H{r}/E{r}),"")'
+    fmt(ws, "CDEFGH", 2, MAXL + 1, MONEY)
+    fmt(ws, "I", 2, MAXL + 1, PCT)
+    total_rows_style(ws, f"A2:I{MAXL + 1}", "B2")
+    for col in "GHI":
+        ws.conditional_formatting.add(f"{col}2:{col}{MAXL + 1}", FormulaRule(formula=[f"AND(ISNUMBER({col}2),{col}2>0)"], font=Font(color="BE303A")))
+        ws.conditional_formatting.add(f"{col}2:{col}{MAXL + 1}", FormulaRule(formula=[f"AND(ISNUMBER({col}2),{col}2<0)"], font=Font(color="1B754C")))
+    ws.column_dimensions["J"].hidden = True
+    widths(ws, {"A": 34, "B": 20, "C": 20, "D": 20, "E": 20, "F": 20, "G": 22, "H": 22, "I": 14, "L": 60})
+    ws.freeze_panes = "A2"
+
+
+def build_trend(wb):
+    ws = wb.create_sheet("Trend")
+    ws["A1"] = "Aylık sapma trendi (gerçekleşen − karşılaştırma bütçesi)"
+    ws["A1"].font = TITLE
+    ws["B3"], ws["B4"] = "Aylık eşik (TL)", "En az üst üste ay"
+    ws["C3"].fill = ws["C4"].fill = INPUT_FILL
+    ws["C3"].number_format = COUNT
+    ws["D3"] = f'="Boş = önemlilik tutarı / 12 ("&FIXED({ESIK}/12,0)&" TL). Bu tutarı aşan aleyhte ay sayılır."'
+    ws["D4"] = "Boş = 3. Kapanış ayında biten seri sayılır."
+    ws["D3"].font = ws["D4"].font = NOTE
+    ws["A5"] = f'=IF({H}!$B$22="","Seçili yıl bütçe yılı değil; trend hesaplanmadı.","")'
+    ws["A5"].font = NOTE
+    header(ws, 7, ["Bölüm / müdürlük / direktörlük", "Satır türü"] + [m[:3] for m in MONTHS] + ["k"])
+    # Kapsam toplamı (grafik için)
+    ws["A8"], ws["B8"] = "Kapsam toplamı", "Toplam"
+    for m in range(1, 13):
+        col = L(2 + m)
+        diff, miss = brng(BOLUM_COLS[f"Aylık fark {m}"]), brng(BOLUM_COLS[f"Aylık fark eksik {m}"])
+        ws[f"{col}8"] = (f'=IF(OR({H}!$B$22="",{m}>N({H}!$B$22),COUNTIF({brng("I")},1)=0),"",'
+                         f'IF(SUMIFS({miss},{brng("I")},1)>0,"",SUMIFS({diff},{brng("I")},1)))')
+    for j in range(1, MAXL + 1):
+        r = j + 8
+        k = f"$O{r}"
+        ws[f"O{r}"] = f"=IFERROR(MATCH({j},{drng('I')},0),\"\")"
+        ws[f"A{r}"] = "=" + dval("C", k)
+        ws[f"B{r}"] = "=" + dval("D", k)
+        for m in range(1, 13):
+            src = L(40 + m)  # _Duzen AO..AZ
+            ws[f"{L(2 + m)}{r}"] = f'=IF(OR({k}="",{H}!$B$22="",{m}>N({H}!$B$22)),"",{dval(src, k)[0:]})'
+    last = MAXL + 8
+    fmt(ws, "CDEFGHIJKLMN", 8, last, "#,##0;-#,##0;0")
+    total_rows_style(ws, f"A9:N{last}", "B9")
+    ws.conditional_formatting.add(f"C8:N{last}", FormulaRule(formula=["AND(ISNUMBER(C8),C8>0)"], font=Font(color="BE303A")))
+    ws.conditional_formatting.add(f"C8:N{last}", FormulaRule(formula=["AND(ISNUMBER(C8),C8<0)"], font=Font(color="1B754C")))
+    for c in range(3, 15):
+        ws.column_dimensions[L(c)].width = 13
+    ws.column_dimensions["O"].hidden = True
+    chart = LineChart()
+    chart.title = "Kapsam toplamı: aylık sapma (TL)"
+    chart.height, chart.width = 7, 18
+    chart.add_data(Reference(ws, min_col=3, max_col=14, min_row=8), from_rows=True, titles_from_data=False)
+    chart.set_categories(Reference(ws, min_col=3, max_col=14, min_row=7))
+    chart.legend = None
+    ws.add_chart(chart, "Q2")
+    # Üst üste aleyhte giden kalemler
+    ws["Q18"] = "Üst üste aleyhte giden kalemler"
+    ws["Q18"].font = Font(bold=True, color="233C57")
+    header(ws, 19, ["Müdürlük", "Bölüm", "Gider kodu", "Gider kalemi", "Üst üste aleyhte ay", "Toplam aleyhte ay",
+                    "Seri toplam sapma (TL)", "Kapanış ayı sapması (TL)"], 17)
+    for j in range(1, MAXM + 1):
+        r = j + 19
+        kk = f"IFERROR(MATCH({j},{krng('AL')},0),\"\")"
+        ws[f"Z{r}"] = "=" + kk
+        for col, src in zip("QRSTUVWX", ["D", "C", "E", "F", "AF", "AG", "AH", "AI"]):
+            ws[f"{col}{r}"] = f'=IF($Z{r}="","",INDEX({krng(src)},$Z{r}))'
+    fmt(ws, "WX", 20, MAXM + 19, MONEY)
+    ws["Q20"] = f'=IF($Z20<>"",INDEX({krng("D")},$Z20),IF({H}!$B$22="","","Seri yok"))'
+    ws.column_dimensions["Z"].hidden = True
+    widths(ws, {"A": 32, "B": 18, "Q": 18, "R": 16, "S": 9, "T": 26, "U": 12, "V": 12, "W": 18, "X": 18})
+    ws.freeze_panes = "C8"
+
+
 def build_ozet(wb):
     ws = wb.create_sheet("Yönetici Özeti", 1)
     Bo = brng
@@ -1110,6 +1262,8 @@ def build_ozet(wb):
     ws["A1"].font = TITLE
     ws["A2"] = f'=IF({KAPYIL}="","Veri yok",{KAPSAM}&" · "&{SELCOUNT}&" ay ("&{YIL}&") · Kaynak kapanış "&{KAPYIL}&"-"&RIGHT("0"&{KAPAY},2))'
     ws["A2"].font = NOTE
+    ws["A3"] = "=IF('Kontrol Paneli'!$C$7=\"Revize bütçe\",\"Karşılaştırma bütçesi: revize bütçe\",\"\")"
+    ws["A3"].font = Font(bold=True, color="9C5700")
     header(ws, 4, ["Gösterge", "Değer"])
     in_scope = f"{Bo('I')},1"
     actual = (f'IF(OR(COUNTIF({Bo("I")},1)=0,SUMIFS({Bo(BOLUM_COLS["eksik A"])},{in_scope})>0),"",SUMIFS({Bo("L")},{in_scope}))')
@@ -1128,6 +1282,7 @@ def build_ozet(wb):
         ("Uyarı sayısı", f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + MAXG + 3})", "0"),
         ("Önemli sapma", f'=IF({BUTCEYILI}=0,"Uygulanmadı",COUNT({krng("S")})&" kalem ("&COUNT({krng("U")})&" aleyhte)")', None),
         ("Önemlilik eşiği", f'="≥ "&FIXED({ESIK},0)&" TL ve ≥ %"&{ORAN}*100', None),
+        ("Üst üste aleyhte giden kalem", f'=IF({H}!$B$22="","Bütçe yılı dışında",COUNT({krng("AL")})&" kalem (≥ "&{H}!$B$24&" ay, aylık ≥ "&FIXED({H}!$B$23,0)&" TL)")', None),
     ]
     for i, (label, formula, number_format) in enumerate(rows, 5):
         ws.cell(i, 1, label)
@@ -1284,8 +1439,10 @@ def build(rows=None):
     build_onay(wb)
     build_dagitim(wb)
     build_girdi(wb)
+    build_surumler(wb)
+    build_trend(wb)
     order = ["Kontrol Paneli", "Yönetici Özeti", "Pano", "Genel Özet", "Giderler", "Birim Maliyet", "Önemli Sapmalar",
-             "Yıl Sonu Tahmini", "Hacim ve Birim Maliyet", "Veri Kontrolü", "Revizyonlar", "Uyarılar", "Açıklamalar",
+             "Yıl Sonu Tahmini", "Hacim ve Birim Maliyet", "Bütçe Sürümleri", "Trend", "Veri Kontrolü", "Revizyonlar", "Uyarılar", "Açıklamalar",
              "Açıklama Onayı", "Dağıtım", "Girdi Kaydı", "Veri"]
     wb._sheets.sort(key=lambda s: order.index(s.title) if s.title in order else 100)
     wb.calculation.fullCalcOnLoad = True
