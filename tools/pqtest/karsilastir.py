@@ -44,7 +44,7 @@ def main():
     basliklar, pq = tablo[0], tablo[1:]
     if basliklar != pq_veri.COLUMNS:
         raise SystemExit(f"Sütunlar farklı: {basliklar}")
-    kapanis = tuple(map(int, sys.argv[3].split("-"))) if len(sys.argv) > 3 else None
+    kapanis = tuple(map(int, sys.argv[3].split("-"))) if len(sys.argv) > 3 and sys.argv[3] else None
     beklenen = pq_veri.build(sys.argv[2], kapanis)
     print("PQ   :", len(pq), dict(Counter(r[1] for r in pq)))
     print("Beklenen:", len(beklenen), dict(Counter(r[1] for r in beklenen)))

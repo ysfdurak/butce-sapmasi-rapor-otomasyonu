@@ -50,3 +50,39 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
         run: python run_tests.py
+
+  powerquery-motor:
+    name: Power Query sorgusu (gerçek M motoru, PQTest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Sorguyu çalıştır, Python benzetimiyle karşılaştır
+        shell: pwsh
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          $ayar = "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx"
+          foreach ($kapanis in @("", "2026-09")) {
+            Write-Host "== Kapanış: $(if ($kapanis) { $kapanis } else { 'en son' })"
+            ./tools/pqtest/calistir.ps1 -Ayar $ayar -Cikti "$env:RUNNER_TEMP\pq.json" -Kapanis $kapanis
+            python tools/pqtest/karsilastir.py "$env:RUNNER_TEMP\pq.json" python/ornek/Ayarlar.xlsx $kapanis
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+  powerquery-sablon:
+    name: Power Query şablonu (LibreOffice ile hesap)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: LibreOffice Calc
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends libreoffice-calc
+      - name: Şablon formülleri = Python motoru
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python tools/pqtest/sablon_dogrula.py

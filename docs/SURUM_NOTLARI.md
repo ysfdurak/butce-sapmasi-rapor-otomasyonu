@@ -1,5 +1,11 @@
 # Sürüm notları
 
+## V5.2 — Kasım 2026
+
+- **Makrosuz yol tam kapsamlı:** `powerquery/Butce_Rapor_Sablonu.xlsx` + yeni `Butce_Veri.pq`. Python/makro sürümündeki raporların tamamı (Yönetici Özeti, Pano, Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Birim Maliyet, Veri Kontrolü, Revizyonlar, Uyarılar) formüllerle üretilir. Kapsam, ay ve eşik seçimleri Kontrol Paneli'nden anında; yeni dosyalar için **Veri › Tümünü Yenile**. Excel 2016 ve sonrasıyla uyumlu. [Rehber](POWER_QUERY.md)
+- **CI'da gerçek Power Query motoru:** sorgu Microsoft Power Query SDK (PQTest) ile çalıştırılıp Python benzetimiyle satır satır, şablon formülleri LibreOffice'te hesaplanıp Python raporlarıyla karşılaştırılır.
+- Eski pivot tabanlı sorgunun sütunları değişti; şablona yeni sorgu yapıştırılmalıdır.
+
 ## V5.1 — Kasım 2026
 
 - **Pano** sayfası (Python ve makro): açılır liste filtreleri, toplam kartları, aylık / gider grubu / bölüm tabloları ve iki grafik. Formül tabanlı; Power BI veya makro gerektirmez.

@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pq_veri import COLUMNS  # noqa: E402
 
-MAXD, MAXL, MAXK, MAXI, MAXG, MAXR, MAXW, MAXM, MAXA = 60, 120, 2000, 80, 60, 1500, 300, 500, 500
+MAXD, MAXL, MAXK, MAXI, MAXG, MAXR, MAXW, MAXM, MAXA = 60, 120, 2000, 80, 60, 1500, 1000, 500, 500
 BLOCKS = 40  # Giderler sayfasındaki bölüm bloğu sayısı
 # _Bolum sayfasında aylık sütun blokları (1. ayın sütun numarası - 1)
 RATIO0, DIP0, DIPMISS0 = 54, 66, 78  # BC..BN endeks oranları, BO..BZ aylık dip toplam, CA..CL dip eksik bayrağı
@@ -179,7 +179,7 @@ def build_panel(wb):
     ws["B18"] = "Veri satırı"
     ws["C18"] = '=MAX(0,COUNTA(Veri!$A:$A)-1)'
     ws["B19"] = "Uyarı"
-    ws["C19"] = "=COUNT('Uyarılar'!$A$2:$A$1000)"
+    ws["C19"] = f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + 3})"
     ws["B20"] = "Önemli sapma"
     ws["C20"] = "=COUNT('_Kalem'!$S$2:$S$2001)"
     ws["B21"] = "Açıklaması eksik önemli sapma"
@@ -899,7 +899,7 @@ def build_uyarilar(wb, last_uy):
     ws = wb.create_sheet("Uyarılar")
     U_ = "'_Uy'"
     header(ws, 1, ["Sıra", "Dönem", "Bölüm", "Kaynak", "Uyarı", "k"])
-    for j in range(1, 1000):
+    for j in range(1, MAXW + MAXD + 3):
         r = j + 1
         k = f"$F{r}"
         ws[f"F{r}"] = f"=IFERROR(MATCH({j},{U_}!$H$2:$H${last_uy},0),\"\")"
@@ -957,7 +957,7 @@ def build_ozet(wb):
         ("Yıllık bütçe (TL)", f'=IF({BUTCEYILI}=0,"",IFERROR(INDEX({drng("U")},{top}),""))', MONEY),
         ("Tahmin − yıllık bütçe (TL)", '=IF(AND(ISNUMBER(B10),ISNUMBER(B11)),B10-B11,"")', MONEY),
         ("Veri kontrolü", "=COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"Doğrulandı\")&\" / \"&COUNTIF('Veri Kontrolü'!$H$4:$H$723,\"?*\")&\" kontrol doğrulandı\"", None),
-        ("Uyarı sayısı", "=COUNT('Uyarılar'!$A$2:$A$1000)", "0"),
+        ("Uyarı sayısı", f"=COUNT('Uyarılar'!$A$2:$A${MAXW + MAXD + 3})", "0"),
         ("Önemli sapma", f'=IF({BUTCEYILI}=0,"Uygulanmadı",COUNT({krng("S")})&" kalem ("&COUNT({krng("U")})&" aleyhte)")', None),
         ("Önemlilik eşiği", f'="≥ "&FIXED({ESIK},0)&" TL ve ≥ %"&{ORAN}*100', None),
     ]
@@ -1088,9 +1088,10 @@ def build(rows=None):
     wb = Workbook()
     build_panel(wb)
     veri = wb.create_sheet("Veri")
-    veri.append(COLUMNS)
-    for row in rows or []:
-        veri.append(row)
+    if rows:  # örnek kopya; boş şablonda A1 sorgunun yükleneceği yer olarak boş kalır
+        veri.append(COLUMNS)
+        for row in rows:
+            veri.append(row)
     veri["AL1"] = ("Bu sayfa Power Query sorgusunun (Butce_Veri) yükleme yeridir. Sorguyu buraya, A1 hücresine "
                    "yükleyin; elle değiştirmeyin.")
     build_helpers(wb)

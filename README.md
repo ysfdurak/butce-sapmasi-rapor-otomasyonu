@@ -12,7 +12,7 @@ Uygulama, farklı dosyalardaki bölüm giderlerini tek bir kapanışta toplar. G
 | --- | --- | --- |
 | Excel VBA | Excel kontrol paneli, direktörlük ve müdürlük raporları | [Windows Excel kurulumu](docs/BASLANGIC.md#excel-vba) |
 | Python | Yedi sayfalık yerel dashboard ve Excel raporları | [Python kurulumu](docs/BASLANGIC.md#python) |
-| Excel Power Query (makrosuz) | Python ve makro kullanılamayan bilgisayarlarda dilimleyicili PivotTable panosu | [Power Query rehberi](docs/POWER_QUERY.md) |
+| Excel Power Query (makrosuz) | Python ve makro kullanılamayan bilgisayarlarda aynı raporlar ve pano: hazır şablon + tek sorgu, tek tuşla yenileme | [Power Query rehberi](docs/POWER_QUERY.md) |
 
 Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri ve rapor eşikleri Excel'deki ayar dosyasından yönetilir. İki sürüm aynı hesap kurallarıyla aynı rapor sayfalarını üretir ([Veri ve hesap](docs/VERI_VE_HESAP.md)). Python arayüzü tarayıcıda kendi bilgisayarınızda açılır. VBA paketi masaüstü Excel'de rapor üretir.
 
