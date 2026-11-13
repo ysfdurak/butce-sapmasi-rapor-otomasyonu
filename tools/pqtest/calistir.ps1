@@ -51,3 +51,9 @@ foreach ($ifade in $kaynaklar) {
 
 $sure = Measure-Command { & $pqtest run-test -e $mez -q $qdosya -p | Out-File $Cikti -Encoding utf8 }
 Write-Host ("PQTest süresi: {0:N1} sn" -f $sure.TotalSeconds)
+
+if ($env:PQ_HATA_AYIKLA) {
+    $d = Join-Path $is ("Dene_" + $(if ($Kapanis) { $Kapanis } else { "son" }) + ".query.pq")
+    Set-Content -Path $d -Encoding UTF8 -Value ($q -replace '\nin\s+Sonuc\s*$', "`nin Text.FromBinary(Json.FromValue({KapanisDonemi, Kapanis, KapAy, KapYil, Text.AfterDelimiter(KapanisDonemi, ""-"")}))")
+    & $pqtest run-test -e $mez -q $d -p | Select-String -Pattern '"Value"|\[\\"|Message' | ForEach-Object { Write-Host $_.Line.Trim() }
+}
