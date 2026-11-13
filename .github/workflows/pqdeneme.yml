@@ -1,0 +1,17 @@
+name: PQ motor denemesi
+on:
+  push:
+    branches: [pq-motor-deneme]
+jobs:
+  pq:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PQTest
+        shell: pwsh
+        run: ./tools/pqtest/calistir.ps1 -Ayar "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx" -Cikti "$env:RUNNER_TEMP\pq.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pq
+          path: ${{ runner.temp }}/pq*
