@@ -60,3 +60,25 @@ Görsel, kontrol paneli tasarım önizlemesidir.
 [Hesap ve veri akışı](docs/VERI_VE_HESAP.md) · [Açıklamalar](docs/YORUM_KULLANIMI.md) · [Doğrulama](docs/DOGRULAMA.md) · [Canlı kontrol](docs/CANLI_KONTROL.md) · [Sürüm notları](docs/SURUM_NOTLARI.md) · [Ortak kararlar](docs/ORTAK_KARARLAR.md)
 
 Depodaki çalışma kitapları sentetik örnekler ve şablonlardır. Gerçek kaynakları, ayar kopyalarını, raporları, günlükleri ve yerel kayıtları kendi bilgisayarınızda veya kurumunuzun onaylı depolama alanında tutun.
+
+## Lisans
+
+Bu proje [PolyForm Shield 1.0.0](LICENSE.md) lisansıyla yayınlanır. Kaynak kodu açıktır, ancak resmi anlamda bir "açık kaynak" lisansı değildir.
+
+- **Serbest:** Kişiler, okullar ve şirketler kendi işlerinde ücretsiz kullanabilir, değiştirebilir ve kendi bilgisayarlarına ya da sunucularına kurabilir. İzin almak gerekmez.
+- **Yazılı izin gerekir:** Yazılımı satmak, adını değiştirip ürün gibi sunmak ya da bununla (ücretsiz olsa bile) rakip bir ürün veya hizmet sunmak.
+- **Garanti yok:** Yazılım olduğu gibi sunulur. Bağlayıcı olan İngilizce lisans metnidir.
+- Üçüncü taraf bileşenler kendi lisanslarına tabidir.
+
+Kurumunuzda kullanıyorsanız haber verirseniz sevinirim: kurulumda yardımcı olabilir, kurumunuza özel ihtiyaçları birlikte değerlendirebiliriz. İletişim: iletisim@ysfdurak.com
+
+### License (English)
+
+Released under [PolyForm Shield 1.0.0](LICENSE.md). The source is available, but this is not an OSI "open source" licence.
+
+- **Free:** individuals, schools and companies may use it in their own work, change it and run it on their own computers or servers. No permission needed.
+- **Needs written permission:** selling it, rebranding it as a product, or providing a product or service that competes with it (even free of charge).
+- **No warranty:** provided as is. The English licence text is binding.
+- Third-party components keep their own licences.
+
+Using it in your organisation? I'd be glad to hear from you: I can help with setup and look at your organisation's needs together. Contact: contact@ysfdurak.com
