@@ -149,7 +149,7 @@ Endeks.xlsx  ─┘                                                Kontrol Panel
 
 - Sorgu her satırı bir **bloğa** yazar (`Tablo` sütunu): `Gider` (bölüm × kalem × yıl, 12 ay gerçekleşen G1–G12 ve bütçe B1–B12), `Toplam`, `Adet`, `Kontrol`, `Ciro`, `Endeks`, `Revizyon`, `Uyari` ve rapor düzeni (`Bolum`, `Duzen`, `Kalem`, `Satir`…). Her satırın tekil bir `Anahtar`ı vardır (ör. `Gider|Giriş|5|2026`).
 - Şablondaki gizli yardımcı sayfalar (`_H`, `_Bolum`, `_Kalem`…) satırları `Anahtar` ile bulur (INDEX/MATCH), seçili ayları toplar (SUMPRODUCT) ve raporlar bunlardan beslenir.
-- Hücre konumları Ayarlar.xlsx'ten okunur. Maliyet sayfası **Bütçe** başlığına, kontrol dosyası ilk ardışık tarih başlığına, endeks dosyası **Bölüm Gider Endeksi** başlığına göre hizalanır; boş üst satırlar/sütunlar sonucu etkilemez.
+- Hücre konumları Ayarlar.xlsx'ten okunur; konum satırı yoksa dosyadan bulunur ([kurallar](VERI_VE_HESAP.md#konumların-otomatik-bulunması-v55)). Maliyet sayfası **Bütçe** başlığına, kontrol dosyası ilk ardışık tarih başlığına, endeks dosyası **Bölüm Gider Endeksi** başlığına göre hizalanır; boş üst satırlar/sütunlar sonucu etkilemez.
 - Tablonun tam tanımı ve Python karşılığı: [`tools/pq_veri.py`](../tools/pq_veri.py). Şablonu üreten kod: [`tools/pq_sablon.py`](../tools/pq_sablon.py).
 
 ## Doğrulama

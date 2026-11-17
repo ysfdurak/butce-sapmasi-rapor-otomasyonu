@@ -65,7 +65,7 @@ class SourceIssues:
     """Kaynak okurken metin sayıları ve boş hücreleri hücre adresiyle toplar."""
 
     def __init__(self):
-        self.converted, self.unreadable, self.empty = [], [], []
+        self.converted, self.unreadable, self.empty, self.notes = [], [], [], []
 
     def value(self, sheet, row, col):
         raw = sheet.cell(row, col).value
@@ -83,7 +83,7 @@ class SourceIssues:
 
     def warnings(self, sheet_name):
         sample = sample_cells
-        result = []
+        result = list(self.notes)
         if self.converted:
             result.append(
                 f"Metin olarak girilmiş {len(self.converted)} tutar sayıya çevrildi ({sheet_name}: "
@@ -313,7 +313,30 @@ def merge_cost_items(items, mappings):
 
 def read_cost(sheet, cfg, closing, issues=None):
     if cfg.get("tarih_baslangici"):
-        return positioned_cost(sheet, cfg, closing, issues)
+        try:
+            return positioned_cost(sheet, cfg, closing, issues)
+        except ValueError as error:
+            # Ayardaki konum bu sayfada tutmuyor: konum sayfadan yeniden bulunur ve uyarılır.
+            import konum
+
+            found = konum.cost_layout(sheet)
+            changed = {k: v for k, v in found.items() if cfg.get(k) != v}
+            if "tarih_baslangici" not in found or not changed:
+                raise
+            local = {**cfg, **found}
+            if issues is None:
+                issues = SourceIssues()
+            for collected in (issues.converted, issues.unreadable, issues.empty):
+                collected.clear()
+            try:
+                result = positioned_cost(sheet, local, closing, issues)
+            except ValueError:
+                raise error from None
+            issues.notes.append(
+                f"Ayardaki konum bu sayfada tutmadı; konum otomatik bulundu ({sheet.title}: {konum.describe(changed)}). "
+                "Kaynak düzeni değiştiyse Ayarlar'ı güncelleyin veya konum satırlarını silin."
+            )
+            return result
 
     def cell(row, col):
         return sheet.cell(row, col).value
@@ -1281,19 +1304,21 @@ def read_settings(path):
     try:
         sections = {
             "Dosyalar": {"maliyet_klasoru", "kontrol_dosyasi", "endeks_dosyasi"},
-            "Maliyet": {"ilk_gider_satiri", "gider_sutunu"},
-            "Kontrol": {"sayfa", "etiket_sutunu", "tolerans"},
+            "Maliyet": set(),
+            "Kontrol": {"sayfa", "tolerans"},
             "Endeks": {"sayfa"},
             "Rapor": set(),
         }
-        # Konumlu düzen (tarih_baslangici, ciro_baslangici, baslik_satiri/endeks_araligi) yoksa eski satır/sütun
-        # düzeninin ayarları zorunludur. Konumlu düzen varsa eski ayarlar yalnız yedek olarak okunur.
+        # Konumlu düzen (tarih_baslangici, ciro_baslangici, baslik_satiri/endeks_araligi) yoksa ve eski satır/sütun
+        # düzeninden bir ayar girilmişse eski düzenin ayarları zorunludur. Hiçbiri yoksa konumlar dosyadan bulunur
+        # (konum.complete). Konumlu düzen varsa eski ayarlar yalnız yedek olarak okunur.
         legacy = {
             "Maliyet": (
                 "tarih_baslangici",
-                {"yil_satiri", "ay_satiri", "dip_toplam_satiri", "indeks_sutunu", "ilk_donem_sutunu"},
+                {"yil_satiri", "ay_satiri", "dip_toplam_satiri", "indeks_sutunu", "ilk_donem_sutunu",
+                 "ilk_gider_satiri", "gider_sutunu"},
             ),
-            "Kontrol": ("ciro_baslangici", {"ciro_satiri", "ilk_blok_satiri", "ilk_ay_sutunu"}),
+            "Kontrol": ("ciro_baslangici", {"ciro_satiri", "ilk_blok_satiri", "ilk_ay_sutunu", "etiket_sutunu"}),
             "Endeks": ("baslik_satiri", {"ilk_veri_satiri"}),
         }
         report_settings = {"onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi",
@@ -1364,9 +1389,14 @@ def read_settings(path):
             elif not isinstance(value, str):
                 raise ValueError(f"{location}: Dosya, klasör veya sayfa adı metin olmalı")
             settings[section][code] = value
+        markers = {"Maliyet": {"yil_satiri", "ay_satiri", "indeks_sutunu", "ilk_donem_sutunu", "gerceklesen_araligi",
+                               "butce_araligi"},
+                   "Kontrol": {"ciro_satiri", "ilk_blok_satiri", "ilk_ay_sutunu", "ciro_araligi"},
+                   "Endeks": {"ilk_veri_satiri"}}
         for section, (positioned, codes) in legacy.items():
             alternative = {"Endeks": "endeks_araligi"}.get(section)
-            if positioned not in settings[section] and alternative not in settings[section]:
+            if (positioned not in settings[section] and alternative not in settings[section]
+                    and markers[section] & settings[section].keys()):
                 sections[section] = sections[section] | codes
         for section, expected in sections.items():
             missing = expected - settings[section].keys()
@@ -1417,7 +1447,7 @@ def read_settings(path):
                     index(target, f"Gider Eşleştirme, satır {i}"),
                     name,
                 )
-        return {
+        config = {
             **settings["Dosyalar"],
             "rapor": settings["Rapor"],
             "maliyet": settings["Maliyet"],
@@ -1430,6 +1460,15 @@ def read_settings(path):
         }
     finally:
         book.close()
+    import konum
+
+    return konum.complete(config, path.parent)
+
+
+def auto_layout_warnings(config):
+    """Ayarlarda olmayıp dosyadan bulunan konumlar Uyarılar sayfasında görünür (konum.complete)."""
+    return [[None, None, source, f"Konum otomatik bulundu ({section}): {text}"]
+            for section, source, text in config.get("otomatik_konum", [])]
 
 
 def run(args):
@@ -1445,7 +1484,7 @@ def run(args):
         raise ValueError("Seçilen aylar kaynak kapanış döneminden sonra olamaz")
     selection_id = month_signature(months)
     filename_months = "-".join(f"{m:02d}" for m in months)
-    warnings = []
+    warnings = auto_layout_warnings(config)
     if year != closing[0]:
         warnings.append(
             [

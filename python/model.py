@@ -60,7 +60,7 @@ class Dataset:
         from workspace import inventory
 
         before = inventory(self)
-        self.warnings = []
+        self.warnings = butce.auto_layout_warnings(self.config)
         progress("Maliyet dosyaları okunuyor")
         self.snapshots = butce.read_snapshots(
             self.root / self.config["maliyet_klasoru"],

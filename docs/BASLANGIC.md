@@ -7,7 +7,7 @@
 Windows masaüstü Excel gerekir. `makro/` altında `Kontrol_Sablonu.xlsx`, `Kurulum.vbs`, `vba_elle/` ve `ornek/` yan yana durur.
 
 1. Kurum ayarları izin veriyorsa `Kurulum.vbs` çalıştırın. Bu adım aynı klasöre `Butce_Kontrol_Makro_V5.xlsm` oluşturur; dosya zaten varsa yedek alıp makro modüllerini günceller.
-2. Elle kurulum için `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın ve aynı klasöre **Excel Makro İçerebilen Çalışma Kitabı (*.xlsm)** olarak kaydedin. **Alt+F11** tuşlarına basın, ilgili çalışma kitabının projesini seçin ve **File → Import File** ile `vba_elle/` içindeki **11** `.bas` dosyasını ekleyin. Bu kopyalar Türkçe Windows kodlamasıyla hazırlanmıştır.
+2. Elle kurulum için `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın ve aynı klasöre **Excel Makro İçerebilen Çalışma Kitabı (*.xlsm)** olarak kaydedin. **Alt+F11** tuşlarına basın, ilgili çalışma kitabının projesini seçin ve **File → Import File** ile `vba_elle/` içindeki **13** `.bas` dosyasını ekleyin. Bu kopyalar Türkçe Windows kodlamasıyla hazırlanmıştır.
 3. **Debug → Compile VBAProject** ile derleyin ve kaydedin. Excel'de **Alt+F8 → PanelHazirla → Çalıştır** yoluyla paneli açın.
 4. **Sentetik hesap testi** düğmesine basın ve **Test Sonuçları** sayfasına bakın.
 5. Ardından `makro/ornek/Ayarlar.xlsx` dosyasını seçin. Kapanış **2026 / 10**, rapor yılı **2026** ve aylar **Ocak–Ekim** olsun. Bir çıktı klasörü seçip **Kaynakları önizle → Rapor oluştur** adımlarını uygulayın.

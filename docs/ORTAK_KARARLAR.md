@@ -1,5 +1,9 @@
 # Ortak kararlar (Python ve Excel VBA)
 
+## V5.5 — 17 Kasım 2026
+
+- Konum ayarları isteğe bağlıdır; Ayarlar'da değer varsa öncelik onundur, yoksa dosyadan bulunur. Kaynak düzeni değiştiğinde Ayarlar'ı güncellemek yerine konum satırlarını silmek yeterlidir.
+
 ## V5.4 — 17 Kasım 2026
 
 - Üç sürüm farklı kullanıcılar içindir (Python, makro, makrosuz Power Query) ve özellikte **eşit** tutulur. Hızlı mod tek istisnadır: yalnız Power Query yenileme süresi içindir.

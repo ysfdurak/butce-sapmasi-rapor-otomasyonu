@@ -50,6 +50,18 @@ Python (`surum.py`), makro (`MakroSurum`) ve Power Query şablonu aynı kurallar
 | Trend | Aylık gerçekleşen − karşılaştırma bütçesi. Kalem, kapanış ayında biten seride üst üste `trend_en_az_ay` ay boyunca fark ≥ `trend_aylik_esik` ise listelenir; sıra: seri uzunluğu, sonra seri toplamı (büyükten küçüğe). |
 | Yönetici Özeti | İki satır: bütçesi değişen kalem sayısı ve yıllık etkisi; üst üste aleyhte giden kalem sayısı. |
 
+## Konumların otomatik bulunması (V5.5)
+
+Python (`konum.py`), makro (`MakroKonum`) ve Power Query (`Butce_Veri.pq` › Otomatik konum) aynı kuralları uygular. Ayarlar'da değer varsa o kullanılır; yoksa dosyadan bulunur ve Uyarılar'a "Konum otomatik bulundu" yazılır (Power Query yazmaz). Bulunamazsa hata konum satırının girilmesini ister.
+
+| Dosya | Bulunan ayarlar | Kural |
+| --- | --- | --- |
+| Maliyet (en yeni dosyanın ilk bölüm sayfası) | `butce_etiketi`, `tarih_baslangici`, `gider_sutunu`, `islem_adedi_satiri`, `ilk_gider_satiri`, `gider_kalem_sayisi` | "Bütçe" yazan ve altı tarih/ay olan hücre bütçe etiketidir (birden fazla satırda varsa belirsiz sayılır). Altındaki satır başlıktır; başlıkta etiketin solundaki ilk tarih gerçekleşen başlangıcıdır. Bunun solunda, altındaki 59 satırda en az üç yazı olan en yakın sütun gider adı sütunudur. Bu sütunda "İşlem Adedi" geçen satır işlem adedi satırı, bir altı ilk gider satırıdır; giderler ilk boş ada kadar sayılır. Personel satırları işlem adedinin üstündeki dört satırdır. |
+| Kontrol | `ciro_baslangici`, `butce_ciro_baslangici`, `etiket_sutunu` | En az 12 tarihi olan ve ilk tarihin altında sayı bulunan en üst satır ciro başlığıdır. Tarihler kesildikten sonraki ilk tarih bütçe cirosu başlangıcıdır. "Opex Toplamı" yazan tek sütun etiket sütunudur. |
+| Endeks | `endeks_araligi` | "Bölüm Gider Endeksi" veya "Bölüm Adı" yazan ve sağında tarih olan tek hücre tablonun sol üstüdür. |
+
+Ayardaki konum bir maliyet sayfasında tutmazsa (başlık veya gider adı bulunamazsa) o sayfa için konum yeniden bulunur ve uyarılır; diğer sayfalar ayardaki konumla okunur. Eski satır/sütun düzeni ayarlarından (`yil_satiri`, `ciro_satiri`, `ilk_veri_satiri` vb.) biri girilmişse eski düzen kullanılır ve konum aranmaz. Sayfa adları (`sayfa`) ve `tolerans` ayar olarak kalır.
+
 ## Rapor ayarları
 
 Ayarlar.xlsx › **Dosya ve Konum Ayarları** sayfasına `Rapor` alanıyla eklenir. Satır yoksa varsayılan kullanılır.

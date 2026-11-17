@@ -1,5 +1,12 @@
 # Sürüm notları
 
+## V5.5 — Kasım 2026
+
+- **Konumlar otomatik bulunur** (Python, makro, Power Query): Ayarlar › Dosya ve Konum Ayarları'ndaki Maliyet, Kontrol ve Endeks konum satırları artık isteğe bağlıdır. Satır yoksa konum dosyadan bulunur ve Uyarılar'a yazılır; Ayarlar'da değer varsa o kullanılır. Eski Ayarlar dosyaları değişmeden çalışır. [Kurallar](VERI_VE_HESAP.md#konumların-otomatik-bulunması-v55)
+- Ayardaki konum bir maliyet sayfasında tutmazsa (satır/sütun eklenmişse) o sayfa için konum yeniden bulunur, sayfa okunur ve uyarılır. Power Query zaten "Bütçe" başlığına göre hizalanıyordu.
+- Python Tablo düzeni ekranında girilen konum kaynakla uyuşmazsa kayıt reddedilir.
+- Makroda yeni modül **MakroKonum** (toplam 13).
+
 ## V5.4 — Kasım 2026
 
 Üç sürümde (Python, makro, Power Query) aynı kurallarla ([rehber](POWER_QUERY.md), [hesap](VERI_VE_HESAP.md#v54-bütçe-sürümleri-ve-trend)):

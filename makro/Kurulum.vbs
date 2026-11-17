@@ -8,7 +8,7 @@ Set shell = CreateObject("WScript.Shell")
 root = fso.GetParentFolderName(WScript.ScriptFullName)
 target = fso.BuildPath(root, "Butce_Kontrol_Makro_V5.xlsm")
 legacy = fso.BuildPath(root, "Butce_Kontrol_Makro_V4.xlsm")
-modules = Array("MakroOrtak", "MakroVeri", "MakroHesap", "MakroYaz", "MakroPanel", "MakroAciklama", "MakroTest", "MakroAyarlar", "MakroMerkez", "MakroYorum", "MakroAnaliz", "MakroSurum")
+modules = Array("MakroOrtak", "MakroVeri", "MakroHesap", "MakroYaz", "MakroPanel", "MakroAciklama", "MakroTest", "MakroAyarlar", "MakroMerkez", "MakroYorum", "MakroAnaliz", "MakroSurum", "MakroKonum")
 stamp = Year(Now) & Right("0" & Month(Now), 2) & Right("0" & Day(Now), 2) & "_" & Right("0" & Hour(Now), 2) & Right("0" & Minute(Now), 2) & Right("0" & Second(Now), 2)
 
 ' 1) Kod sayfasi: VBA duzenleyicisi Unicode metni sistemin ANSI kod sayfasina cevirir.

@@ -76,6 +76,8 @@ Public Sub LoadSettings()
     Next r
     End If
     wb.Close False: Set wb = Nothing
+    RootPath = CreateObject("Scripting.FileSystemObject").GetParentFolderName(SettingsPath)
+    KonumTamamla
     For Each meta In Array("Dosyalar|maliyet_klasoru", "Dosyalar|kontrol_dosyasi", "Dosyalar|endeks_dosyasi", "Maliyet|ilk_gider_satiri", "Maliyet|gider_sutunu", "Maliyet|islem_adedi_satiri", "Kontrol|sayfa", "Endeks|sayfa")
         If Not Cfg.Exists(CStr(meta)) Then Fail "Eksik ayar: " & CStr(meta)
     Next meta
@@ -321,6 +323,7 @@ Public Sub LoadSnapshots()
     Dim files As Collection, file As Variant, name As String, folder As String, period As String
     Dim wb As Workbook, ws As Worksheet, d As Object, id As String, bad As Object, msg As String, n As Variant
     Set Snaps = Dict(): Set bad = Dict(): Set files = New Collection
+    KonumUyarilari
     folder = AbsPath(CStr(Opt("Dosyalar", "maliyet_klasoru")))
     If Not CreateObject("Scripting.FileSystemObject").FolderExists(folder) Then Fail "Maliyet klasörü yok: " & folder
     name = Dir$(folder & "\*.xlsx")
@@ -383,7 +386,7 @@ Failed:
 End Sub
 
 Private Function TryCost(ByVal ws As Worksheet, ByVal closing As String, ByVal file As String) As Object
-    Dim message As String, hint As String
+    Dim message As String, hint As String, saved As Object, found As Object, d As Object, ok As Boolean
     On Error GoTo Failed
     Set TryCost = ReadCost(ws, closing, file)
     Exit Function
@@ -391,6 +394,23 @@ Failed:
     message = Err.Description
     On Error GoTo -1  ' etkin hata iþleyicisini kapatýr; LayoutHint hatasý da yutulabilsin
     On Error Resume Next
+    ' Ayardaki konum bu sayfada tutmuyor: konum sayfadan bulunur, yeniden okunur (Python: butce.read_cost).
+    If CStr(Opt("Maliyet", "tarih_baslangici")) <> "" Then
+        Set saved = CostRetry(ws, found)
+        If Not saved Is Nothing Then
+            Err.Clear
+            Set d = ReadCost(ws, closing, file)
+            ok = (Err.Number = 0 And Not d Is Nothing)
+            Err.Clear
+            CostRestore saved
+            If ok Then
+                On Error GoTo 0
+                Warn ws.Name, file, "Ayardaki konum bu sayfada tutmadý; konum otomatik bulundu (" & ws.Name & ": " & Describe(found) & "). Kaynak düzeni deðiþtiyse Ayarlar'ý güncelleyin veya konum satýrlarýný silin."
+                Set TryCost = d
+                Exit Function
+            End If
+        End If
+    End If
     hint = LayoutHint(ws)
     On Error GoTo 0
     If hint <> "" Then message = message & ". " & hint

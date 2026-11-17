@@ -1,8 +1,10 @@
 # Bütçe raporu — Excel makro sürümü V5
 
-> **V5:** Kurulum adı `Butce_Kontrol_Makro_V5.xlsm`, makro modül sayısı **12** (V5.4 ile yeni: MakroSurum). Raporlara Yönetici Özeti, Önemli Sapmalar, Yıl Sonu Tahmini ve Hacim ve Birim Maliyet sayfaları eklendi. Hesap kuralları: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı: [Açıklamalar ve onay izi](../docs/YORUM_KULLANIMI.md). Önceki sürüm notları [docs/arsiv](../docs/arsiv/) klasöründedir.
+> **V5:** Kurulum adı `Butce_Kontrol_Makro_V5.xlsm`, makro modül sayısı **13** (V5.4 ile MakroSurum, V5.5 ile MakroKonum). Raporlara Yönetici Özeti, Önemli Sapmalar, Yıl Sonu Tahmini ve Hacim ve Birim Maliyet sayfaları eklendi. Hesap kuralları: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı: [Açıklamalar ve onay izi](../docs/YORUM_KULLANIMI.md). Önceki sürüm notları [docs/arsiv](../docs/arsiv/) klasöründedir.
 
 > **V5.4:** Raporlara Bütçe Sürümleri, Bütçe - Bölüm / Müdürlük / Direktörlük, Bütçe Değişimi, Trend ve Girdi Kaydı sayfaları eklendi; Yönetici Özeti'nde bütçe değişimi ve üst üste aleyhte giden kalem satırları var. İlk bütçeyle karşılaştırmak için Ayarlar › Rapor › `karsilastirma_butcesi` = `İlk bütçe`. Kurallar: [V5.4](../docs/VERI_VE_HESAP.md#v54-bütçe-sürümleri-ve-trend).
+
+> **V5.5:** Ayarlar'daki Maliyet, Kontrol ve Endeks konum satırları isteğe bağlıdır. Satır yoksa konum dosyadan bulunur; ayardaki konum bir sayfada tutmazsa (satır/sütun kaymışsa) o sayfa için yeniden bulunur. İkisi de Uyarılar'da yazılır. [Kurallar](../docs/VERI_VE_HESAP.md#konumların-otomatik-bulunması-v55).
 
 Bu paket **ilk raporlama motorunun VBA karşılığıdır**. Mevcut Python / dashboard V11 paketinden ayrıdır; onu değiştirmez. Veri okuma, hesaplama, rapor kaydetme ve açıklama birleştirme Windows masaüstü Excel içinde çalışır. Çalıştırmak için Python, pip, openpyxl veya PowerShell gerekmez. İnternet bağlantısı ve veri yükleme işlemi yoktur.
 
@@ -10,7 +12,7 @@ Bu paket **ilk raporlama motorunun VBA karşılığıdır**. Mevcut Python / das
 
 VBA kaynak kodu, kurulum aracı, ayar Excel'i ve sentetik kaynaklar hazırdır. Bu ortamda Windows Excel bulunmadığından **VBA derleme, düğme/listbox etkileşimi ve gerçek dosya üretimi henüz Windows Excel üzerinde doğrulanmadı**. Bu paket canlı kullanım öncesi sentetik pilot sürümdür. Sentetik beklenen sonuçlar mevcut hesap motorundan doğrulandı; bu, VBA'nın çalıştırılmış olduğu anlamına gelmez.
 
-Paketin içinde önceden derlenmiş, hazır `.xlsm` bulunmaz. `Kurulum.vbs`, gerçek Excel'i kullanarak `Kontrol_Sablonu.xlsx` ve on iki VBA modülünden **Butce_Kontrol_Makro_V5.xlsm** oluşturur. Şablonu doğrudan açınca çalışan makro veya listbox beklemeyin.
+Paketin içinde önceden derlenmiş, hazır `.xlsm` bulunmaz. `Kurulum.vbs`, gerçek Excel'i kullanarak `Kontrol_Sablonu.xlsx` ve on üç VBA modülünden **Butce_Kontrol_Makro_V5.xlsm** oluşturur. Şablonu doğrudan açınca çalışan makro veya listbox beklemeyin.
 
 ## 1. İlk kurulum
 
@@ -25,7 +27,7 @@ Kurumsal makro politikası geçerlidir. Kurulum güvenlik ayarı değiştirmez. 
 
 1. `Kontrol_Sablonu.xlsx` dosyasını Excel'de açın; **Farklı Kaydet → Excel Makro İçerebilen Çalışma Kitabı (.xlsm)** ile `Butce_Kontrol_Makro_V5.xlsm` olarak aynı klasöre kaydedin.
 2. `Alt+F11` ile VBA editörünü açın. Bu çalışma kitabının projesini seçin.
-3. **File → Import File** yoluyla `vba_elle` klasöründeki on iki `.bas` modülünün tamamını içeri alın. Bu kopyalar Türkçe Windows (1254) içindir. Türkçe harfler bozulursa UTF-8 `vba` kopyalarını bir metin editöründe açıp metni yeni standart modüllere yapıştırın; `Attribute VB_Name` satırını yapıştırmayın ve modül adlarını dosya adlarıyla aynı yapın.
+3. **File → Import File** yoluyla `vba_elle` klasöründeki on üç `.bas` modülünün tamamını içeri alın. Bu kopyalar Türkçe Windows (1254) içindir. Türkçe harfler bozulursa UTF-8 `vba` kopyalarını bir metin editöründe açıp metni yeni standart modüllere yapıştırın; `Attribute VB_Name` satırını yapıştırmayın ve modül adlarını dosya adlarıyla aynı yapın.
 4. **Debug → Compile VBAProject** seçin. Hata varsa hata metnini ve işaretlenen satırı kaydedin.
 5. Excel'e dönün; `Alt+F8 → PanelHazirla → Çalıştır`. Kaydedin.
 

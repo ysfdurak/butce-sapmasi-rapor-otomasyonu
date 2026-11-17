@@ -120,14 +120,90 @@ let
         in
             if Table.RowCount(r) = 0 or Bos(r{0}[#"Değer"]) then varsayilan else r{0}[#"Değer"],
 
-    TarihHucresi = Hucre(Ayar("Maliyet", "tarih_baslangici", "BF59")),
-    ButceHucresi = Hucre(Ayar("Maliyet", "butce_etiketi", "EZ58")),
-    IlkGider = Number.From(Ayar("Maliyet", "ilk_gider_satiri", null)),
-    GiderSutunu = Number.From(Ayar("Maliyet", "gider_sutunu", TarihHucresi[Sutun] - 1)),
-    AdetSatiri = Ayar("Maliyet", "islem_adedi_satiri", null),
+    // Maliyet konumları: Ayarlar'da varsa o değer; yoksa dosyadan bulunan (Otomatik konum, aşağıda).
+    // Bulunan konumlar Ayarlar'daki Bütçe etiketine göre kaydırılır; Bütçe etiketi de yoksa sayfa koordinatıdır.
+    KonumYok = (msg) => error Error.Record("Ayar", "Konum dosyadan bulunamadı; Ayarlar › Dosya ve Konum Ayarları'na girin: Maliyet › " & msg),
+    ButceAyari = Ayar("Maliyet", "butce_etiketi", null),
+    ButceHucresi = if ButceAyari <> null then Hucre(ButceAyari)
+        else if Record.HasFields(MaliyetBulunan, "ButceR") then [Satir = MaliyetBulunan[ButceR] + 1, Sutun = MaliyetBulunan[ButceC] + 1]
+        else KonumYok("butce_etiketi"),
+    KaymaR = if ButceAyari <> null and Record.HasFields(MaliyetBulunan, "ButceR") then ButceHucresi[Satir] - 1 - MaliyetBulunan[ButceR] else 0,
+    KaymaC = if ButceAyari <> null and Record.HasFields(MaliyetBulunan, "ButceC") then ButceHucresi[Sutun] - 1 - MaliyetBulunan[ButceC] else 0,
+    Bulunan = (alan, kayma, ad) => if Record.HasFields(MaliyetBulunan, alan) then Record.Field(MaliyetBulunan, alan) + 1 + kayma else KonumYok(ad),
+    TarihHucresi = let a = Ayar("Maliyet", "tarih_baslangici", null) in
+        if a <> null then Hucre(a) else [Satir = Bulunan("TarihR", KaymaR, "tarih_baslangici"), Sutun = Bulunan("TarihC", KaymaC, "tarih_baslangici")],
+    // Varsayılan değerde hata olabileceğinden Ayar(..., null) ile okunup ayrıca seçilir.
+    IlkGider = let a = Ayar("Maliyet", "ilk_gider_satiri", null) in
+        if a <> null then Number.From(a) else Bulunan("IlkR", KaymaR, "ilk_gider_satiri"),
+    GiderSutunu = let a = Ayar("Maliyet", "gider_sutunu", null) in
+        if a <> null then Number.From(a)
+        else if Record.HasFields(MaliyetBulunan, "GiderC") then MaliyetBulunan[GiderC] + 1 + KaymaC else TarihHucresi[Sutun] - 1,
+    AdetSatiri = let a = Ayar("Maliyet", "islem_adedi_satiri", null) in
+        if a <> null then a else Bulunan("AdetR", KaymaR, "islem_adedi_satiri"),
     DipToplam = Ayar("Maliyet", "dip_toplam_satiri", null),
-    KalemSayisi = Number.From(Ayar("Maliyet", "gider_kalem_sayisi",
-        if DipToplam <> null and Number.From(DipToplam) > IlkGider then Number.From(DipToplam) - IlkGider else 27)),
+    KalemSayisi = let a = Ayar("Maliyet", "gider_kalem_sayisi", null) in
+        if a <> null then Number.From(a)
+        else if Record.HasFields(MaliyetBulunan, "Kalem") then MaliyetBulunan[Kalem]
+        else if DipToplam <> null and Number.From(DipToplam) > IlkGider then Number.From(DipToplam) - IlkGider else 27,
+
+    // ---------------------------------------------------------------- Otomatik konum (V5.5; Python: konum.py, makro: MakroKonum)
+    // "Bütçe" yazan hücrenin altı tarih/ay ise o satır başlıktır; solundaki ilk tarih gerçekleşen başlangıcıdır.
+    // Daha solda altında en az üç yazı olan en yakın sütun gider adıdır; "İşlem Adedi" satırının bir altı ilk giderdir.
+    TarihMi = (v) =>
+        if v = null then false
+        else if Value.Is(v, type date) or Value.Is(v, type datetime) then true
+        else if Value.Is(v, type text) then
+            (let
+                t = Text.Trim(v),
+                rakam = (x) => x <> "" and Text.Select(x, {"0" .. "9"}) = x,
+                a = Text.Split(t, "-"),
+                b = Text.Split(t, ".")
+             in
+                (List.Count(a) >= 2 and List.Count(a) <= 3 and Text.Length(a{0}) = 4 and List.AllTrue(List.Transform(a, rakam))
+                    and List.AllTrue(List.Transform(List.Skip(a), each Text.Length(_) <= 2)))
+                or (List.Count(b) = 3 and Text.Length(b{2}) = 4 and List.AllTrue(List.Transform(b, rakam))
+                    and Text.Length(b{0}) <= 2 and Text.Length(b{1}) <= 2))
+        else false,
+    AyMi = (v) => TarihMi(v) or (v <> null and Value.Is(v, type number) and v >= 1 and v <= 12 and Number.Round(v) = v)
+        or (v <> null and Value.Is(v, type text) and AyNo(v) <> null),
+    MetinMi = (v) => v <> null and Value.Is(v, type text) and Text.Trim(v) <> "",
+    MaliyetKonumu = (s as list) as record =>
+        let
+            nR = List.Count(s),
+            h = (r, c) => if r < 0 or r >= nR or c < 0 or c >= List.Count(s{r}) then null else s{r}{c},
+            isaretler = List.Combine(List.Transform({0 .. nR - 2}, (r) =>
+                List.Transform(List.Select(List.Positions(s{r}), (c) =>
+                    List.Contains({"bütçe", "butce"}, Kucuk(s{r}{c})) and AyMi(h(r + 1, c))), (c) => [R = r, C = c]))),
+            tekSatir = List.Count(List.Distinct(List.Transform(isaretler, each [R]))) = 1,
+            isaret = isaretler{0},
+            baslik = isaret[R] + 1,
+            bas = List.First(List.Select({0 .. isaret[C] - 1}, (c) => TarihMi(h(baslik, c))), null),
+            adSutunu = List.First(List.Select(List.Reverse({0 .. bas - 1}), (c) =>
+                List.Count(List.Select({baslik + 1 .. baslik + 59}, (r) => MetinMi(h(r, c)))) >= 3), null),
+            adetSatiri = List.First(List.Select({baslik + 1 .. baslik + 59}, (r) =>
+                let k = Kucuk(h(r, adSutunu)) in Text.Contains(k, "işlem aded") or Text.Contains(k, "islem aded")), null),
+            kalem = List.Count(List.Generate(() => adetSatiri + 1, (r) => MetinMi(h(r, adSutunu)), (r) => r + 1))
+        in
+            if not tekSatir or bas = null then []
+            else [TarihR = baslik, TarihC = bas, ButceR = isaret[R], ButceC = isaret[C]]
+                & (if adSutunu = null then [] else [GiderC = adSutunu]
+                    & (if adetSatiri = null then [] else [AdetR = adetSatiri, IlkR = adetSatiri + 1]
+                        & (if kalem > 0 then [Kalem = kalem] else []))),
+    MaliyetEksik = List.AnyTrue(List.Transform({"tarih_baslangici", "butce_etiketi", "gider_sutunu", "islem_adedi_satiri",
+        "ilk_gider_satiri", "gider_kalem_sayisi"}, (k) => Ayar("Maliyet", k, null) = null)),
+    // En yeni dönemli maliyet dosyasının ilk bölüm sayfası; bulunamazsa bir önceki dosya.
+    MaliyetBulunan = if not MaliyetEksik then [] else
+        let
+            sirali = Table.ToRecords(Table.Sort(DonemliDosyalar, {{"Donem", Order.Descending}, {"Name", Order.Descending}})),
+            dene = (f) =>
+                let
+                    kitap = Table.SelectRows(Excel.Workbook(f[Content], null, true), each [Kind] = "Sheet"
+                        and List.Contains(TumAnahtarlari, Kucuk([Name])) and not List.Contains(OrtakSayfalar, Kucuk([Name])))
+                in
+                    if Table.RowCount(kitap) = 0 then [] else MaliyetKonumu(Matris(kitap{0}[Data])),
+            sonuc = List.First(List.Select(List.Transform(sirali, dene), each Record.HasFields(_, "TarihR")), [])
+        in
+            sonuc,
 
     // Bölüm Eşleştirme: ayardaki sırayla bölüm kayıtları (Python read_settings varsayılanlarıyla).
     BolumTablosu = BaslikIle(Sayfa("Bölüm Eşleştirme"), "Maliyet sayfası / bölüm"),
@@ -489,10 +565,17 @@ let
                 in if List.IsEmpty(cs) then null else [R = r, C = cs{0}]),
             capa0 = List.First(List.RemoveNulls(adaylar), null),
             capa = if capa0 = null then error Error.Record("Kontrol", "Ciro tarihleri bulunamadı") else capa0,
-            ciroHucre = Hucre(Text.From(Ayar("Kontrol", "ciro_baslangici", "D18"))),
-            kayma = ciroHucre[Sutun] - 1 - capa[C],
-            etiketSutunu = Number.From(Ayar("Kontrol", "etiket_sutunu", 3)) - 1 - kayma,
-            butceSol = Hucre(Text.From(Ayar("Kontrol", "butce_ciro_baslangici", "A1")))[Sutun] - 1 - kayma,
+            ciroAyari = Ayar("Kontrol", "ciro_baslangici", null),
+            kayma = if ciroAyari = null then 0 else Hucre(Text.From(ciroAyari))[Sutun] - 1 - capa[C],
+            // Etiket sütunu Ayarlar'da (ve ciro başlangıcı) yoksa "Opex Toplamı" yazan tek sütundur.
+            opex = List.Distinct(List.Combine(List.Transform({capa[R] + 2 .. nR - 1}, (r) =>
+                List.Select({0 .. nC - 1}, (c) => Kucuk(h(r, c)) = "opex toplamı")))),
+            etiketAyari = Ayar("Kontrol", "etiket_sutunu", null),
+            etiketSutunu = if etiketAyari <> null and ciroAyari <> null then Number.From(etiketAyari) - 1 - kayma
+                else if List.Count(opex) = 1 then opex{0}
+                else error Error.Record("Kontrol", "Konum dosyadan bulunamadı; Ayarlar › Dosya ve Konum Ayarları'na girin: Kontrol › etiket_sutunu"),
+            butceSol = let b = Ayar("Kontrol", "butce_ciro_baslangici", null) in
+                if b = null or ciroAyari = null then 0 else Hucre(Text.From(b))[Sutun] - 1 - kayma,
             gercekSutun = List.Buffer(List.FirstN(List.Transform({capa[C] .. nC - 1}, (c) => [C = c, V = h(capa[R], c)]), each not Bos([V]))),
             gercek = List.Buffer(List.Transform(gercekSutun, (x) =>
                 let p = TarihDonemi(x[V]) in if p = null then error Error.Record("Kontrol", "Geçersiz ciro tarihi: " & Text.From(x[V])) else [C = x[C], P = p])),

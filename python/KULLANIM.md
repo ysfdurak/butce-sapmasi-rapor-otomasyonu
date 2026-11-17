@@ -4,6 +4,8 @@
 
 > **V5.4:** Raporlara Bütçe Sürümleri, Bütçe - Bölüm / Müdürlük / Direktörlük, Bütçe Değişimi, Trend ve Girdi Kaydı sayfaları eklendi; Yönetici Özeti'nde bütçe değişimi ve üst üste aleyhte giden kalem satırları var. İlk bütçeyle karşılaştırmak için Ayarlar › Rapor › `karsilastirma_butcesi` = `İlk bütçe` (ya da komut satırında `--butce ilk`). Kurallar: [V5.4](../docs/VERI_VE_HESAP.md#v54-bütçe-sürümleri-ve-trend).
 
+> **V5.5:** Ayarlar'daki Maliyet, Kontrol ve Endeks konum satırları isteğe bağlıdır. Satır yoksa konum dosyadan bulunur; ayardaki konum bir sayfada tutmazsa (satır/sütun kaymışsa) o sayfa için yeniden bulunur. İkisi de Uyarılar'da yazılır. [Kurallar](../docs/VERI_VE_HESAP.md#konumların-otomatik-bulunması-v55).
+
 Bu sürüm, raporlama ve yedi sayfalık dashboard'u **tek yerel Python uygulamasında** birleştirir. Önceki Excel/makro sürümleri ayrıca korunmuştur. Bu paket Excel COM, VBA, PowerShell, pip veya internetten grafik kütüphanesi indirme kullanmaz. Dashboard için masaüstü Excel'in açık olması gerekmez.
 
 ## Açılış

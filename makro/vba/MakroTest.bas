@@ -24,6 +24,35 @@ Private Function ShowValue(ByVal value As Variant) As String
     If IsNull(value) Then ShowValue = "BOŞ" Else ShowValue = CStr(value)
 End Function
 
+Private Sub KonumTest()
+    ' Konum satırları silinince dosyadan bulunan değerler Ayarlar'dakilerle aynı olmalı (V5.5).
+    Dim codes As Variant, code As Variant, saved As Object, id As String
+    codes = Array("Maliyet|tarih_baslangici", "Maliyet|butce_etiketi", "Maliyet|gider_sutunu", "Maliyet|islem_adedi_satiri", _
+        "Maliyet|ilk_gider_satiri", "Maliyet|gider_kalem_sayisi", "Kontrol|ciro_baslangici", "Kontrol|butce_ciro_baslangici", _
+        "Kontrol|etiket_sutunu", "Endeks|endeks_araligi")
+    Set saved = Dict()
+    For Each code In codes
+        saved(code) = Cfg(code)
+    Next code
+    For Each code In Array("Maliyet|tarih_baslangici", "Maliyet|butce_etiketi", "Maliyet|gider_sutunu", "Maliyet|islem_adedi_satiri", _
+        "Maliyet|ilk_gider_satiri", "Maliyet|gider_kalem_sayisi", "Maliyet|yil_satiri", "Maliyet|ay_satiri", "Maliyet|dip_toplam_satiri", _
+        "Maliyet|indeks_sutunu", "Maliyet|ilk_donem_sutunu", "Maliyet|gerceklesen_araligi", "Maliyet|butce_araligi", _
+        "Kontrol|ciro_baslangici", "Kontrol|butce_ciro_baslangici", "Kontrol|etiket_sutunu", "Kontrol|ciro_satiri", _
+        "Kontrol|ilk_blok_satiri", "Kontrol|ilk_ay_sutunu", "Kontrol|ciro_araligi", "Endeks|endeks_araligi", "Endeks|baslik_satiri", "Endeks|ilk_veri_satiri")
+        If Cfg.Exists(code) Then saved("x" & code) = Cfg(code): Cfg.Remove code
+    Next code
+    KonumTamamla
+    For Each code In codes
+        Expect "Otomatik konum " & code, Cfg(code), saved(code)
+    Next code
+    Expect "Otomatik konum notu", AutoLayout.Count, 3
+    For Each code In saved.Keys
+        id = CStr(code)
+        If Left$(id, 1) = "x" Then Cfg(Mid$(id, 2)) = saved(code)
+    Next code
+    Set AutoLayout = New Collection
+End Sub
+
 Public Sub SentetikTest()
     Dim security As Long, events As Boolean, scope As Object, n As Variant, row As Variant, a As Variant, totalRate As Variant
     Dim totalCost As Variant, i As Long, text As String, ws As Worksheet, source As Object, codes As Object
@@ -41,6 +70,7 @@ Public Sub SentetikTest()
     Next i
     LoadSettings: LoadSnapshots: LoadControl: LoadIndices
     Set scope = DeptScope(): CalculateChecks: HazirlaSurumler: CalculateUnits
+    KonumTest
     Expect "Bölüm sayısı", Depts.Count, 12
     Expect "Müdürlük sayısı", Managers(scope).Count, 4
     Expect "Gerçekleşen gider TL", ExpenseTotal(scope, "A", 2026), CDec(3449383390.31)

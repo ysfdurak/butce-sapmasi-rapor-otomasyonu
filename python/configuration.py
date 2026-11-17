@@ -215,6 +215,10 @@ def update_layout(settings, fingerprint, parameters, closing, factory):
             temp = Path(f.name)
         book.save(temp)
         candidate = factory(temp, closing)
+        # Okuma, tutmayan konumu sayfadan bulup düzeltir; düzen ekranında girilen değer ise tutmalıdır.
+        mismatch = [w[3] for w in getattr(candidate, "warnings", []) if "Ayardaki konum bu sayfada tutmadı" in str(w[3])]
+        if mismatch:
+            raise ValueError("Girilen konum kaynak dosyalarla uyuşmuyor: " + mismatch[0])
         if digest(target) != fingerprint:
             raise ValueError("Ayar işlem sırasında değişti.")
         folder = target.parent / "Ayar_Yedekleri"

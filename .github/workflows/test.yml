@@ -70,15 +70,19 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: |
           python tools/pqtest/butce_degisim_ornek.py "$env:RUNNER_TEMP\bd"
+          python tools/pqtest/konumsuz_ornek.py "$env:RUNNER_TEMP\ks"
           $ornek = "$env:GITHUB_WORKSPACE\python\ornek\Ayarlar.xlsx"
           $bd = "$env:RUNNER_TEMP\bd\Ayarlar.xlsx"
+          $ks = "$env:RUNNER_TEMP\ks\Ayarlar.xlsx"
           $durumlar = @(
             @{ Ad = "en son · direktörlük"; Ayar = $ornek; Arg = @{} },
             @{ Ad = "2026-09 · direktörlük"; Ayar = $ornek; Arg = @{ Kapanis = "2026-09" } },
             @{ Ad = "en son · Depolama müdürlük dosyası"; Ayar = $ornek; Arg = @{ Mudurluk = "Depolama" } },
             @{ Ad = "en son · hızlı mod"; Ayar = $ornek; Arg = @{ Hizli = $true } },
             @{ Ad = "bütçesi değişen kaynak (ilk / önceki / güncel bütçe)"; Ayar = $bd; Arg = @{} },
-            @{ Ad = "bütçesi değişen kaynak · hızlı mod"; Ayar = $bd; Arg = @{ Hizli = $true } }
+            @{ Ad = "bütçesi değişen kaynak · hızlı mod"; Ayar = $bd; Arg = @{ Hizli = $true } },
+            @{ Ad = "konum satırları silinmiş Ayarlar (otomatik konum)"; Ayar = $ks; Arg = @{} },
+            @{ Ad = "otomatik konum · Depolama müdürlük dosyası"; Ayar = $ks; Arg = @{ Mudurluk = "Depolama" } }
           )
           foreach ($d in $durumlar) {
             Write-Host "== $($d.Ad)"

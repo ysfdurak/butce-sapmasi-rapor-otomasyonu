@@ -17,7 +17,7 @@ Bu dönemde zaten girilmiş açıklamalar korunur; geçmiş dosyayı yeniden get
 
 ## Makro: günlük akış
 
-Kurulum.vbs `Butce_Kontrol_Makro_V5.xlsm` dosyasını oluşturur veya günceller. Elle kurulumda **12 modülün tamamını** (MakroYorum, MakroAnaliz ve MakroSurum dahil) yükleyin. PanelHazirla ile Çalışma Merkezi açılır.
+Kurulum.vbs `Butce_Kontrol_Makro_V5.xlsm` dosyasını oluşturur veya günceller. Elle kurulumda **13 modülün tamamını** (MakroYorum, MakroAnaliz, MakroSurum ve MakroKonum dahil) yükleyin. PanelHazirla ile Çalışma Merkezi açılır.
 
 - **Önceki ayın yorumlarını getir:** kontrol dosyasına kaydedilmiş önceki kapanış yorumlarını getirir.
 - **Açıklamaları toplu düzenle:** Yorum İnceleme tablosunu açar. Dosyalardan ilk yükleme için **Önceki dosyaları seç** düğmesini kullanın.

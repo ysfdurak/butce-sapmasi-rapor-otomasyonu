@@ -296,7 +296,8 @@ class SourceRobustnessTests(unittest.TestCase):
         butce.read_snapshots(root / "maliyet", config, (2026, 10), warnings)
         self.assertTrue(any("formül hücresinin sonucu" in w[3] and "BF66" in w[3] for w in warnings))
 
-    def test_shifted_layout_suggests_new_cells(self):
+    def test_shifted_layout_is_found_and_warned(self):
+        # V5.5: kaymış sayfa için konum sayfadan bulunur, sayfa okunur ve uyarılır.
         root = self.copy_sources()
         path = root / "maliyet/Ekim 2026 - Dosya 3.xlsx"
         book = load_workbook(path)
@@ -305,11 +306,28 @@ class SourceRobustnessTests(unittest.TestCase):
         book.save(path)
         config = butce.read_settings(root / "Ayarlar.xlsx")
         warnings = []
-        butce.read_snapshots(root / "maliyet", config, (2026, 10), warnings)
-        hint = [w[3] for w in warnings if w[2] == path.name and "kaymış" in w[3]]
+        snapshots = butce.read_snapshots(root / "maliyet", config, (2026, 10), warnings)
+        hint = [w[3] for w in warnings if w[2] == path.name and "otomatik bulundu" in w[3]]
         self.assertTrue(hint, [w[3] for w in warnings if w[2] == path.name])
         self.assertIn("BF61", hint[0])
         self.assertIn("EZ60", hint[0])
+        self.assertIn(((2026, 10), sheet.title), snapshots)
+
+    def test_layout_without_budget_label_fails_clearly(self):
+        # Bütçe etiketi de yoksa konum bulunamaz; sayfa okunmaz ve hata uyarısı yazılır.
+        root = self.copy_sources()
+        path = root / "maliyet/Ekim 2026 - Dosya 3.xlsx"
+        book = load_workbook(path)
+        sheet = book.worksheets[2]
+        sheet.insert_rows(1, 2)
+        sheet["EZ60"] = None
+        book.save(path)
+        config = butce.read_settings(root / "Ayarlar.xlsx")
+        warnings = []
+        snapshots = butce.read_snapshots(root / "maliyet", config, (2026, 10), warnings)
+        self.assertNotIn(((2026, 10), sheet.title), snapshots)
+        self.assertTrue([w for w in warnings if w[2] == path.name and "Bütçe başlığı bulunamadı" in w[3]],
+                        [w[3] for w in warnings if w[2] == path.name])
 
 
 class AuditTrailTests(unittest.TestCase):
