@@ -149,9 +149,11 @@ let
     // ---------------------------------------------------------------- Otomatik konum (V5.5; Python: konum.py, makro: MakroKonum)
     // "Bütçe" yazan hücrenin altı tarih/ay ise o satır başlıktır; solundaki ilk tarih gerçekleşen başlangıcıdır.
     // Daha solda altında en az üç yazı olan en yakın sütun gider adıdır; "İşlem Adedi" satırının bir altı ilk giderdir.
+    // Tarih: tarih değeri, Excel seri numarası (Power Query tarih hücresini sayı olarak da verebilir), "2026-01", "01.01.2026".
     TarihMi = (v) =>
         if v = null then false
         else if Value.Is(v, type date) or Value.Is(v, type datetime) then true
+        else if Value.Is(v, type number) then v > 20000 and v < 100000 and Number.Round(v) = v
         else if Value.Is(v, type text) then
             (let
                 t = Text.Trim(v),
