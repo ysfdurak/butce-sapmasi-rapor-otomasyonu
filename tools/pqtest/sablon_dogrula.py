@@ -259,6 +259,27 @@ def butce_trend_senaryosu(gecici):
             g, i = sum(topla([r], bi, range(10))), sum(topla([r], ri, range(10)))
             kontrol(f"{secim} · {ad} · Genel Özet bütçe", [genel[ad][4]], [i if secim.startswith("İlk") else g])
             kontrol(f"{ad} · Bütçe Sürümleri", [sur[ad][3], sur[ad][4]], [g, i])
+        # Python sürümü aynı veriyle aynı sayfaları üretmeli (çapraz doğrulama)
+        cikti = gecici / ("py_ilk" if secim.startswith("İlk") else "py_guncel")
+        shutil.rmtree(cikti, ignore_errors=True)
+        butce.run(SimpleNamespace(ayar=gecici / "bd" / "Ayarlar.xlsx", donem="2026-10", kapanis="2026-10",
+                                  aylar="1,2,3,4,5,6,7,8,9,10", cikti=cikti / "Genel.xlsx",
+                                  butce="ilk" if secim.startswith("İlk") else None))
+        py = load_workbook(cikti / "Genel.xlsx", data_only=True)
+        for sayfa, ilk, sutun in (("Genel Özet", 2, range(1, 9)), ("Bütçe Sürümleri", 2, range(1, 10)),
+                                  ("Bütçe - Bölüm", 5, range(1, 18)), ("Bütçe - Müdürlük", 5, range(1, 18)),
+                                  ("Bütçe - Direktörlük", 5, range(1, 17)), ("Bütçe Değişimi", 5, range(1, 18)),
+                                  ("Bütçe Değişimi", 5, range(21, 41)), ("Trend", 8, range(1, 15)),
+                                  ("Trend", 20, range(17, 25)), ("Girdi Kaydı", 5, [1, 2, 3, 5, 6])):
+            hata += karsilastir(f"Python ↔ şablon · {secim} · {sayfa}", satirlar(tpl[sayfa], ilk, sutun),
+                                satirlar(py[sayfa], ilk, sutun))
+        ozet_t = {r[0]: r[1] for r in satirlar(tpl["Yönetici Özeti"], 5, [1, 2])}
+        ozet_p = {r[0]: r[1] for r in satirlar(py["Yönetici Özeti"], 5, [1, 2])}
+        for k in ("Bütçe değişimi (önceki aya göre)", "Üst üste aleyhte giden kalem"):
+            a, b = (str(x).replace(",", "").replace(".", "") for x in (ozet_t.get(k), ozet_p.get(k)))
+            if a != b:
+                print(f"  Yönetici Özeti · {k}: {ozet_t.get(k)!r} ≠ {ozet_p.get(k)!r}")
+                hata += 1
         if secim.startswith("İlk"):
             continue
         # Bütçe - Bölüm / Müdürlük / Direktörlük

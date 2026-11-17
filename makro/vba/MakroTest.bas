@@ -40,7 +40,7 @@ Public Sub SentetikTest()
         Picked(CStr(i)) = True
     Next i
     LoadSettings: LoadSnapshots: LoadControl: LoadIndices
-    Set scope = DeptScope(): CalculateUnits: CalculateChecks
+    Set scope = DeptScope(): CalculateChecks: HazirlaSurumler: CalculateUnits
     Expect "Bölüm sayısı", Depts.Count, 12
     Expect "Müdürlük sayısı", Managers(scope).Count, 4
     Expect "Gerçekleşen gider TL", ExpenseTotal(scope, "A", 2026), CDec(3449383390.31)

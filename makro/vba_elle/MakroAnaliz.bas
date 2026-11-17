@@ -47,7 +47,7 @@ Public Function Direction(ByVal variance As Variant) As Variant
     End If
 End Function
 
-Private Function Thousands(ByVal amount As Variant) As String
+Public Function Thousands(ByVal amount As Variant) As String
     ' Yerel ayardan baðýmsýz "1.000.000" biçimi.
     Dim digits As String, result As String, i As Long, negative As Boolean
     negative = (amount < 0)
@@ -376,13 +376,17 @@ Public Sub WriteExecutive(ByVal wb As Workbook, ByVal scope As Object, ByVal gen
         If row(9) = "Aleyhte" Then adverse = adverse + 1
     Next row
     RowValues ws, 4, Array("Gösterge", "Deðer")
-    labels = Array("Gerçekleþen (TL)", "Bütçe (TL)", VarianceTitle(), "Sapma oraný (%)", "Yön", "Yýl sonu tahmini: gerçekleþen + kalan bütçe (TL)", "Yýllýk bütçe (TL)", "Tahmin " & MinusSign() & " yýllýk bütçe (TL)", "Veri kontrolü", "Uyarý sayýsý", "Önemli sapma", "Önemlilik eþiði")
+    labels = Array("Gerçekleþen (TL)", "Bütçe (TL)", VarianceTitle(), "Sapma oraný (%)", "Yön", "Yýl sonu tahmini: gerçekleþen + kalan bütçe (TL)", "Yýllýk bütçe (TL)", "Tahmin " & MinusSign() & " yýllýk bütçe (TL)", "Veri kontrolü", "Uyarý sayýsý", "Önemli sapma", "Önemlilik eþiði", "Bütçe deðiþimi (önceki aya göre)", "Üst üste aleyhte giden kalem")
     If budgetYear Then
-        values = Array(actual, planned, Minus(actual, planned), Divide(Minus(actual, planned), planned), Direction(Minus(actual, planned)), top(6), top(5), top(7), verified & " / " & total & " kontrol doðrulandý", warningCount, rows.Count & " kalem (" & adverse & " aleyhte)", ThresholdText())
+        values = Array(actual, planned, Minus(actual, planned), Divide(Minus(actual, planned), planned), Direction(Minus(actual, planned)), top(6), top(5), top(7), verified & " / " & total & " kontrol doðrulandý", warningCount, rows.Count & " kalem (" & adverse & " aleyhte)", ThresholdText(), ChangeFact(scope), TrendFact(scope))
     Else
-        values = Array(actual, Null, Null, Null, "Bütçe yýlý dýþýnda", Null, Null, Null, verified & " / " & total & " kontrol doðrulandý", warningCount, "Uygulanmadý", ThresholdText())
+        values = Array(actual, Null, Null, Null, "Bütçe yýlý dýþýnda", Null, Null, Null, verified & " / " & total & " kontrol doðrulandý", warningCount, "Uygulanmadý", ThresholdText(), ChangeFact(scope), TrendFact(scope))
     End If
-    formats = Array(MoneyFmt, MoneyFmt, MoneyFmt, PctFmt, "", MoneyFmt, MoneyFmt, MoneyFmt, "", "0", "", "")
+    formats = Array(MoneyFmt, MoneyFmt, MoneyFmt, PctFmt, "", MoneyFmt, MoneyFmt, MoneyFmt, "", "0", "", "", "", "")
+    If FirstMode() Then
+        ws.Range("A3").Value2 = "Karþýlaþtýrma bütçesi: ilk bütçe (yýl baþý)"
+        ws.Range("A3").Font.Bold = True: ws.Range("A3").Font.Color = RGB(156, 87, 0)
+    End If
     For i = 0 To UBound(labels)
         RowValues ws, 5 + i, Array(labels(i), values(i))
         If formats(i) <> "" Then ws.Cells(5 + i, 2).NumberFormat = formats(i)

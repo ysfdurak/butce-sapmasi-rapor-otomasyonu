@@ -172,7 +172,9 @@ def build_panel(wb):
     ws["C6"] = "Tümü"
     ws["B7"] = "Karşılaştırma bütçesi"
     ws["B7"].font = BOLD
-    ws["C7"] = "Güncel bütçe"
+    # Varsayılan Ayarlar › Rapor › karsilastirma_butcesi; listeden seçilince formülün yerini değer alır.
+    ilk = f'LEFT(IFERROR(INDEX({vcol("Metin")},MATCH("Ayar|karsilastirma_butcesi",{VKEY},0))&"",""),1)'
+    ws["C7"] = f'=IF(OR({ilk}="i",{ilk}="İ"),"İlk bütçe (yıl başı)","Güncel bütçe")'
     ws["C7"].fill = INPUT_FILL
     ws["D7"] = "Güncel: kapanış dosyasındaki bütçe. İlk: yılın ilk kapanış dosyasındaki bütçe (revizyonlardan önce)."
     ws["D7"].font = NOTE
@@ -299,8 +301,9 @@ def build_helpers(wb):
     h["B21"] = '=IF($B$2="","",$B$2&"-"&RIGHT("0"&$B$3,2))'
     h["A22"], h["A23"], h["A24"] = "Trend son ay", "Trend aylık eşik", "Trend en az seri"
     h["B22"] = '=IF(OR($B$2="",$B$5=0),"",$B$3)'  # yalnız bütçe yılında, kapanış ayına kadar
-    h["B23"] = "=IF(Trend!$C$3=\"\",$B$8/12,Trend!$C$3)"
-    h["B24"] = "=IF(Trend!$C$4=\"\",3,Trend!$C$4)"
+    ayar = lambda code: f'INDEX({vcol("Sayı")},MATCH("Ayar|{code}",{VKEY},0))'
+    h["B23"] = f'=IF(Trend!$C$3="",IFERROR(IF(ISNUMBER({ayar("trend_aylik_esik")}),{ayar("trend_aylik_esik")},$B$8/12),$B$8/12),Trend!$C$3)'
+    h["B24"] = f'=IF(Trend!$C$4="",IFERROR(IF(ISNUMBER({ayar("trend_en_az_ay")}),{ayar("trend_en_az_ay")},3),3),Trend!$C$4)'
     h.sheet_state = "hidden"
 
     lst = wb.create_sheet("_Liste")
@@ -1255,8 +1258,8 @@ def build_trend(wb):
     ws["B3"], ws["B4"] = "Aylık eşik (TL)", "En az üst üste ay"
     ws["C3"].fill = ws["C4"].fill = INPUT_FILL
     ws["C3"].number_format = COUNT
-    ws["D3"] = f'="Boş = önemlilik tutarı / 12 ("&FIXED({ESIK}/12,0)&" TL). Bu tutarı aşan aleyhte ay sayılır."'
-    ws["D4"] = "Boş = 3. Kapanış ayında biten seri sayılır."
+    ws["D3"] = f'="Boş = Ayarlar (trend_aylik_esik) veya önemlilik tutarı / 12. Şu an: "&FIXED({H}!$B$23,0)&" TL"'
+    ws["D4"] = f'="Boş = Ayarlar (trend_en_az_ay) veya 3. Şu an: "&{H}!$B$24&" ay; kapanış ayında biten seri sayılır."'
     ws["D3"].font = ws["D4"].font = NOTE
     ws["A5"] = f'=IF({H}!$B$22="","Seçili yıl bütçe yılı değil; trend hesaplanmadı.","")'
     ws["A5"].font = NOTE

@@ -292,10 +292,25 @@ Public Sub ValidateReportSettings()
     v = Opt("Rapor", "arsiv_saklama_adedi", 20)
     If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|arsiv_saklama_adedi: 0 ile 200 arasında tam sayı girin."
     If CDbl(v) < 0 Or CDbl(v) > 200 Or CDbl(v) <> Fix(CDbl(v)) Then Fail "Rapor|arsiv_saklama_adedi: 0 ile 200 arasında tam sayı girin."
+    v = Opt("Rapor", "karsilastirma_butcesi", "")
+    If CStr(v) <> "" Then
+        If Left$(K(v), 3) <> "ilk" And Left$(K(v), 6) <> "guncel" Then Fail "Rapor|karsilastirma_butcesi: ""Güncel bütçe"" veya ""İlk bütçe"" yazın."
+    End If
+    v = Opt("Rapor", "trend_aylik_esik", "")
+    If CStr(v) <> "" Then
+        If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|trend_aylik_esik: sıfır veya pozitif TL olmalı."
+        If CDbl(v) < 0 Then Fail "Rapor|trend_aylik_esik: sıfır veya pozitif TL olmalı."
+    End If
+    v = Opt("Rapor", "trend_en_az_ay", "")
+    If CStr(v) <> "" Then
+        If Not IsNumeric(v) Or VarType(v) = vbString Then Fail "Rapor|trend_en_az_ay: 1 ile 12 arasında tam sayı girin."
+        If CDbl(v) < 1 Or CDbl(v) > 12 Or CDbl(v) <> Fix(CDbl(v)) Then Fail "Rapor|trend_en_az_ay: 1 ile 12 arasında tam sayı girin."
+    End If
     For Each v In Cfg.Keys
         If Left$(CStr(v), 6) = "Rapor|" Then
             Select Case Mid$(CStr(v), 7)
-                Case "onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi"
+                Case "onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi", _
+                     "karsilastirma_butcesi", "trend_aylik_esik", "trend_en_az_ay"
                 Case Else: Fail "Tanımsız rapor ayarı: " & CStr(v)
             End Select
         End If

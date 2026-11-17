@@ -151,7 +151,7 @@ Public Sub RaporOlustur()
     LoadIndices
     Set names = ItemNames()
     If names.Count = 0 Then Fail "Seçilen kapanışta raporlanabilir gider bulunamadı. Kaynakları ve eşleştirmeleri kontrol edin."
-    CalculateUnits: CalculateChecks
+    CalculateChecks: HazirlaSurumler: CalculateUnits
     ValidateArchive ArchivePath
     SaveReports
     ws.Range("D36").Value2 = RunPath

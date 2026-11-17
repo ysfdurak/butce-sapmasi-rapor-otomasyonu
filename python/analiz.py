@@ -21,6 +21,10 @@ DEFAULTS = {
     "onemlilik_orani": Decimal("0.10"),
     "ozet_kalem_sayisi": 5,
     "arsiv_saklama_adedi": 20,
+    # V5.4 (isteğe bağlı): karşılaştırma bütçesi ve trend eşikleri; bkz. surum.py
+    "karsilastirma_butcesi": "Güncel bütçe",
+    "trend_aylik_esik": None,
+    "trend_en_az_ay": 3,
 }
 
 LEVEL_TOTALS = {"Müdürlük toplamı", "Direktörlük toplamı", "Genel toplam"}
@@ -384,7 +388,7 @@ def add_volume_sheet(book, rows, caption):
     return sheet
 
 
-def add_executive_sheet(book, facts, rules, caption, closing, budget_year):
+def add_executive_sheet(book, facts, rules, caption, closing, budget_year, extra=None):
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.worksheet.properties import PageSetupProperties
 
@@ -416,6 +420,12 @@ def add_executive_sheet(book, facts, rules, caption, closing, budget_year):
         ("Önemli sapma", f"{count} kalem ({adverse} aleyhte)" if budget_year else "Uygulanmadı", None),
         ("Önemlilik eşiği", threshold_text(rules), None),
     ]
+    if extra:  # V5.4: bütçe değişimi ve üst üste aleyhte giden kalem (surum.facts)
+        kpis += [("Bütçe değişimi (önceki aya göre)", extra["facts"][0], None),
+                 ("Üst üste aleyhte giden kalem", extra["facts"][1], None)]
+        if extra["mode"].startswith("İlk"):
+            sheet["A3"] = "Karşılaştırma bütçesi: ilk bütçe (yıl başı)"
+            sheet["A3"].font = Font(bold=True, color="9C5700")
     for label, value, fmt in kpis:
         sheet.append([label, value])
         cell = sheet.cell(sheet.max_row, 2)
@@ -487,7 +497,12 @@ def add_sheets(book, analysis, editable):
         rules,
         analysis.get("missing", ()),
     )
-    add_executive_sheet(book, facts, rules, analysis["caption"], analysis["closing"], budget_year)
+    extra = analysis.get("surum")
+    add_executive_sheet(book, facts, rules, analysis["caption"], analysis["closing"], budget_year, extra)
+    if extra:
+        import surum
+
+        surum.add_sheets(book, extra, budget_year)
     if analysis.get("pano") is not None:
         add_pano_sheet(book, analysis["pano"], analysis["months"], analysis["year"], budget_year)
 

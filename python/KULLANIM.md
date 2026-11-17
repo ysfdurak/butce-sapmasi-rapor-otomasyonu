@@ -2,6 +2,8 @@
 
 > **V5:** Raporlara Yönetici Özeti, Önemli Sapmalar, Yıl Sonu Tahmini ve Hacim ve Birim Maliyet sayfaları eklendi; rapor üretimi yaklaşık 12 kat hızlandı. Hesap kuralları: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı: [Açıklamalar ve onay izi](../docs/YORUM_KULLANIMI.md). Önceki sürüm notları [docs/arsiv](../docs/arsiv/) klasöründedir.
 
+> **V5.4:** Raporlara Bütçe Sürümleri, Bütçe - Bölüm / Müdürlük / Direktörlük, Bütçe Değişimi, Trend ve Girdi Kaydı sayfaları eklendi; Yönetici Özeti'nde bütçe değişimi ve üst üste aleyhte giden kalem satırları var. İlk bütçeyle karşılaştırmak için Ayarlar › Rapor › `karsilastirma_butcesi` = `İlk bütçe` (ya da komut satırında `--butce ilk`). Kurallar: [V5.4](../docs/VERI_VE_HESAP.md#v54-bütçe-sürümleri-ve-trend).
+
 Bu sürüm, raporlama ve yedi sayfalık dashboard'u **tek yerel Python uygulamasında** birleştirir. Önceki Excel/makro sürümleri ayrıca korunmuştur. Bu paket Excel COM, VBA, PowerShell, pip veya internetten grafik kütüphanesi indirme kullanmaz. Dashboard için masaüstü Excel'in açık olması gerekmez.
 
 ## Açılış

@@ -134,9 +134,17 @@ def build(settings_path, closing=None, mudurluk=None, hizli=False):
                     Müdürlük=next(iter(departments.values()))["mudurluk"] if mudurluk else None))
     rows += input_rows(butce, settings_path, config, cost_dir, closing, fast_scope if hizli else None)
 
-    rules = {"tolerans": config["kontrol"]["tolerans"], **(config.get("rapor") or {})}
+    report = config.get("rapor") or {}
+    defaults = {"onemlilik_tutari": 1000000, "onemlilik_orani": 0.1, "ozet_kalem_sayisi": 5, "arsiv_saklama_adedi": 20}
+    rules = {"tolerans": config["kontrol"]["tolerans"], **{c: report.get(c, d) for c, d in defaults.items()}}
     for code, value in rules.items():
         rows.append(row(f"Ayar|{code}", "Ayar", Ad=code, Sayı=float(value)))
+    for code in ("trend_aylik_esik", "trend_en_az_ay"):
+        value = report.get(code)
+        rows.append(row(f"Ayar|{code}", "Ayar", Ad=code, Sayı=float(value) if value not in (None, "") else None))
+    value = report.get("karsilastirma_butcesi")
+    rows.append(row("Ayar|karsilastirma_butcesi", "Ayar", Ad="karsilastirma_butcesi",
+                    Metin=str(value) if value not in (None, "") else None))
 
     # Kontrol grupları: (direktörlük anahtarı, kontrol bölümü anahtarı) görünüş sırasıyla.
     groups = {}

@@ -27,7 +27,7 @@ Kutular Windows'ta kullanıcı tarafından işaretlenmek üzere bilerek boştur.
 ## Excel makro
 
 - [ ] `Kurulum.vbs` Türkçe mesajlarla `Butce_Kontrol_Makro_V5.xlsm` oluşturuyor. Tekrar çalıştırınca "güncelle" seçeneği yedek alıp modülleri değiştiriyor; panel seçimleri ve yorumlar korunuyor.
-- [ ] Alt+F11 › Debug › Compile VBAProject hatasız; on bir modül (MakroAnaliz dahil) yüklü.
+- [ ] Alt+F11 › Debug › Compile VBAProject hatasız; on iki modül (MakroAnaliz ve MakroSurum dahil) yüklü.
 - [ ] **Sentetik hesap testi** tüm kontrolleri geçiriyor (V5 analiz değerleri dahil).
 - [ ] Türkçe Excel'de Genel Özet ve Giderler'in renkli sapma biçimleri hatasız uygulanıyor.
 - [ ] Rapor sırasında bir hata oluşturun (ör. çıktı klasörünü silin): hata mesajından sonra Excel otomatik hesaplama ve ekran güncellemesi geri gelmiş.

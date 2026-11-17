@@ -68,7 +68,7 @@ Private Sub FullRead()
     WorkGate "Endeks okunuyor"
     LoadIndices
     WorkGate "Birim maliyet ve revizyonlar hesaplanıyor"
-    CalculateUnits: CalculateChecks
+    CalculateChecks: HazirlaSurumler: CalculateUnits
 End Sub
 
 Public Sub MerkezKontrol()

@@ -386,6 +386,11 @@ Public Sub WriteOneReport(ByVal path As String, ByVal scope As Object, ByVal gen
     WriteAudit wb, scope
     WriteIdentity wb, scope, general
     WriteMemoReport wb, scope, general
+    WriteVersions wb, scope, general
+    WriteBudgetTables wb, scope, general
+    WriteChange wb, scope, general
+    WriteTrend wb, scope, general
+    WriteInputs wb
     placeholder.Delete
     WriteExecutive wb, scope, general
     WritePano wb, scope

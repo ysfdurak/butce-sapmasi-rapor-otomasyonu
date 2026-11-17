@@ -1296,7 +1296,8 @@ def read_settings(path):
             "Kontrol": ("ciro_baslangici", {"ciro_satiri", "ilk_blok_satiri", "ilk_ay_sutunu"}),
             "Endeks": ("baslik_satiri", {"ilk_veri_satiri"}),
         }
-        report_settings = {"onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi"}
+        report_settings = {"onemlilik_tutari", "onemlilik_orani", "ozet_kalem_sayisi", "arsiv_saklama_adedi",
+                           "karsilastirma_butcesi", "trend_aylik_esik", "trend_en_az_ay"}
         cell_settings = {"tarih_baslangici", "butce_etiketi", "ciro_baslangici", "butce_ciro_baslangici"}
         range_settings = {"gerceklesen_araligi", "butce_araligi", "ciro_araligi", "endeks_araligi"}
         optional = {
@@ -1343,6 +1344,16 @@ def read_settings(path):
                     raise ValueError(
                         f"{location}: Önemlilik oranı 0 ile 1 arasında olmalı (örnek: 0,10 = %10)"
                     )
+            elif code == "karsilastirma_butcesi":
+                if key(value) not in {"güncel", "güncel bütçe", "ilk", "ilk bütçe", "ilk bütçe (yıl başı)"}:
+                    raise ValueError(f"{location}: Karşılaştırma bütçesi 'Güncel bütçe' veya 'İlk bütçe' olmalı")
+            elif code == "trend_aylik_esik":
+                amount = number(value)
+                if amount is None or amount < 0:
+                    raise ValueError(f"{location}: Trend aylık eşiği sıfır veya pozitif TL olmalı")
+            elif code == "trend_en_az_ay":
+                if index(value, location) < 1 or value > 12:
+                    raise ValueError(f"{location}: 1 ile 12 arasında tam sayı girin")
             elif code in {"ozet_kalem_sayisi", "arsiv_saklama_adedi"}:
                 low = 1 if code == "ozet_kalem_sayisi" else 0
                 if index(value, location) < low or value > 200:
@@ -1454,6 +1465,17 @@ def run(args):
     if args.cikti.resolve() in {p.resolve() for p in inputs}:
         raise ValueError("Çıktı yolu bir kaynak dosyayla aynı olamaz")
     snapshots = read_snapshots(root / config["maliyet_klasoru"], config, closing, warnings)
+    import analiz
+    import surum
+
+    rules = analiz.settings(config)
+    if getattr(args, "butce", None):
+        rules["karsilastirma_butcesi"] = args.butce
+    # Karşılaştırma bütçesi "İlk bütçe" ise raporların bütçesi ilk kapanış dosyasınınkidir; revizyonlar, bütçe
+    # tabloları ve bütçe değişimi her zaman kaynak dosyalardan (sources) hesaplanır.
+    sources = snapshots
+    if surum.comparison(rules) == surum.FIRST:
+        snapshots = surum.with_first_budget(config, sources, closing)
     company, controls, company_budget = read_control(
         root / config["kontrol_dosyasi"],
         config["kontrol"],
@@ -1485,11 +1507,11 @@ def run(args):
     layout = list(hierarchy(departments))
     from birim import read_budget_counts
 
-    budget_counts = read_budget_counts(root, config, snapshots, closing)
+    budget_counts = read_budget_counts(root, config, sources, closing)
     units = unit_cost_rows(
         config, closing, report_period, months, snapshots, indices, warnings, budget_counts
     )
-    revision_rows = list(revisions(snapshots, config, closing))
+    revision_rows = list(revisions(sources, config, closing))
     reports = [(args.cikti, departments, layout, units)]
     seq = 0
     for managers in department_tree(departments).values():
@@ -1519,9 +1541,6 @@ def run(args):
             raise ValueError(f"Çıktı bir kaynak dosyanın üzerine yazılamaz: {path}")
     if len({path.resolve() for path, *_ in reports}) != len(reports):
         raise ValueError("Genel ve müdürlük dosya adları çakışıyor")
-    import analiz
-
-    rules = analiz.settings(config)
     budget_year = year == closing[0]
     for file_index, (path, scope, report_layout, unit_rows) in enumerate(reports):
         names = set(scope)
@@ -1577,6 +1596,9 @@ def run(args):
                     analiz.volume_price_rows(config, snapshots, closing, months, budget_counts, report_layout)
                     if budget_year
                     else []
+                ),
+                "surum": surum.analysis(
+                    args.ayar, config, sources, snapshots, closing, report_layout, months, year, names, rules
                 ),
             },
         )
@@ -2040,6 +2062,7 @@ if __name__ == "__main__":
     parser.add_argument("--donem", required=True, help="YYYY-AA")
     parser.add_argument("--kapanis", help="Kaynak kapanışı YYYY-AA. Varsayılan: rapor dönemi.")
     parser.add_argument("--aylar", help="Hesaplanacak aylar. Örnek: 2,4,6. Varsayılan: --donem ayı.")
+    parser.add_argument("--butce", choices=["guncel", "ilk"], help="Karşılaştırma bütçesi (varsayılan: Ayarlar).")
     parser.add_argument("--cikti", type=Path, required=True)
     try:
         args = parser.parse_args()

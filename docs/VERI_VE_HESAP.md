@@ -35,6 +35,21 @@ Birden fazla bölüm aynı kontrol grubuna bağlanabilir. Örnekte Giriş ve Tar
 
 Seçili yıl bütçe yılı değilse önemlilik uygulanmaz; tahmin ve hacim sayfaları oluşturulmaz.
 
+## V5.4 bütçe sürümleri ve trend
+
+Python (`surum.py`), makro (`MakroSurum`) ve Power Query şablonu aynı kuralları uygular.
+
+| Konu | Kural |
+| --- | --- |
+| Güncel bütçe | Kapanış ayı dosyasındaki bütçe. Revize bütçe ayrı satırda gelmez; aynı hücrelerdeki değerin değişmesinden anlaşılır. |
+| Önceki ay bütçesi | Aynı yılın bir önceki kapanış dosyası. Ocak kapanışında karşılaştırma yapılmaz. |
+| İlk bütçe | Bölümün kapanış yılında okunan ilk kapanış dosyası (Ocak yoksa ilk bulunan ay; Girdi Kaydı'nda görünür). |
+| Karşılaştırma bütçesi | `karsilastirma_butcesi = İlk bütçe` ise tüm sapma sayfaları ilk bütçeyi kullanır; kalem bütçesi ilk dosyadan, toplam yalnız kapanış dosyasındaki kalemlerden (eksik varsa boş). Bütçe işlem adedi ve ciro güncel kalır; revizyonlar kaynak dosyalardan hesaplanır. |
+| Bütçe - Bölüm / Müdürlük / Direktörlük | Güncel bütçe ay ay; yıl toplamı yalnız 12 ay doluysa; ilk bütçe yıl toplamı ve fark. |
+| Bütçe Değişimi | Güncel − önceki ay bütçesi; yalnız \|fark\| > `tolerans` olan satır ve kalemler. Kalem, iki dosyada da olmalı. |
+| Trend | Aylık gerçekleşen − karşılaştırma bütçesi. Kalem, kapanış ayında biten seride üst üste `trend_en_az_ay` ay boyunca fark ≥ `trend_aylik_esik` ise listelenir; sıra: seri uzunluğu, sonra seri toplamı (büyükten küçüğe). |
+| Yönetici Özeti | İki satır: bütçesi değişen kalem sayısı ve yıllık etkisi; üst üste aleyhte giden kalem sayısı. |
+
 ## Rapor ayarları
 
 Ayarlar.xlsx › **Dosya ve Konum Ayarları** sayfasına `Rapor` alanıyla eklenir. Satır yoksa varsayılan kullanılır.
@@ -45,6 +60,9 @@ Ayarlar.xlsx › **Dosya ve Konum Ayarları** sayfasına `Rapor` alanıyla eklen
 | `onemlilik_orani` | 0,10 | Oran eşiği (0,10 = %10; 0 ile 1 arası) |
 | `ozet_kalem_sayisi` | 5 | Yönetici özetindeki aleyhte/lehte kalem sayısı |
 | `arsiv_saklama_adedi` | 20 | Girdi arşivinde tutulan son çalışma sayısı (0 = sınırsız) |
+| `karsilastirma_butcesi` | Güncel bütçe | `İlk bütçe` yazılırsa raporlar yıl başı bütçesiyle karşılaştırır |
+| `trend_aylik_esik` | önemlilik tutarı / 12 | Trend: bir ayın aleyhte sayılması için gereken TL |
+| `trend_en_az_ay` | 3 | Trend: listeye girmek için üst üste aleyhte ay sayısı (1–12) |
 
 Konumlu düzen ayarları (`tarih_baslangici`, `ciro_baslangici`, `baslik_satiri`/`endeks_araligi`) tanımlıysa eski satır/sütun düzeninin ayarları (`yil_satiri`, `ciro_satiri`, `ilk_veri_satiri` vb.) zorunlu değildir; yalnız yedek olarak okunur.
 

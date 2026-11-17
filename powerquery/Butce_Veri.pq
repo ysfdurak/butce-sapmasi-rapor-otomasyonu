@@ -410,7 +410,12 @@ let
     AyarBlok = List.Transform({
             {"tolerans", "Kontrol", 0.01}, {"onemlilik_tutari", "Rapor", 1000000}, {"onemlilik_orani", "Rapor", 0.1},
             {"ozet_kalem_sayisi", "Rapor", 5}, {"arsiv_saklama_adedi", "Rapor", 20}},
-        (a) => [Anahtar = "Ayar|" & a{0}, Tablo = "Ayar", Ad = a{0}, #"Sayı" = Number.From(Ayar(a{1}, a{0}, a{2}))]),
+        (a) => [Anahtar = "Ayar|" & a{0}, Tablo = "Ayar", Ad = a{0}, #"Sayı" = Number.From(Ayar(a{1}, a{0}, a{2}))])
+        // İsteğe bağlı: trend eşikleri (boşsa şablon varsayılanı) ve karşılaştırma bütçesi (Kontrol Paneli varsayılanı)
+        & List.Transform({"trend_aylik_esik", "trend_en_az_ay"}, (c) =>
+            [Anahtar = "Ayar|" & c, Tablo = "Ayar", Ad = c, #"Sayı" = let v = Ayar("Rapor", c, null) in if v = null then null else Number.From(v)])
+        & {[Anahtar = "Ayar|karsilastirma_butcesi", Tablo = "Ayar", Ad = "karsilastirma_butcesi",
+            Metin = let v = Ayar("Rapor", "karsilastirma_butcesi", null) in if v = null then null else Text.From(v)]},
     BolumBlok = List.Transform(BolumKayit, (b) =>
         [Anahtar = "Bolum|" & Text.From(b[Sira]), Tablo = "Bolum", #"Bölüm" = b[Bolum], #"Müdürlük" = b[Mudurluk],
          #"Direktörlük" = b[Direktorluk], Ad = if b[Endeks] = null then null else Kucuk(b[Endeks]),

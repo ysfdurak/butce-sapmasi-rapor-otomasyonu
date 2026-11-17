@@ -2,14 +2,15 @@
 
 ## V5.4 — Kasım 2026
 
-Power Query yolu ana sürüm olarak geliştirilmeye devam ediyor ([rehber](POWER_QUERY.md)):
-- **Hızlı mod:** `HizliMod = true` yalnız kapanış, önceki ay ve yılın ilk dosyasını okur; revizyonlar yalnız son ay için.
+Üç sürümde (Python, makro, Power Query) aynı kurallarla ([rehber](POWER_QUERY.md), [hesap](VERI_VE_HESAP.md#v54-bütçe-sürümleri-ve-trend)):
+- **Hızlı mod (yalnız Power Query):** `HizliMod = true` yalnız kapanış, önceki ay ve yılın ilk dosyasını okur; revizyonlar yalnız son ay için.
 - **Bütçe tabloları:** Bütçe - Bölüm / Müdürlük / Direktörlük sayfaları (güncel bütçe ay ay, yıl toplamı, ilk bütçeye göre fark).
 - **Bütçe Değişimi:** önceki ay kapanış dosyasına göre bütçesi değişen satırlar ve kalemler.
-- **İlk / güncel bütçe:** ilk bütçe = yılın ilk kapanış dosyasındaki bütçe; Kontrol Paneli'nden karşılaştırma bütçesi seçilir; **Bütçe Sürümleri** sayfası.
+- **İlk / güncel bütçe:** ilk bütçe = yılın ilk kapanış dosyasındaki bütçe; karşılaştırma bütçesi Ayarlar › Rapor › `karsilastirma_butcesi` ile (Power Query'de Kontrol Paneli'nden de, Python'da `--butce ilk` ile de) seçilir; **Bütçe Sürümleri** sayfası.
 - **Trend:** aylık sapma tablosu ve grafiği; üst üste aleyhte giden kalemler listesi; Yönetici Özeti'nde sayısı.
 - Şirkette ilk deneme için [kontrol listesi](PQ_DENEME.md).
-- Bu özellikler yalnız Power Query yolundadır; Python ve makro sürümleri V5.1 düzeyinde kalır.
+- **Girdi Kaydı** sayfası: okunan dosyalar, dönemleri, boyut ve değiştirilme zamanı.
+- Python ve makro bu özelliklere eşitlendi (makroda yeni modül **MakroSurum**, toplam 12 modül). Hızlı mod Power Query'nin yenileme süresini kısaltmak içindir; Python ve makro dosyaları zaten tek seferde okur.
 
 ## V5.3 — Kasım 2026
 

@@ -1,5 +1,11 @@
 # Ortak kararlar (Python ve Excel VBA)
 
+## V5.4 — 17 Kasım 2026
+
+- Üç sürüm farklı kullanıcılar içindir (Python, makro, makrosuz Power Query) ve özellikte **eşit** tutulur. Hızlı mod tek istisnadır: yalnız Power Query yenileme süresi içindir.
+- Revize bütçe ayrı blok değildir; aynı bütçe hücrelerinde farklı değerle gelir. Değişim önceki ay kapanış dosyasıyla karşılaştırılarak bulunur.
+- Organizasyon değişiklikleri (bölüm adı, müdürlük, direktörlük) Ayarlar dosyasında yönetilir; geçerlilik tarihi tutulmaz: değişiklik o yılın raporlarında görünür.
+
 ## V5 — 9 Kasım 2026
 
 - Uzman incelemesindeki revizyonların tamamı iki sürüme de **eşdeğer** uygulanır (kullanıcı kararı). Hesap kuralları tek yerde tanımlıdır: [Veri ve hesap](VERI_VE_HESAP.md). Aynı sentetik beklenen değerler Python testlerinde (`python/tests/test_analiz.py`) ve makro sentetik testinde (`MakroTest`) kontrol edilir.
