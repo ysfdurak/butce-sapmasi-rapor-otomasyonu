@@ -156,7 +156,9 @@ let
         else if Value.Is(v, type number) then v > 20000 and v < 100000 and Number.Round(v) = v
         else if Value.Is(v, type text) then
             (let
-                t = Text.Trim(v),
+                // PQTest tarih hücresini "2020-01-01T00:00:00.000Z" metni olarak verir; saat kısmı atılır.
+                t0 = Text.Trim(v),
+                t = if Text.Length(t0) > 10 and Text.At(t0, 4) = "-" and Text.At(t0, 10) = "T" then Text.Start(t0, 10) else t0,
                 rakam = (x) => x <> "" and Text.Select(x, {"0" .. "9"}) = x,
                 a = Text.Split(t, "-"),
                 b = Text.Split(t, ".")

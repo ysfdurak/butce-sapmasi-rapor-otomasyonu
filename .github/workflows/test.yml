@@ -64,14 +64,6 @@ jobs:
         with:
           name: pq-aciklama-ornek
           path: python/ornek/pq_aciklama
-      - name: Geçici tanı (otomatik konum)
-        shell: pwsh
-        continue-on-error: true
-        env:
-          PYTHONIOENCODING: utf-8
-        run: |
-          python tools/pqtest/konumsuz_ornek.py "$env:RUNNER_TEMP\ks"
-          ./tools/pqtest/konum_tani.ps1 -Ayar "$env:RUNNER_TEMP\ks\Ayarlar.xlsx"
       - name: Sorguyu çalıştır, Python benzetimiyle karşılaştır
         shell: pwsh
         env:
