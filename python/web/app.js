@@ -46,6 +46,7 @@ let groupsOpen = new Set(),
   queryTimer,
   trendBounds = null,
   prioritySearch = "";
+let lineDetail = null;
 let sourcePreview = null,
   workspaceData = null,
   layoutData = null;
@@ -394,7 +395,11 @@ function hoverAttr(history, name) {
   return `tabindex="0" data-hover="${esc(JSON.stringify({ history, name }))}"`;
 }
 function detailRow(row, kind) {
-  return `<tr class="${kind}"><td>${kind === "group" ? `<button class="collapse" data-group="${esc(row.name)}" aria-expanded="${groupsOpen.has(row.name)}">${groupsOpen.has(row.name) ? "−" : "＋"}</button>` : ""}${esc(row.name)}</td><td ${hoverAttr(row.history || [], row.name)}>${fmt(row.actual)}</td><td>${fmt(row.budget)}</td><td class="${signed(row.gap)}">${fmt(row.gap)}</td><td class="${signed(row.rate)}">${pct(row.rate)}</td></tr>`;
+  const name =
+    kind === "detail"
+      ? `<button class="line-link" data-line="${row.code}" title="Kalem ayrıntısını aç">${esc(row.name)}</button>`
+      : esc(row.name);
+  return `<tr class="${kind}"><td>${kind === "group" ? `<button class="collapse" data-group="${esc(row.name)}" aria-expanded="${groupsOpen.has(row.name)}">${groupsOpen.has(row.name) ? "−" : "＋"}</button>` : ""}${name}</td><td ${hoverAttr(row.history || [], row.name)}>${fmt(row.actual)}</td><td>${fmt(row.budget)}</td><td class="${signed(row.gap)}">${fmt(row.gap)}</td><td class="${signed(row.rate)}">${pct(row.rate)}</td></tr>`;
 }
 function donut(groups) {
   const vals = groups.map((g) => g.actual);
@@ -440,7 +445,7 @@ function renderDetail() {
     if (groupsOpen.has(g.name)) rows += g.items.map((r) => detailRow(r, "detail")).join("");
   }
   rows += detailRow({ name: "TOPLAM", ...data.detail.total, history: [] }, "total");
-  return `<div class="detail-grid">${panel("Ana ve alt giderler", `<div class="scroll-table"><table><thead><tr><th>Gider kalemi</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Bütçe − gerçekleşen<br>Milyon TL</th><th>Sapma %</th></tr></thead><tbody>${rows}</tbody></table></div>`, "Gerçekleşen hücresinin üzerine gelerek seçili yılların trendini görün.")}<section class="panel donut-panel"><div class="panel-head"><h3>Ana giderlerin payı</h3></div>${donut(data.detail.groups)}</section></div>`;
+  return `<div class="detail-grid">${panel("Ana ve alt giderler", `<div class="scroll-table"><table><thead><tr><th>Gider kalemi</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Bütçe − gerçekleşen<br>Milyon TL</th><th>Sapma %</th></tr></thead><tbody>${rows}</tbody></table></div>`, "Alt gider adına tıklayarak bütçe, gerçekleşen, hacim / birim maliyet etkisi ve kaynak hücrelerini açın. Gerçekleşen hücresinin üzerine gelerek seçili yılların trendini görün.")}<section class="panel donut-panel"><div class="panel-head"><h3>Ana giderlerin payı</h3></div>${donut(data.detail.groups)}</section></div>`;
 }
 function localList(key) {
   const current = state[key] ?? meta.options.department;
@@ -562,7 +567,7 @@ function renderPriority() {
         .includes(prioritySearch.toLocaleLowerCase("tr")),
     );
   const ready = data.selection.years.length === 1 && data.selection.years[0] === meta.budgetYear;
-  const table = `<div class="scroll-table"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Sapma<br>Milyon TL</th><th>Sapma %</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><span class="metric-label">${esc(r.item)}</span></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad">${fmt(r.gap)}</td><td class="bad">${pct(r.rate)}</td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
+  const table = `<div class="scroll-table"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Sapma<br>Milyon TL</th><th>Sapma %</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><button class="line-link metric-label" data-line="${r.code}" data-line-department="${esc(r.department)}" title="Kalem ayrıntısını aç">${esc(r.item)}</button></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad">${fmt(r.gap)}</td><td class="bad">${pct(r.rate)}</td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
   return (
     `<div class="cards">${card("Brüt bütçe aşımı", fmt(p.gross), "Milyon TL", p.gross > 0 ? "bad" : "")}${card("Net bütçeyi aşan bölüm", fmt(p.netDepartments, 0), "bölüm")}${card("En büyük 5 aşımın payı", pct(p.top5), "Brüt bütçe aşımı içindeki pay")}${card("Bölüm–gider aşım kaydı", ready ? fmt(p.rows.length, 0) : "—", "kayıt")}</div><div class="section-tools"><input class="mini-search" id="prioritySearch" value="${esc(prioritySearch)}" placeholder="Bölüm veya gider ara" aria-label="Sapma tablosunda ara"><div><button data-comments="review">Açıklamaları toplu düzenle</button> <button id="importNotesBtn">Açıklama yükle</button> <button id="mergeNotesBtn">Rapor açıklamalarını birleştir</button></div></div>` +
     panel(
@@ -801,6 +806,18 @@ document.addEventListener("click", async (e) => {
         $("#" + b.dataset.pick).value = result.value;
         if (b.dataset.pick === "settingPath") await readSettingsPreview();
       }
+      return;
+    }
+    if (b.dataset.line) {
+      await showLineDetail(Number(b.dataset.line), b.dataset.lineDepartment || null);
+      return;
+    }
+    if (b.dataset.lineNote !== undefined) {
+      const r = lineDetail.departments[Number(b.dataset.lineNote)];
+      showModal(
+        `${r.department} · ${lineDetail.name}`,
+        `<label class="form-field"><span>Seçili aylar için açıklama</span><textarea id="noteText" maxlength="32767">${esc(r.note)}</textarea></label><p class="control-note">${esc(data.selection.months.map((m) => months[m - 1]).join(", "))} ${meta.budgetYear} · Sapma ${fmtTL(r.variance)} TL (${esc(r.direction || "—")}) · Hacim etkisi ${fmtTL(r.volume)} TL · Birim maliyet etkisi ${fmtTL(r.price)} TL. Tutarlar değişirse açıklama yeniden doğrulama ister.</p><div class="modal-actions"><button data-line="${lineDetail.code}" data-line-department="${esc(lineDetail.scope.single ? r.department : "")}">← Kalem ayrıntısına dön</button><button id="saveNoteBtn" data-department="${esc(r.department)}" data-code="${lineDetail.code}" class="primary">Açıklamayı kaydet</button></div>`,
+      );
       return;
     }
     if (b.dataset.note) {
@@ -1112,6 +1129,86 @@ async function showWorkspace() {
       .join(
         "",
       )}</select></label></div><div class="modal-actions"><button id="saveViewBtn">Mevcut seçimi adlandır ve kaydet</button><button id="loadViewBtn">Seçili görünümü aç</button><button id="deleteViewBtn">Görünümü sil</button></div></details><details><summary>Çalıştırma geçmişi ve girdi kopyaları</summary>${field("Yeniden üretim çıktı konumu", "historyOutput", meta.output, "text", true, "folder")}<p>Her raporda kullanılan girdiler ayrı kopyalanır. Yeniden üretim o kopyaları kullanır; güncel dosyalara dönmez. Kopyalar disk alanı kullanır. Aynı ayar yolunun bir önceki çalışmasıyla değişen kaynaklar karşılaştırılır.</p><div class="scroll-table"><table><thead><tr><th>Çalışma</th><th>Durum</th><th>Dönem</th><th>Değişen / kaldırılan kaynak</th><th>Sonuç</th><th>İşlem</th></tr></thead><tbody>${workspaceData.history.map((h) => `<tr><td>${esc(h.started)}</td><td>${esc(h.state)}</td><td>${esc(h.args.year)} · ${esc(h.args.months.join(", "))}</td><td>${esc(h.changedFiles.map((x) => x.split(/[\\/]/).pop()).join(", "))}${h.removedFiles.length ? " / Kaldırılan: " + esc(h.removedFiles.join(", ")) : ""}</td><td>${esc(h.result?.folder || h.result?.error || "")}</td><td><button data-replay="${esc(h.id)}">Bu girdilerle yeniden üret</button></td></tr>`).join("")}</tbody></table></div></details>`,
+  );
+}
+const fmtTL = (v) => fmt(v, 0);
+function lineEffectText(r) {
+  if (r.volume === null || r.volume === undefined) return esc(r.reason || "Hesaplanamadı");
+  return "";
+}
+function lineSources(d) {
+  // Kaynak hücreleri bölüm × dönem satırlarına çevrilir: gerçekleşen, bütçe ve işlem adedi aynı satırda.
+  const key = (r) => r[0] + "\u0000" + r[5];
+  const rows = new Map();
+  for (const r of d.sources) {
+    if (!rows.has(key(r)))
+      rows.set(key(r), { department: r[0], period: r[5], file: r[6].split(/[\\/]/).pop(), path: r[6], sheet: r[7], cells: {} });
+    const slot = rows.get(key(r)).cells;
+    const kind = r[4];
+    // Eşleştirmeyle birleşen kaynak satırlar aynı dönemde birden fazla hücre verir.
+    (slot[kind] ||= []).push([r[8], r[9]]);
+  }
+  const cell = (list, count = false) =>
+    list
+      ? list
+          .map(([ref, v]) => `<span class="cell-ref">${esc(ref || "—")}</span> ${count ? fmt(v, 0) : fmtTL(v)}`)
+          .join("<br>")
+      : "—";
+  const body = [...rows.values()]
+    .map(
+      (r) =>
+        `<tr><td>${esc(r.department)}</td><td>${esc(r.period)}</td><td title="${esc(r.path)}">${esc(r.file)} › ${esc(r.sheet)}</td><td>${cell(r.cells["Gerçekleşen"])}</td><td>${d.budgetReady ? cell(r.cells["Bütçe"]) : "—"}</td><td>${d.budgetReady ? cell(r.cells["İşlem adedi (gerçekleşen)"], true) : "—"}</td><td>${d.budgetReady ? cell(r.cells["İşlem adedi (bütçe)"], true) : "—"}</td></tr>`,
+    )
+    .join("");
+  return `<div class="scroll-table line-sources" tabindex="0" role="region" aria-label="Kaynak hücreleri"><table><thead><tr><th>Bölüm</th><th>Dönem</th><th>Dosya › sayfa</th><th>Gerçekleşen<br>hücre · TL</th><th>Bütçe<br>hücre · TL</th><th>İşlem adedi<br>gerçekleşen</th><th>İşlem adedi<br>bütçe</th></tr></thead><tbody>${body || `<tr><td colspan="7">Kaynak hücre bulunamadı.</td></tr>`}</tbody></table></div>`;
+}
+function lineNotes(d) {
+  if (!d.budgetReady)
+    return `<p class="control-note">Açıklamalar bütçe yılı tek başına seçildiğinde, seçili ay kümesine bağlı olarak girilir.</p>`;
+  return `<div class="line-notes">${d.departments
+    .map((r, i) => {
+      const status = r.noteStale
+        ? "Tutar değişti · yeniden açıklama gerekli"
+        : r.noteStatus === "pending"
+          ? "Önceki dönemden · kontrol bekliyor"
+          : r.noteStatus === "approved"
+            ? "Önceki dönemden · onaylandı"
+            : r.note
+              ? "Bu dönem açıklaması"
+              : r.material
+                ? "Önemli sapma · açıklama bekleniyor"
+                : "Açıklama yok";
+      return `<div class="line-note ${r.noteStatus === "pending" ? "pending-note" : ""}"><div><strong>${esc(r.department)}</strong> <span class="tag">${esc(status)}</span>${r.note ? `<p>${esc(r.note)}</p>` : ""}</div><button data-line-note="${i}">${r.note ? "Açıklamayı düzenle" : "＋ Açıklama ekle"}</button></div>`;
+    })
+    .join("")}</div>`;
+}
+async function showLineDetail(code, department) {
+  const d = await api("line-detail", { state, code, department });
+  lineDetail = d;
+  const scope = d.scope.single ? d.scope.departments[0] : `${d.scope.departments.length} bölüm`;
+  const period = `${d.scope.years.join(", ")} · ${d.scope.months.map((m) => months[m - 1]).join(", ")}`;
+  const variance = d.variance,
+    dir = d.direction ? ` · ${d.direction}` : "";
+  const cardsHtml = `<div class="cards line-cards">${card("Bütçe", fmtTL(d.budget), "TL")}${card("Gerçekleşen", fmtTL(d.actual), "TL")}${card("Sapma (gerçekleşen − bütçe)", fmtTL(variance), "TL · " + pct(d.rate) + dir, signed(variance, false))}${card("Hacim etkisi", fmtTL(d.volume), "TL · işlem adedi farkından", signed(d.volume, false))}${card("Birim maliyet etkisi", fmtTL(d.price), "TL · adet başına maliyetten", signed(d.price, false))}</div>`;
+  const bridge =
+    d.volume !== null && d.price !== null
+      ? `<p class="line-bridge">Bütçe <strong>${fmtTL(d.budget)}</strong> + hacim etkisi <strong>${fmtTL(d.volume)}</strong> + birim maliyet etkisi <strong>${fmtTL(d.price)}</strong> = gerçekleşen <strong>${fmtTL(d.actual)}</strong> TL${d.residual && Number(d.residual) !== 0 ? ` · yuvarlama farkı ${fmt(d.residual)} TL` : ""}</p>`
+      : `<div class="notice">${d.budgetReady ? "Hacim ve birim maliyet etkisi bu kapsamda hesaplanamadı. Nedeni bölüm tablosunda yazıyor." : "Bütçe, sapma ve etkiler yalnız bütçe yılı tek başına seçildiğinde hesaplanır."}</div>`;
+  const deptTable = `<div class="scroll-table" tabindex="0" role="region" aria-label="Bölüm kırılımı"><table><thead><tr><th>Bölüm</th><th>Bütçe<br>TL</th><th>Gerçekleşen<br>TL</th><th>Sapma<br>TL</th><th>İşlem adedi<br>gerç. / bütçe</th><th>Birim maliyet<br>gerç. / bütçe TL</th><th>Hacim etkisi<br>TL</th><th>Birim maliyet etkisi<br>TL</th></tr></thead><tbody>${d.departments
+    .map(
+      (r) =>
+        `<tr><td><strong>${esc(r.department)}</strong><br><span class="metric-label">${esc(r.manager)}${r.material ? " · önemli sapma" : ""}</span></td><td>${fmtTL(r.budget)}</td><td>${fmtTL(r.actual)}</td><td class="${signed(r.variance, false)}">${fmtTL(r.variance)}<br><span class="metric-label">${esc(r.direction || "")}</span></td><td>${fmt(r.count, 0)} / ${fmt(r.plannedCount, 0)}</td><td>${fmt(r.unitActual)} / ${fmt(r.unitBudget)}</td>${r.volume === null ? `<td colspan="2" class="metric-label">${lineEffectText(r)}</td>` : `<td class="${signed(r.volume, false)}">${fmtTL(r.volume)}</td><td class="${signed(r.price, false)}">${fmtTL(r.price)}</td>`}</tr>`,
+    )
+    .join("")}</tbody></table></div>`;
+  const rec = d.reconciliation
+    .map(
+      (r) =>
+        `<li class="${r.ok ? "good" : "bad"}">${esc(r.kind)}: ${fmt(r.cells, 0)} hücre toplamı ${fmtTL(r.cellTotal)} TL · hesap ${fmtTL(r.calculated)} TL · ${r.ok ? "tutuyor" : "tutmuyor"}</li>`,
+    )
+    .join("");
+  showModal(
+    `${d.name} · ${scope}`,
+    `<p class="control-note">${esc(d.group)} · gider kodu ${d.code} · ${esc(period)} · Önemlilik eşiği ${esc(d.threshold)}${d.material ? " · <strong>önemli sapma</strong>" : ""}</p>${cardsHtml}${bridge}<h3 class="line-heading">Bölüm kırılımı</h3>${deptTable}<h3 class="line-heading">Açıklama</h3>${lineNotes(d)}<details class="line-details"><summary>Rakamı oluşturan kaynak satırlar · ${fmt(d.sources.length, 0)} hücre</summary><ul class="line-rec">${rec}</ul>${d.missingDepartments.length ? `<div class="notice">Eksik kaynak: ${esc(d.missingDepartments.join(", "))}</div>` : ""}${lineSources(d)}</details><details class="line-details"><summary>Hesap kuralı</summary><p class="control-note">${esc(d.formula)}</p><p class="control-note">Detay durum tablosundaki “Bütçe − gerçekleşen” sütunu bu sapmanın ters işaretlisidir.</p></details>`,
   );
 }
 async function showTrace(department = "", code = null) {

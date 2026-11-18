@@ -1,5 +1,10 @@
 # Ortak kararlar (Python ve Excel VBA)
 
+## V5.6 — 19 Kasım 2026
+
+- **Kalem ayrıntısı** (gider satırına tıklayınca bütçe, gerçekleşen, hacim etkisi, birim maliyet etkisi, kaynak hücreler ve açıklama durumu) Python web arayüzünde ve tarayıcı demosunda uygulandı. Hesap kuralı bölüm düzeyindeki Hacim ve Birim Maliyet sayfasıyla aynıdır; kaleme bölümün işlem adedi uygulanır. [Ayrıntı](KALEM_AYRINTISI.md)
+- **Açık madde (eşitlik):** VBA ve Power Query karşılığı [öneri](KALEM_AYRINTISI.md#vba-önerisi-denenmedi) olarak yazıldı; Windows Excel'de denenmediği için henüz uygulanmadı. Onaylanınca üç sürüme aynı sentetik beklenen değerle (Ücret giderleri, Ocak–Ekim 2026) eklenecek.
+
 ## V5.5 — 17 Kasım 2026
 
 - Konum ayarları isteğe bağlıdır; Ayarlar'da değer varsa öncelik onundur, yoksa dosyadan bulunur. Kaynak düzeni değiştiğinde Ayarlar'ı güncellemek yerine konum satırlarını silmek yeterlidir.

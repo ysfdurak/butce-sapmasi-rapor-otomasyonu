@@ -13,6 +13,7 @@ Bu uygulama önceki V11 rapor motorundan ayrı bir dağıtım olarak hazırlanm�
 | butce.py | V11 kaynak okuma, ayar okuma, kontrol/endeks, revizyon ve Excel rapor motoru |
 | birim.py | Bütçe işlem adedi okuması |
 | analiz.py | V5: önemli sapma, yıl sonu tahmini, hacim/birim maliyet ayrıştırması ve yönetici özeti sayfaları |
+| kalem.py | V5.6: kalem ayrıntısı — tek gider satırının bütçe, gerçekleşen, hacim/birim maliyet etkisi, kaynak hücreleri ve mutabakatı (`/api/line-detail`) |
 | personel.py | Personel bütçe tamamlama kuralı |
 | web/index.html | Tek uygulama kabuğu |
 | web/style.css | Ortak tasarım, duyarlı yerleşim, kaydırılabilir listeler ve tablolar |
@@ -20,6 +21,7 @@ Bu uygulama önceki V11 rapor motorundan ayrı bir dağıtım olarak hazırlanm�
 | dialog.py | Windows dosya/klasör seçimi; ayrı Python UI işlemi |
 | tests/test_dashboard.py | Hesap, dönem, kapsam, kayıt, dosya üretimi ve HTTP testleri |
 | tests/test_analiz.py | V5 analizleri, metin tutarlar, formül sonucu, düzen kayması, yıl dönümü ve onay izi testleri |
+| tests/test_kalem.py | Kalem etkilerinin sapmaya ve bölüm Hacim ve Birim Maliyet satırına eşitliği, kaynak mutabakatı, açıklama akışı |
 | tests/test_configuration.py | Kaynak başlıkları, yeni/silinen/değişen bölüm, konum kaydı, ayar yedeği, başarısız yazma koruması ve yeniden başlatma testleri |
 
 Hesap doğruluğunun kaynağı Python `model.py` katmanıdır. JavaScript tutar hesabı yapmaz; Python'dan aldığı sonuçları biçimlendirir ve grafikleri çizer. Yalnız grafik eksen aralığı/yüzde dağılımının görsel yerleşimi tarayıcıda hesaplanır. Tutarlar sunucuda Decimal, JSON aktarımında sayıdır. Grafik, CSS ve JavaScript dosyaları yereldir; CDN yoktur.

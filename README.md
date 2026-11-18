@@ -30,6 +30,7 @@ Her iki sürümde kaynak yolları, bölüm ve gider eşleştirmeleri ve rapor e�
 - **Bütçe sapması ve gider yapısı** — Gerçekleşen, bütçe, bütçe eksi gerçekleşen, yüzde sapma ve ana/alt gider kırılımı.
 - **Önemli sapmalar** — TL ve yüzde eşiğini birlikte aşan kalemler; müdürlük dosyalarında açıklanması gereken hücreler işaretlenir ve açıklama durumu izlenir.
 - **Yıl sonu tahmini ve hacim/birim maliyet etkisi** — Gerçekleşen + kalan bütçe ve aylık ortalama gidiş tahmini; bütçe farkının işlem adedi (hacim) ve birim maliyet etkisine ayrıştırılması.
+- **Kalem ayrıntısı** (Python ve demo) — Bir gider satırına tıklayınca bütçe, gerçekleşen, hacim ve birim maliyet etkisi, açıklama durumu ve o rakamı oluşturan kaynak hücreler aynı pencerede. [Nasıl hesaplanır?](docs/KALEM_AYRINTISI.md)
 - **Operasyon göstergeleri** — Kaynaktaki başlıklarıyla personel ve işlem adetleri. Bu adet satırları gider toplamının dışında tutulur.
 - **Birim maliyet ve OPEX/ciro** — Endekslenmiş önceki yıl birim maliyeti, gider ağırlıklı reel iyileşme ve şirket cirosu üzerinden OPEX oranı.
 - **Kapanış kontrolleri** — Bölüm dip toplamı mutabakatı, geçmiş ay gider/bütçe değişiklikleri ve eksik eşleştirme uyarıları.
@@ -52,7 +53,7 @@ Görsel, kontrol paneli tasarım önizlemesidir.
 
 ## Doğrulama durumu
 
-- Python'un **94 otomatik testi** ve VBA kaynak denetimi (`tools/vba_araclari.py`) GitHub Actions'ta her gönderimde çalışır.
+- Python'un **116 otomatik testi** ve VBA kaynak denetimi (`tools/vba_araclari.py`) GitHub Actions'ta her gönderimde çalışır.
 - Aynı sentetik beklenen değerler Python testlerinde ve makrodaki **Sentetik hesap testi**nde kontrol edilir.
 - V4'te kaydedilen **72 JavaScript/API kontrolü**, arayüzün çizim ve olay mantığının benzetimini ve canlı yerel API'yi kapsar.
 - Windows Excel'de VBA derlemesi, gerçek tarayıcı yerleşimi ve Windows dosya pencereleri [canlı kabul listesiyle](docs/CANLI_KONTROL.md) doğrulanır.

@@ -13,6 +13,7 @@ from notes import Notes
 import jobs, butce
 import configuration
 import workspace
+import kalem
 
 BASE = Path(__file__).resolve().parent
 MAX_BODY = 2 * 1024 * 1024
@@ -414,6 +415,14 @@ class Handler(BaseHTTPRequestHandler):
                     workspace.trace(
                         app.data, args.get("state", {}), args.get("department"), args.get("code")
                     ),
+                )
+            if path == "/api/line-detail":
+                state = args.get("state", {})
+                names, years, months = app.data.selection(state)
+                notes = app.notes.list(app.data, months) if years == [app.data.budget_year] and months else {}
+                return self.send(
+                    200,
+                    kalem.detail(app.data, state, args.get("code"), args.get("department") or None, notes),
                 )
             if path == "/api/mapping-accept":
                 return self.send(200, app.workspace.accept(args))

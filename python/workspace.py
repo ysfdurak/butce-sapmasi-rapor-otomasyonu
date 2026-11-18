@@ -127,19 +127,17 @@ def quality(data, state):
     }
 
 
-def trace(data, state, department=None, code=None):
-    if inventory(data) != data.fingerprint:
-        raise ValueError("Kaynak dosyaları değişmiş; hesap izini açmadan önce kaynakları yenileyin.")
-    names, years, months = data.selection(state)
-    if department:
-        if department not in names:
-            raise ValueError("Bölüm seçim kapsamında değil.")
-        names = [department]
-    if code is not None and code not in data.catalog:
-        raise ValueError("Geçersiz gider kodu.")
+def source_cells(data, names, years, months, code=None, counts=False):
+    """Seçili bölüm/ay/gider için kaynak Excel hücreleri.
+
+    Satır: [bölüm, müdürlük, gider kodu, gider, tür, dönem, dosya, sayfa, hücre, değer].
+    counts=True ise aynı dönemlerin işlem adedi hücreleri (gerçekleşen ve bütçe) de eklenir;
+    gider kodu boş, tür "İşlem adedi (gerçekleşen/bütçe)" olur.
+    """
     rows = []
     books = {}
     missing = []
+    cfg = data.config["maliyet"]
     try:
         for n in names:
             snap = data.snapshots.get((data.closing, n))
@@ -150,39 +148,57 @@ def trace(data, state, department=None, code=None):
             if path not in books:
                 books[path] = load_workbook(path, data_only=True)
             ws = books[path][n]
-            a, b = butce.positioned_columns(ws, data.config["maliyet"], data.closing)
-            for raw in range(1, data.config["maliyet"].get("gider_kalem_sayisi", 27) + 1):
+            a, b = butce.positioned_columns(ws, cfg, data.closing)
+            manager = data.config["bolumler"][n]["mudurluk"]
+
+            def add(target, title, kind, r, cols, year, m):
+                c = cols.get((year, m))
+                cell = ws.cell(r, c) if c else None
+                v = butce.number(cell.value) if cell else None
+                if kind.startswith("Gerçekleşen") or kind == "İşlem adedi (gerçekleşen)":
+                    if (year, m) > data.closing:
+                        v = None
+                rows.append(
+                    [n, manager, target, title, kind, butce.label((year, m)), str(path), n,
+                     cell.coordinate if cell else "", v]
+                )
+
+            budget_ok = years == [data.budget_year]
+            for raw in range(1, cfg.get("gider_kalem_sayisi", 27) + 1):
                 target = data.config.get("gider_eslestirme", {}).get(raw, (raw, ""))[0]
                 if code is not None and target != code:
                     continue
-                r = data.config["maliyet"]["ilk_gider_satiri"] + raw - 1
+                r = cfg["ilk_gider_satiri"] + raw - 1
+                title = data.catalog.get(target, ("",))[0]
                 for year in years:
                     for m in months:
-                        for kind, cols in [("Gerçekleşen", a), ("Bütçe", b)]:
-                            if kind == "Bütçe" and (years != [data.budget_year] or year != data.budget_year):
-                                continue
-                            c = cols.get((year, m))
-                            cell = ws.cell(r, c) if c else None
-                            v = butce.number(cell.value) if cell else None
-                            if kind == "Gerçekleşen" and (year, m) > data.closing:
-                                v = None
-                            rows.append(
-                                [
-                                    n,
-                                    data.config["bolumler"][n]["mudurluk"],
-                                    target,
-                                    data.catalog.get(target, ("",))[0],
-                                    kind,
-                                    butce.label((year, m)),
-                                    str(path),
-                                    n,
-                                    cell.coordinate if cell else "",
-                                    v,
-                                ]
-                            )
+                        add(target, title, "Gerçekleşen", r, a, year, m)
+                        if budget_ok and year == data.budget_year:
+                            add(target, title, "Bütçe", r, b, year, m)
+            if counts:
+                r = cfg["islem_adedi_satiri"]
+                for year in years:
+                    for m in months:
+                        add(None, "", "İşlem adedi (gerçekleşen)", r, a, year, m)
+                        if budget_ok and year == data.budget_year:
+                            add(None, "", "İşlem adedi (bütçe)", r, b, year, m)
     finally:
         for book in books.values():
             book.close()
+    return rows, missing
+
+
+def trace(data, state, department=None, code=None):
+    if inventory(data) != data.fingerprint:
+        raise ValueError("Kaynak dosyaları değişmiş; hesap izini açmadan önce kaynakları yenileyin.")
+    names, years, months = data.selection(state)
+    if department:
+        if department not in names:
+            raise ValueError("Bölüm seçim kapsamında değil.")
+        names = [department]
+    if code is not None and code not in data.catalog:
+        raise ValueError("Geçersiz gider kodu.")
+    rows, missing = source_cells(data, names, years, months, code)
     if inventory(data) != data.fingerprint:
         raise ValueError("Kaynaklar hesap izi okunurken değişti; yeniden yenileyin.")
     actual = data.aggregate(names, years, months, code=code)
