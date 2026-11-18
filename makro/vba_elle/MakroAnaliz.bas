@@ -332,6 +332,70 @@ Public Sub WriteVolume(ByVal wb As Workbook, ByVal scope As Object, ByVal genera
     FinishPlain ws, r - 1, 11
 End Sub
 
+' Kalem satýrý (Python kalem.py ile ayný kural): (0 bölüm, 1 kod, 2 gerçekleþen, 3 bütçe, 4 fark, 5 adet, 6 bütçe adet,
+' 7 kalem bütçe BM, 8 hacim etkisi, 9 birim maliyet etkisi, 10 kaynak dosya). Bütçe yýlý deðilse bütçe ve etkiler Null.
+Public Function LineVolumeRow(ByVal dept As String, ByVal code As Long) As Variant
+    Dim d As Object, a As Variant, b As Variant, q As Variant, qb As Variant, ucb As Variant
+    Dim volume As Variant, price As Variant, file As String
+    Set d = CurrentSnap(dept)
+    If d Is Nothing Then LineVolumeRow = Null: Exit Function
+    file = CStr(d("file"))
+    a = SumMonths(d, "A" & Sep, ReportYear, Sep & code)
+    b = Null: q = Null: qb = Null: ucb = Null: volume = Null: price = Null
+    If ReportYear = CloseYear Then
+        b = SumMonths(d, "B" & Sep, ReportYear, Sep & code)
+        q = SumMonths(d, "AC|", ReportYear, "", True): qb = SumMonths(d, "BC|", ReportYear, "", True)
+        ucb = Divide(b, qb)
+        If Not IsNull(a) And Not IsNull(ucb) And Not IsNull(q) Then
+            volume = Times(Minus(q, qb), ucb): price = Minus(a, Times(ucb, q))
+        End If
+    End If
+    LineVolumeRow = Array(dept, code, a, b, Minus(a, b), q, qb, ucb, volume, price, file)
+End Function
+
+' Kalem Ayrýntýsý: kapsamdaki her bölüm × gider kalemi için bütçe, gerçekleþen, hacim ve birim maliyet etkisi.
+' Rapor dosyasý makrosuz olduðundan seçim filtreyle yapýlýr; alttaki toplam satýrý yalnýz görünen satýrlarý toplar.
+Public Sub WriteLineDetail(ByVal wb As Workbook, ByVal scope As Object, ByVal general As Boolean)
+    Dim ws As Worksheet, items As Object, n As Variant, code As Variant, meta As Variant, row As Variant, r As Long, c As Variant
+    Set ws = PlainSheet(wb, "Kalem Ayrýntýsý", Array("Müdürlük", "Bölüm", "Gider kodu", "Gider kalemi", "Kaynak dosya", "Gerçekleþen" & vbLf & MonthCaption() & " (TL)", "Bütçe" & vbLf & MonthCaption() & " (TL)", VarianceTitle(), "Gerçekleþen iþlem adedi", "Bütçe iþlem adedi", "Kalem bütçe birim maliyeti (TL/iþlem)", "Hacim etkisi (TL)", "Birim maliyet etkisi (TL)"))
+    Set items = ItemNames()
+    r = 2
+    For Each n In scope.Keys
+        meta = Depts(n)
+        For Each code In items.Keys
+            row = LineVolumeRow(CStr(n), CLng(code))
+            If Not IsNull(row) Then
+                If Not (IsNull(row(2)) And IsNull(row(3))) Then
+                    RowValues ws, r, Array(meta(1), meta(0), CLng(code), items(code), row(10), row(2), row(3), row(4), row(5), row(6), row(7), row(8), row(9))
+                    r = r + 1
+                End If
+            End If
+        Next code
+    Next n
+    If r = 2 Then
+        ws.Range("A2").Value2 = "Kapsamda gider verisi yok."
+        FinishPlain ws, 2, 13: Exit Sub
+    End If
+    ws.Range("F2:H" & r - 1).NumberFormat = MoneyFmt
+    ws.Range("I2:J" & r - 1).NumberFormat = "#,##0"
+    ws.Range("K2:M" & r - 1).NumberFormat = MoneyFmt
+    ' Filtreyle bir kalem (ve isterseniz bir bölüm) seçilince toplam ve köprü bu satýrda okunur.
+    ws.Cells(r + 1, 1).Value2 = "Görünen satýrlarýn toplamý"
+    For Each c In Array(6, 7, 8, 12, 13)
+        ws.Cells(r + 1, c).Formula = "=SUBTOTAL(109," & ws.Range(ws.Cells(2, c), ws.Cells(r - 1, c)).Address(False, False) & ")"
+    Next c
+    ws.Cells(r + 1, 14).Formula = "=ROUND(H" & r + 1 & "-L" & r + 1 & "-M" & r + 1 & ",2)"
+    ws.Cells(1, 14).Value2 = "Köprü farký (TL)"
+    ws.Range(ws.Cells(r + 1, 1), ws.Cells(r + 1, 14)).Font.Bold = True
+    ws.Range(ws.Cells(r + 1, 6), ws.Cells(r + 1, 14)).NumberFormat = MoneyFmt
+    ws.Cells(r + 3, 1).Value2 = "Bir gider kalemini Gider kodu filtresinden seçin. Hacim etkisi = (gerçekleþen adet " & MinusSign() & " bütçe adet) × kalem bütçe birim maliyeti; birim maliyet etkisi = gerçekleþen " & MinusSign() & " kalem bütçe birim maliyeti × gerçekleþen adet. Etkiler bir satýrda eksik adet varsa boþtur ve toplam satýrý o zaman eksik kalýr."
+    If ReportYear <> CloseYear Then ws.Cells(r + 4, 1).Value2 = "Seçili yýl bütçe yýlý deðil: bütçe, sapma ve etkiler boþ."
+    ws.Range(ws.Cells(r + 3, 1), ws.Cells(r + 4, 1)).Font.Italic = True
+    ws.Range(ws.Cells(r + 3, 1), ws.Cells(r + 4, 1)).Font.Color = RGB(91, 107, 117)
+    FinishPlain ws, r - 1, 14
+    ws.Columns("D").ColumnWidth = 30: ws.Columns("E").ColumnWidth = 26
+End Sub
+
 Public Sub WriteExecutive(ByVal wb As Workbook, ByVal scope As Object, ByVal general As Boolean)
     Dim ws As Worksheet, rows As Collection, row As Variant, r As Long, budgetYear As Boolean, actual As Variant, planned As Variant
     Dim layout As Collection, top As Variant, verified As Long, total As Long, check As Variant, members As Object, n As Variant, include As Boolean

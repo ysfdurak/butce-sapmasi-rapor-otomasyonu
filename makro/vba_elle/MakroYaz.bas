@@ -383,6 +383,7 @@ Public Sub WriteOneReport(ByVal path As String, ByVal scope As Object, ByVal gen
     WriteMaterial wb, scope, general
     WriteForecast wb, scope, general
     WriteVolume wb, scope, general
+    WriteLineDetail wb, scope, general
     WriteAudit wb, scope
     WriteIdentity wb, scope, general
     WriteMemoReport wb, scope, general

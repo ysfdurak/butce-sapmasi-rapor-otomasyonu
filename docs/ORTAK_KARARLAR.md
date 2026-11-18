@@ -3,7 +3,8 @@
 ## V5.6 — 19 Kasım 2026
 
 - **Kalem ayrıntısı** (gider satırına tıklayınca bütçe, gerçekleşen, hacim etkisi, birim maliyet etkisi, kaynak hücreler ve açıklama durumu) Python web arayüzünde ve tarayıcı demosunda uygulandı. Hesap kuralı bölüm düzeyindeki Hacim ve Birim Maliyet sayfasıyla aynıdır; kaleme bölümün işlem adedi uygulanır. [Ayrıntı](KALEM_AYRINTISI.md)
-- **Açık madde (eşitlik):** VBA ve Power Query karşılığı [öneri](KALEM_AYRINTISI.md#vba-önerisi-denenmedi) olarak yazıldı; Windows Excel'de denenmediği için henüz uygulanmadı. Onaylanınca üç sürüme aynı sentetik beklenen değerle (Ücret giderleri, Ocak–Ekim 2026) eklenecek.
+- **Eşitlik:** Power Query şablonuna ve VBA raporuna **Kalem Ayrıntısı** sayfası eklendi; üç sürüm aynı [sentetik beklenen değerleri](KALEM_AYRINTISI.md#sentetik-beklenen-değerler-örnek-veri-ocakekim-2026) kullanır. PQ şablonu LibreOffice ile Python'a karşı doğrulandı (fark 0). **VBA Windows Excel'de çalıştırılmadı**; ilk Windows denemesinde `SentetikTest` sonucu buraya yazılmalı.
+- Bilinçli fark: kaynak hücre adresi yalnız Python'da; Excel sürümleri kaynak dosya adını gösterir. VBA raporu makrosuz olduğundan seçim filtre + görünen satır toplamıyla yapılır.
 
 ## V5.5 — 17 Kasım 2026
 

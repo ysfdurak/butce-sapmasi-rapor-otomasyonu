@@ -989,6 +989,118 @@ def build_hacim(wb):
     ws.freeze_panes = "A2"
 
 
+KA_ILK = 12  # Kalem Ayrıntısı: bölüm tablosunun ilk satırı
+KA_AY = KA_ILK + 60 + 4  # aylık kaynak değerleri tablosunun başlık satırı
+
+
+def build_kalem_ayrinti(wb):
+    """Kalem ayrıntısı (Python kalem.py ile aynı kural): seçili gider kaleminin bütçe, gerçekleşen, hacim ve birim
+    maliyet etkisi, bölüm kırılımı ve seçili bölümde aylık kaynak değerleri. Kapsam, yıl ve aylar Kontrol Paneli'nden."""
+    ws = wb.create_sheet("Kalem Ayrıntısı")
+    ws["A1"] = "Kalem ayrıntısı"
+    ws["A1"].font = TITLE
+    ws["A2"] = ("Bir gider kalemi ve isterseniz bir bölüm seçin. Kapsam, rapor yılı ve aylar Kontrol Paneli'nden gelir. "
+                "Hacim etkisi = (gerçekleşen adet − bütçe adet) × kalem bütçe birim maliyeti; birim maliyet etkisi = "
+                "gerçekleşen − kalem bütçe birim maliyeti × gerçekleşen adet. İkisinin toplamı sapmadır.")
+    ws["A2"].font = NOTE
+    ws["A3"], ws["A4"], ws["A5"] = "Gider kodu", "Bölüm", "Gider kalemi"
+    for c in ("A3", "A4", "A5"):
+        ws[c].font = BOLD
+    ws["B3"] = 1
+    ws["B4"] = "Tümü"
+    for c in ("B3", "B4"):
+        ws[c].fill = INPUT_FILL
+    kod = DataValidation(type="whole", operator="between", formula1="1", formula2="999")
+    ws.add_data_validation(kod)
+    kod.add("B3")
+    bol = DataValidation(type="list", formula1=f"=$P${KA_ILK}:$P${KA_ILK + MAXD}", allow_blank=False)
+    ws.add_data_validation(bol)
+    bol.add("B4")
+    ws["C4"] = '"Tümü" ya da kapsamdaki bir bölüm'
+    ws["C4"].font = NOTE
+    ws["B5"] = f"=IFERROR(INDEX('_Satir'!$F$2:$F${MAXI + 1},MATCH($B$3,'_Satir'!$E$2:$E${MAXI + 1},0)),\"Kalem bulunamadı\")"
+    # Özet (satır 7–8)
+    titles = ["Bütçe (TL)", "Gerçekleşen (TL)", "Sapma: gerçekleşen − bütçe (TL)", "Sapma %", "Yön", "Hacim etkisi (TL)",
+              "Birim maliyet etkisi (TL)", "Köprü farkı (TL)"]
+    header(ws, 7, titles)
+    lo, hi = KA_ILK, KA_ILK + MAXD - 1
+    inc = f"$N${lo}:$N${hi}"
+
+    def tot(col):
+        rng = f"${col}${lo}:${col}${hi}"
+        return f'IF(SUM({inc})=0,"",IF(SUMPRODUCT(({inc}=1)*ISNUMBER({rng}))<SUM({inc}),"",SUMIFS({rng},{inc},1)))'
+
+    ws["A8"] = "=" + tot("E")
+    ws["B8"] = "=" + tot("D")
+    ws["C8"] = f'=IF({num("A8", "B8")},B8-A8,"")'
+    ws["D8"] = f'=IF({num("A8", "C8")},IF(A8=0,"",C8/A8),"")'
+    ws["E8"] = f'=IF(ISNUMBER(C8),IF(C8>0,"Aleyhte",IF(C8<0,"Lehte","Bütçede")),"")'
+    ws["F8"] = "=" + tot("J")
+    ws["G8"] = "=" + tot("K")
+    ws["H8"] = f'=IF({num("C8", "F8", "G8")},ROUND(C8-F8-G8,2),"")'
+    fmt(ws, "ABCFGH", 8, 8, MONEY)
+    ws["D8"].number_format = PCT
+    direction_colors(ws, "E8:E8")
+    ws["A9"] = f'=IF({BUTCEYILI}=1,"","Seçili yıl bütçe yılı değil: bütçe, sapma ve etkiler boş.")'
+    ws["A9"].font = NOTE
+    # Bölüm tablosu
+    header(ws, KA_ILK - 1, ["Bölüm", "Müdürlük", "Kaynak dosya", "Gerçekleşen (TL)", "Bütçe (TL)", "Sapma (TL)",
+                            "Gerçekleşen adet", "Bütçe adet", "Kalem bütçe BM (TL/işlem)", "Hacim etkisi (TL)",
+                            "Birim maliyet etkisi (TL)", "rGider", "rBolum", "dahil"])
+    # Gizli yardımcı: P = j. kapsamdaki bölüm, Q = seçime dahil, R = sıra
+    ws[f"P{lo - 1}"], ws[f"Q{lo - 1}"], ws[f"R{lo - 1}"] = "Bölüm listesi", "Dahil", "Sıra"
+    for j in range(MAXD):
+        r = lo + j
+        ws[f"P{r}"] = f"=IF({j}=0,\"Tümü\",IFERROR(INDEX({brng('C')},MATCH({j},{brng('J')},0)),\"\"))"
+        ws[f"Q{r}"] = f'=IF(OR({j}=0,P{r}=""),0,IF(OR($B$4="Tümü",P{r}=$B$4),1,0))'
+        ws[f"R{r}"] = f'=IF(Q{r}=1,COUNTIF($Q${lo}:Q{r},1),"")'
+        k = f"MATCH({j + 1},$R${lo}:$R${hi},0)"
+        ws[f"A{r}"] = f'=IFERROR(INDEX($P${lo}:$P${hi},{k}),"")'
+        ws[f"M{r}"] = f'=IF(A{r}="","",MATCH(A{r},{brng("C")},0))'
+        ws[f"N{r}"] = f'=IF(A{r}="",0,1)'
+        ws[f"B{r}"] = f'=IF(A{r}="","",INDEX({brng("D")},M{r}))'
+        ws[f"L{r}"] = f'=IF(A{r}="","",{find(chr(34) + "Gider|" + chr(34) + f"&A{r}&" + chr(34) + "|" + chr(34) + "&$B$3&" + chr(34) + "|" + chr(34) + f"&{YIL}")})'
+        ws[f"C{r}"] = f'=IF(L{r}="","",INDEX({vcol("Kaynak")},L{r})&"")'
+        ws[f"D{r}"] = f'=IF(A{r}="","",{sel(f"L{r}")})'
+        ws[f"E{r}"] = f'=IF(OR(A{r}="",{BUTCEYILI}=0),"",{sel(f"L{r}", VB)})'
+        ws[f"F{r}"] = f'=IF({num(f"D{r}", f"E{r}")},D{r}-E{r},"")'
+        ws[f"G{r}"] = f'=IF(A{r}="","",{bnum("Q", f"M{r}")})'
+        ws[f"H{r}"] = f'=IF(OR(A{r}="",{BUTCEYILI}=0),"",{bnum("T", f"M{r}")})'
+        ws[f"I{r}"] = f'=IF({num(f"E{r}", f"H{r}")},IF(H{r}=0,"",E{r}/H{r}),"")'
+        ws[f"J{r}"] = f'=IF({num(f"D{r}", f"G{r}", f"I{r}")},(G{r}-H{r})*I{r},"")'
+        ws[f"K{r}"] = f'=IF({num(f"D{r}", f"G{r}", f"I{r}")},D{r}-I{r}*G{r},"")'
+    fmt(ws, "DEFIJK", lo, hi, MONEY)
+    fmt(ws, "GH", lo, hi, COUNT)
+    # Aylık kaynak değerleri (tek bölüm seçiliyken)
+    a = KA_AY
+    ws[f"A{a - 1}"] = "Rakamı oluşturan kaynak değerler (seçili bölüm, seçili aylar)"
+    ws[f"A{a - 1}"].font = BOLD
+    header(ws, a, ["Ay", "Gerçekleşen (TL)", "Bütçe (TL)", "Gerçekleşen adet", "Bütçe adet", "Kaynak dosya"])
+    rg = f"$L${lo}"
+    ra = f'IF($B$4="Tümü","",{find(chr(34) + "Adet|" + chr(34) + "&$B$4&" + chr(34) + "|" + chr(34) + f"&{YIL}")})'
+    ws[f"H{a}"] = "=" + ra
+    ws.column_dimensions["H"].hidden = False
+    for m in range(1, 13):
+        r = a + m
+        on = f'AND($B$4<>"Tümü",INDEX({FLAGS},1,{m})=1,ISNUMBER({rg}))'
+        ws[f"A{r}"] = f'=IF({on},INDEX(\'_H\'!$C$19:$N$19,1,{m}),"")'
+        ws[f"B{r}"] = f'=IF({on},INDEX({VG},{rg},{m}),"")'
+        ws[f"C{r}"] = f'=IF(AND({on},{BUTCEYILI}=1),INDEX({VB},{rg},{m}),"")'
+        ws[f"D{r}"] = f'=IF(AND({on},ISNUMBER($H${a})),INDEX({VG},$H${a},{m}),"")'
+        ws[f"E{r}"] = f'=IF(AND({on},ISNUMBER($H${a}),{BUTCEYILI}=1),INDEX({VBO},$H${a},{m}),"")'
+        ws[f"F{r}"] = f'=IF({on},$C${lo},"")'
+    fmt(ws, "BC", a + 1, a + 12, MONEY)
+    fmt(ws, "DE", a + 1, a + 12, COUNT)
+    ws[f"A{a + 14}"] = ("Kaynak dosyadaki hücre adresi Python sürümünde gösterilir; Power Query çıktısı dosya adını ve aylık "
+                        "değerleri taşır. Açıklama: Açıklamalar sayfası, aynı bölüm ve gider kodu.")
+    ws[f"A{a + 14}"].font = NOTE
+    ws[f"H{a}"].font = Font(color="FFFFFF")
+    for c in "LMNPQR":
+        ws.column_dimensions[c].hidden = True
+    widths(ws, {"A": 22, "B": 18, "C": 24, **{L(c): 16 for c in range(4, 12)}})
+    ws.freeze_panes = "A6"
+
+
 def build_kontrol(wb):
     ws = wb.create_sheet("Veri Kontrolü")
     G_ = "'_KGrup'"
@@ -1579,6 +1691,7 @@ def build(rows=None):
     build_onemli(wb)
     build_tahmin(wb)
     build_hacim(wb)
+    build_kalem_ayrinti(wb)
     build_kontrol(wb)
     build_revizyon(wb)
     build_uyarilar(wb, last_uy)
@@ -1592,7 +1705,7 @@ def build(rows=None):
     build_butce_degisimi(wb)
     build_trend(wb)
     order = ["Kontrol Paneli", "Yönetici Özeti", "Pano", "Genel Özet", "Giderler", "Birim Maliyet", "Önemli Sapmalar",
-             "Yıl Sonu Tahmini", "Hacim ve Birim Maliyet", "Bütçe Sürümleri", "Bütçe - Bölüm", "Bütçe - Müdürlük", "Bütçe - Direktörlük", "Bütçe Değişimi", "Trend", "Veri Kontrolü", "Revizyonlar", "Uyarılar", "Açıklamalar",
+             "Yıl Sonu Tahmini", "Hacim ve Birim Maliyet", "Kalem Ayrıntısı", "Bütçe Sürümleri", "Bütçe - Bölüm", "Bütçe - Müdürlük", "Bütçe - Direktörlük", "Bütçe Değişimi", "Trend", "Veri Kontrolü", "Revizyonlar", "Uyarılar", "Açıklamalar",
              "Açıklama Onayı", "Dağıtım", "Girdi Kaydı", "Veri"]
     wb._sheets.sort(key=lambda s: order.index(s.title) if s.title in order else 100)
     wb.calculation.fullCalcOnLoad = True

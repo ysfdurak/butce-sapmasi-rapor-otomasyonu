@@ -6,10 +6,10 @@ Bir gider satırına tıklayınca o rakamın nereden geldiği tek pencerede aç�
 | --- | --- |
 | Python web arayüzü (`python/web`) | Uygulandı, otomatik testli (`python/tests/test_kalem.py`) |
 | Tarayıcı demosu (`demo/`) | Uygulandı; Python arayüzüyle aynı dosyaları kullandığı için ayrıca kod yok |
-| Excel VBA | **Öneri** — aşağıda. Windows Excel'de derlenip denenmedi |
-| Excel Power Query | **Öneri** — aşağıda. Gerçek M motorunda ve Excel'de denenmedi |
+| Excel Power Query | **Uygulandı** — şablonda `Kalem Ayrıntısı` sayfası. LibreOffice hesabıyla Python'a karşı doğrulandı (fark 0); Windows Excel'de açılıp denenmedi |
+| Excel VBA | **Uygulandı, denenmedi** — rapordaki `Kalem Ayrıntısı` sayfası ve `MakroTest` beklenen değerleri. Bu ortamda yalnız statik denetim (`tools/vba_araclari.py kontrol`) çalıştı; Windows Excel'de derlenip çalıştırılması gerekir |
 
-Ortak karar gereği üç sürüm işlevde eşit tutulur. VBA ve Power Query karşılığı onaylanıp uygulanana kadar bu özellik **yalnız Python'da** vardır; bu fark [Ortak kararlar](ORTAK_KARARLAR.md) sayfasında açık madde olarak yazılıdır.
+Ortak karar gereği üç sürüm işlevde eşit tutulur. Üçü aynı kuralı ve aynı beklenen değerleri kullanır (aşağıdaki "Sentetik beklenen değerler"). Kalan farklar: kaynak **hücre adresi** yalnız Python'da; Excel sürümlerinde kaynak dosya adı ve aylık değerler görünür.
 
 ## Nereden açılır?
 
@@ -65,39 +65,31 @@ Her bölüm için mevcut açıklama ve durumu görünür: bu dönem açıklamas�
 
 JavaScript hesap yapmaz; tutarlar Python'da Decimal ile hesaplanır.
 
-## VBA önerisi (denenmedi)
+## Sentetik beklenen değerler (örnek veri, Ocak–Ekim 2026)
 
-Makroda hesaplar `MakroAnaliz.VolumeRow` ile bölüm düzeyinde yapılıyor. Önerilen karşılık:
+| Durum | Gerçekleşen | Bütçe | Hacim etkisi | Birim maliyet etkisi |
+| --- | ---: | ---: | ---: | ---: |
+| Kalem 1, bütün bölümler | 845.437.105,52 | 843.367.397,13 | 13.648.730,22 | −11.579.021,83 |
+| Kalem 3, Giriş | 17.033.694,15 | 16.915.214,06 | −1.760.939,53 | 1.879.419,62 |
+| Kalem 7, Depolama müdürlüğü, Ocak + Mart + Mayıs | 26.858.415,48 | 32.195.176,16 | 2.610.900,32 | −7.947.661,00 |
 
-1. **MakroAnaliz'e `LineVolumeRow(department, code)`** — `VolumeRow` ile aynı adımlar; bölüm toplamı anahtarları (`"AT|"`, `"BT|"`) yerine `MakroHesap`ta zaten kullanılan kalem anahtarları (`SumMonths(d, "A" & Sep, y, Sep & code)`). Adet anahtarları (`AC|`, `BC|`) ve `Divide / Times / Minus` yardımcıları aynen kullanılır, böylece Null kuralları Python'la aynı kalır. Taslak:
+Python (`kalem.detail`), Power Query şablonu (`sablon_dogrula.py`) ve VBA (`MakroTest.SentetikTest`, ilk iki satır) bu değerleri bekler. Etkilerin toplamı her durumda sapmaya eşittir (köprü farkı 0,00).
 
-   ```vba
-   ' Taslak — Windows Excel'de derlenmedi.
-   Public Function LineVolumeRow(ByVal department As String, ByVal code As Long) As Variant
-       Dim d As Object, a As Variant, b As Variant, q As Variant, qb As Variant, ucb As Variant
-       Dim volume As Variant, price As Variant
-       Set d = CurrentSnap(department)
-       If d Is Nothing Then LineVolumeRow = Null: Exit Function
-       a = SumMonths(d, "A" & Sep, ReportYear, Sep & code)
-       b = SumMonths(d, "B" & Sep, ReportYear, Sep & code)
-       q = SumMonths(d, "AC|", ReportYear, "", True): qb = SumMonths(d, "BC|", ReportYear, "", True)
-       ucb = Divide(b, qb): volume = Null: price = Null
-       If Not IsNull(a) And Not IsNull(ucb) And Not IsNull(q) Then
-           volume = Times(Minus(q, qb), ucb): price = Minus(a, Times(ucb, q))
-       End If
-       LineVolumeRow = Array(department, code, a, b, Minus(a, b), q, qb, Divide(a, q), ucb, volume, price)
-   End Function
-   ```
-2. **Yeni `Kalem Ayrıntısı` sayfası** (genel ve müdürlük raporlarında): üstte bölüm ve gider seçimi (veri doğrulama listesi), altında aynı beş kart, köprü satırı, bölüm kırılımı ve kaynak hücre tablosu. Makro raporu üretirken tablo değerlerini yazar; kaynak hücre sütununa `Dosya!Sayfa!Hücre` adresi metin olarak gider.
-3. **Tıklama:** Giderler sayfasında `Worksheet_BeforeDoubleClick` ile seçilen satırın bölüm/kodunu `Kalem Ayrıntısı` seçim hücrelerine yazmak. Bu olay kodu rapor dosyasına modül olarak eklenmez (rapor .xlsx makrosuz); bu yüzden asıl yol seçim listesi + formüldür, çift tıklama yalnız kontrol panelinde açıkken çalışır.
-4. `MakroTest` sentetik testine Ücret giderleri satırı (yukarıdaki tablo) eklenir; Python testiyle aynı beklenen değer.
+## Excel VBA (uygulandı, Windows'ta denenmedi)
 
-**Windows Excel'de denenmesi gerekenler:** VBA derlemesi, `Decimal` (`CDec`) yuvarlamasının kuruş farkı vermediği, veri doğrulama listesinin 27 kalem × 12 bölümle yavaşlamadığı, çift tıklama olayının kontrol panelinde tetiklendiği. Bu ortamda (Linux) yalnız `tools/vba_araclari.py` statik denetimi çalışabilir.
+- `MakroAnaliz.LineVolumeRow(bölüm, kod)` — `VolumeRow` ile aynı adımlar; bölüm toplamı yerine kalem anahtarları (`SumMonths(d, "A" & Sep, yıl, Sep & kod)`), adetler `AC|` / `BC|` (yalnız pozitif aylar). `Divide / Times / Minus` yardımcıları Null kuralını Python'la aynı tutar.
+- `MakroAnaliz.WriteLineDetail` — raporda `Hacim ve Birim Maliyet`ten sonra **Kalem Ayrıntısı** sayfası: kapsamdaki her bölüm × gider kalemi bir satır (müdürlük, bölüm, kod, ad, kaynak dosya, gerçekleşen, bütçe, sapma, adetler, kalem bütçe BM, iki etki). Rapor dosyası makrosuz olduğundan seçim **filtreyle** yapılır; tablonun altındaki `SUBTOTAL(109, …)` satırı yalnız görünen satırları toplar ve köprü farkını gösterir.
+- Bütçe yılı seçili değilse yalnız gerçekleşen yazılır, bütçe ve etkiler boş kalır (Python ve PQ ile aynı).
+- `MakroTest.SentetikTest` yukarıdaki ilk iki satırı bekler.
 
-## Power Query önerisi (denenmedi)
+**Windows Excel'de denenmesi gerekenler:** modüllerin derlenmesi, `SentetikTest`'in geçmesi, 12 bölüm × 26 kalem tablonun yazılma süresi, filtre + `SUBTOTAL` satırının beklendiği gibi toplaması. Çift tıklama ile açma yapılmadı: rapor dosyası makro taşımaz.
 
-1. `Butce_Veri` çıktısındaki kalem satırları bölüm × kod × ay gerçekleşen/bütçe tutarlarını ve işlem adetlerini zaten taşıyor. Şablona (`tools/pq_sablon.py`) **`Kalem Ayrıntısı`** sayfası eklenir: bölüm ve gider açılır listesi; bütçe, gerçekleşen, adetler `SUMIFS` ile; hacim ve birim maliyet etkisi yukarıdaki formüllerle hücrede. Makro gerekmez.
-2. **Kaynak hücre adresi** şu an sorgu çıktısında yok. `Butce_Veri.pq` kalem satırına `Hücre` sütunu (ör. `DZ65`) eklenmesi gerekir; bu, `tools/pqtest/karsilastir.py` karşılaştırmasını ve PQTest beklenen çıktısını da değiştirir.
-3. Doğrulama: `tools/pqtest/sablon_dogrula.py` LibreOffice hesabıyla Python `kalem.detail` sonucunu karşılaştıracak bir durum eklenir (Linux'ta çalışır). Gerçek M motoru testi Windows runner'da (`powerquery-motor` işi) çalışır.
+## Excel Power Query (uygulandı)
 
-**Excel'de denenmesi gerekenler:** açılır listeye bağlı `SUMIFS` formüllerinin büyük veri setinde yenileme süresi, `Hücre` sütunu eklendikten sonra eski şablonların yenilemede bozulmadığı.
+- Şablon (`tools/pq_sablon.py` → `build_kalem_ayrinti`) **Kalem Ayrıntısı** sayfası: `B3` gider kodu, `B4` bölüm (`Tümü` ya da kapsamdaki bölüm, açılır liste). Kapsam, yıl ve aylar Kontrol Paneli'nden gelir.
+- Üstte özet (bütçe, gerçekleşen, sapma, %, yön, iki etki, köprü farkı); altında bölüm kırılımı (kaynak dosya, tutarlar, adetler, kalem bütçe BM, etkiler); tek bölüm seçiliyse aylık kaynak değerleri tablosu.
+- Formüller `Veri` tablosundaki `Gider|bölüm|kod|yıl` satırından ve `_Bolum` yardımcı sayfasındaki adetlerden (`Hacim ve Birim Maliyet` ile aynı sütunlar) okur. Makro yoktur.
+- Doğrulama: `python tools/pqtest/sablon_dogrula.py` dört durum çalıştırır (yukarıdaki üç satır + geçersiz kod). CI'da LibreOffice işi bunu çalıştırır; `powerquery-motor` işi sorguyu gerçek M motorunda dener (sorgu değişmedi).
+- Kaynak **hücre adresi** sorgu çıktısında yok. Eklemek için `Butce_Veri.pq` kalem satırına `Hücre` sütunu gerekir; bu, PQTest beklenen çıktısını değiştirir. Şimdilik yapılmadı.
+
+**Excel'de denenmesi gerekenler:** sayfanın Windows Excel'de açılış ve seçim değiştirme hızı (formüller 60 bölüm satırı için hazır).
