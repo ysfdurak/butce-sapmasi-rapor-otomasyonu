@@ -4,7 +4,7 @@ Windows masaüstü Excel üzerinde bağımsız VBA rapor uygulaması. Python vey
 
 [Kurulum ve kullanım](KULLANIM.md) ile başlayın. VBA proje erişimi kapalıysa aynı belgedeki elle kurulum kullanılabilir (`vba_elle/` klasörü). Şirket güvenlik ayarları otomatik değiştirilmez.
 
-Raporlar Python sürümüyle aynı hesap kurallarını kullanır: Yönetici Özeti, Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Birim Maliyet, Kontrol ve Revizyon. Kurallar: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı ve onay izi: [Açıklamalar](../docs/YORUM_KULLANIMI.md).
+Raporlar Python sürümüyle aynı hesap kurallarını kullanır: Yönetici Özeti, Genel Özet, Giderler, Birim Maliyet, Önemli Sapmalar, Yıl Sonu Tahmini, Hacim ve Birim Maliyet, Kalem Ayrıntısı, Kontrol ve Revizyon. Kurallar: [Veri ve hesap](../docs/VERI_VE_HESAP.md). Açıklama akışı ve onay izi: [Açıklamalar](../docs/YORUM_KULLANIMI.md).
 
 Çalışma Merkezi; kontrol listesi, hesap izi, eşleştirme değişiklikleri ve kalıcı kimlikler, adlandırılmış rapor seçimleri, kaynak alanı işaretleme, girdi arşivi (son 20 çalışma), yeniden üretim ve güvenli durdurmayı sunar.
 

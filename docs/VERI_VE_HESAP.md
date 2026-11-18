@@ -32,6 +32,7 @@ Birden fazla bölüm aynı kontrol grubuna bağlanabilir. Örnekte Giriş ve Tar
 | **Önemli Sapmalar** | Bölüm × alt gider × seçili ay toplamında \|sapma\| ≥ `onemlilik_tutari` **ve** \|sapma / bütçe\| ≥ `onemlilik_orani`. Bütçe sıfırsa oran tanımsızdır; yalnız tutar eşiği uygulanır. Sıralama \|sapma\| büyükten küçüğe. Müdürlük dosyasında açıklama hücresi turuncu olur ve **Açıklama durumu** formülü `Açıklandı` / `Açıklama gerekli` gösterir. |
 | **Yıl Sonu Tahmini** | Kapanış yılı için. Yöntem 1: Ocak–kapanış ayı gerçekleşen + kalan ayların bütçesi. Yöntem 2 (aylık ortalama gidiş): Ocak–kapanış gerçekleşen / kapanış ayı × 12. Her ikisi yıllık bütçeyle karşılaştırılır. Seçili ay listesinden bağımsızdır. |
 | **Hacim ve Birim Maliyet** | Seçili aylarda: **hacim etkisi** = (gerçekleşen adet − bütçe adet) × bütçe birim maliyeti; **birim maliyet etkisi** = gerçekleşen gider − bütçe birim maliyeti × gerçekleşen adet. İki etkinin toplamı gerçekleşen − bütçe farkıdır. Sıfır/negatif adetli ay bulunan bölümde etkiler boş kalır. |
+| **Kalem Ayrıntısı** | Aynı iki etki tek gider kalemi için: kalem bütçe birim maliyeti = kalemin bütçesi ÷ bölümün bütçe adedi; adetler bölümün işlem adetleridir. Python web arayüzünde tıklamayla, PQ şablonunda seçimle, makro raporunda filtreyle açılır. [Ayrıntı](KALEM_AYRINTISI.md) |
 
 Seçili yıl bütçe yılı değilse önemlilik uygulanmaz; tahmin ve hacim sayfaları oluşturulmaz.
 

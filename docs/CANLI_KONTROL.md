@@ -9,6 +9,8 @@ Kutular Windows'ta kullanıcı tarafından işaretlenmek üzere bilerek boştur.
 - [ ] Depolama müdürlük dosyasında Önemli Sapmalar'ın **Açıklama durumu** sütunu `Açıklama gerekli`; Giderler'deki ilgili açıklama hücreleri turuncu. Bir hücreye açıklama yazınca durum `Açıklandı` oluyor.
 - [ ] Yıl Sonu Tahmini direktörlük satırı: yıllık bütçe 4.108.586.425,59; tahmin 4.117.030.835,77; aylık ortalama gidiş 4.139.260.068,37.
 - [ ] Hacim ve Birim Maliyet direktörlük satırında hacim etkisi + birim maliyet etkisi = gerçekleşen − bütçe (8.444.410,18).
+- [ ] **Kalem Ayrıntısı** (V5.6, makro): Gider kodu filtresinde 1 seçilince görünen satırların toplamı gerçekleşen 845.437.105,52, bütçe 843.367.397,13, hacim etkisi 13.648.730,22, birim maliyet etkisi −11.579.021,83, köprü farkı 0,00. Bölüm filtresi Giriş, kod 3: hacim −1.760.939,53, birim maliyet 1.879.419,62.
+- [ ] **Kalem Ayrıntısı** (Power Query şablonu): `B3`=1, `B4`=Tümü iken özet yukarıdaki değerlerle aynı; `B4`=Giriş, `B3`=3 iken aylık kaynak tablosunda 10 ay var.
 - [ ] Ayarlar.xlsx'te `onemlilik_tutari` 250.000 ve `onemlilik_orani` 0,05 yapınca önemli sapma sayısı artıyor; `onemlilik_orani` 10 yapınca açık hata mesajı çıkıyor.
 - [ ] Bir maliyet dosyasında bir tutarı metin olarak (`'1.234,56`) yazın: Kontrol ve Revizyon › Uyarılar'da hücre adresiyle "sayıya çevrildi" uyarısı var ve toplam değişmiyor.
 - [ ] Maliyet dosyasının en üstüne iki satır ekleyin: uyarıda `BF61` / `EZ60` önerisi görünüyor.

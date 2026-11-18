@@ -165,6 +165,20 @@ Public Sub SentetikTest()
     volume = VolumeRow("Giriþ", "Bölüm", SingleScope(K("Giriþ")))
     Expect "Giriþ gerçekleþen adet", volume(5), CDec(5070772)
     Expect "Giriþ bütçe adet", volume(6), CDec(5660000)
+    ' Kalem ayrýntýsý (Python kalem.detail ile ayný beklenen deðerler)
+    a = CDec(0): forecast = CDec(0): totalCost = CDec(0)
+    For Each n In scope.Keys
+        row = LineVolumeRow(CStr(n), 1)
+        a = Plus(a, row(8)): forecast = Plus(forecast, row(9)): totalCost = Plus(totalCost, row(4))
+    Next n
+    Expect "Kalem 1 hacim etkisi", a, CDec(13648730.2206), 0.01
+    Expect "Kalem 1 birim maliyet etkisi", forecast, CDec(-11579021.8306), 0.01
+    Expect "Kalem 1 etkiler sapmayý verir", Plus(a, forecast), totalCost, 0.01
+    row = LineVolumeRow(K("Giriþ"), 3)
+    Expect "Giriþ kalem 3 gerçekleþen", row(2), CDec(17033694.15)
+    Expect "Giriþ kalem 3 bütçe", row(3), CDec(16915214.06)
+    Expect "Giriþ kalem 3 hacim etkisi", row(8), CDec(-1760939.5318), 0.01
+    Expect "Giriþ kalem 3 birim maliyet etkisi", row(9), CDec(1879419.6218), 0.01
     Set layoutRows = PanoRows(scope)
     Expect "Pano veri satýrý", layoutRows.Count, 3120
     forecast = CDec(0)

@@ -3,6 +3,7 @@
 ## V5.6 — Kasım 2026
 
 - **Kalem ayrıntısı** (Python web arayüzü ve tarayıcı demosu): Detay durum veya Sapma öncelikleri ekranında alt gider adına tıklayınca bütçe, gerçekleşen, sapma, hacim etkisi, birim maliyet etkisi, bölüm kırılımı, açıklama durumu ve rakamı oluşturan kaynak hücreler (dosya, sayfa, hücre) açılır. Hücre toplamı hesaplanan tutarla karşılaştırılır. [Ayrıntı](KALEM_AYRINTISI.md)
+- **Kalem Ayrıntısı sayfası — Power Query ve makro:** PQ şablonunda gider kodu ve bölüm seçilen formüllü sayfa; makro raporunda her bölüm × kalem satırı, filtre ve görünen satır toplamı. Makro sürümü Windows Excel'de henüz denenmedi.
 - VBA ve Power Query karşılığı öneri olarak yazıldı; Windows Excel'de denenince eklenecek.
 - Arayüz: iki küçük metnin kontrastı WCAG AA'ya yükseltildi (sıra rozeti, kenar çubuğu alt notu).
 

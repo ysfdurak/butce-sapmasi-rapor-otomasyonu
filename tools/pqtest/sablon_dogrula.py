@@ -125,6 +125,74 @@ def senaryo(gecici, veri, ad, kapsam, mod, aylar, py_aylar, py_dosya, mudurluk=N
     return hata
 
 
+KALEM_SENARYOLARI = [
+    # ad, kapsam, ay seçimi, elle aylar, gider kodu, bölüm, Python filtreleri
+    ("Kalem 1 · direktörlük · yıl başından", "Tümü", "Yıl başından kapanışa", [], 1, "Tümü", {}),
+    ("Kalem 3 · Giriş · yıl başından", "Tümü", "Yıl başından kapanışa", [], 3, "Giriş", {}),
+    ("Kalem 7 · Depolama · Ocak, Mart, Mayıs", "Depolama", "Elle seçim", [1, 3, 5], 7, "Tümü",
+     {"manager": ["Depolama"], "month": [1, 3, 5]}),
+]
+
+
+def kalem_senaryosu(gecici, veri):
+    """Kalem Ayrıntısı sayfası: Python kalem.detail ile aynı bütçe, gerçekleşen, hacim ve birim maliyet etkisi."""
+    from model import Dataset
+    import kalem
+
+    data = Dataset(AYAR, (2026, 10))
+    hata = 0
+    for ad, kapsam, mod, aylar, kod, bolum, filtre in KALEM_SENARYOLARI:
+        print("==", ad)
+        wb = pq_sablon.build(veri)
+        panel = wb["Kontrol Paneli"]
+        panel["C6"], panel["C8"] = kapsam, mod
+        for m in aylar:
+            panel.cell(10, 2 + m, 1)
+        wb["Kalem Ayrıntısı"]["B3"], wb["Kalem Ayrıntısı"]["B4"] = kod, bolum
+        ws = hesapla(gecici, wb)["Kalem Ayrıntısı"]
+        r = kalem.detail(data, {"filters": filtre}, kod, department=None if bolum == "Tümü" else bolum)
+
+        def f(v):
+            return None if v is None else float(v)
+
+        t = [[ws.cell(8, c).value for c in range(1, 9)]]
+        p = [[f(r["budget"]), f(r["actual"]), f(r["variance"]), f(r["rate"]),
+              r["direction"],
+              f(r["volume"]), f(r["price"]), f(r["residual"])]]
+        hata += karsilastir("Özet", t, p)
+        hata += 0 if ws["B5"].value == r["name"] else (print("  Kalem adı farklı:", ws["B5"].value, r["name"]) or 1)
+        t = satirlar(ws, pq_sablon.KA_ILK, range(1, 12))
+        p = [[d["department"], d["manager"], None, f(d["actual"]), f(d["budget"]), f(d["variance"]), f(d["count"]),
+              f(d["plannedCount"]), f(d["unitBudget"]), f(d["volume"]), f(d["price"])] for d in r["departments"]]
+        for a, b in zip(t, p):
+            b[2] = a[2]  # kaynak dosya adı: PQ yalnız adı taşır, aşağıda ayrıca denetlenir
+            if not a[2]:
+                print("  Kaynak dosya boş:", a[0])
+                hata += 1
+        hata += karsilastir("Bölümler", t, p)
+        if bolum != "Tümü":
+            a0 = pq_sablon.KA_AY
+            ay = [ws.cell(a0 + m, 2).value for m in range(1, 13) if ws.cell(a0 + m, 1).value]
+            beklenen = len(filtre.get("month", range(1, 11)))
+            if len(ay) != beklenen or abs(sum(ay) - float(r["actual"])) > 1e-6:
+                print(f"  Aylık kaynak değerleri tutmuyor: {len(ay)} ay, toplam {sum(ay)} / {r['actual']}")
+                hata += 1
+            else:
+                print(f"  Aylık kaynak değerleri: {len(ay)} ay, toplam gerçekleşenle aynı")
+    # Geçersiz kod: şablon "Kalem bulunamadı" gösterir ve tablolar boş kalır (Python ValueError verir)
+    print("== Geçersiz gider kodu")
+    wb = pq_sablon.build(veri)
+    wb["Kalem Ayrıntısı"]["B3"] = 2
+    ws = hesapla(gecici, wb)["Kalem Ayrıntısı"]
+    bos = all(ws.cell(8, c).value in (None, "") for c in range(1, 9))
+    if ws["B5"].value != "Kalem bulunamadı" or not bos:
+        print("  Geçersiz kodda sayfa boş kalmadı:", ws["B5"].value)
+        hata += 1
+    else:
+        print("  Kalem bulunamadı, özet boş")
+    return hata
+
+
 def guncel_mi():
     """Depodaki Butce_Rapor_Sablonu.xlsx, pq_sablon.py'nin ürettiğiyle hücre hücre aynı mı?"""
     with tempfile.TemporaryDirectory() as d:
@@ -374,6 +442,7 @@ def main():
     klasor = sys.argv[sys.argv.index("--aciklama") + 1] if "--aciklama" in sys.argv else None
     with tempfile.TemporaryDirectory() as d:
         hata += butce_trend_senaryosu(Path(d))
+        hata += kalem_senaryosu(Path(d), veri)
         if klasor:
             hata += onay_senaryosu(Path(d), veri, klasor)
         for s in SENARYOLAR:
