@@ -5,6 +5,7 @@
 - **Kalem ayrıntısı** (Python web arayüzü ve tarayıcı demosu): Detay durum veya Sapma öncelikleri ekranında alt gider adına tıklayınca bütçe, gerçekleşen, sapma, hacim etkisi, birim maliyet etkisi, bölüm kırılımı, açıklama durumu ve rakamı oluşturan kaynak hücreler (dosya, sayfa, hücre) açılır. Hücre toplamı hesaplanan tutarla karşılaştırılır. [Ayrıntı](KALEM_AYRINTISI.md)
 - VBA ve Power Query karşılığı öneri olarak yazıldı; Windows Excel'de denenince eklenecek.
 - Arayüz: iki küçük metnin kontrastı WCAG AA'ya yükseltildi (sıra rozeti, kenar çubuğu alt notu).
+- Erişilebilirlik: ortak seçim listeleri onay kutusu grubu olarak işaretlendi (iç içe etkileşimli öğe uyarısı giderildi); kaydırılabilir tablo ve geniş grafikler klavyeyle odaklanabiliyor. Bütün sayfalarda axe (WCAG 2 A/AA) hatası yok.
 
 ## V5.5 — Kasım 2026
 
