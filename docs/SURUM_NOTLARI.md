@@ -1,5 +1,11 @@
 # Sürüm notları
 
+## V5.6 — Kasım 2026
+
+- **Kalem ayrıntısı** (Python web arayüzü ve tarayıcı demosu): Detay durum veya Sapma öncelikleri ekranında alt gider adına tıklayınca bütçe, gerçekleşen, sapma, hacim etkisi, birim maliyet etkisi, bölüm kırılımı, açıklama durumu ve rakamı oluşturan kaynak hücreler (dosya, sayfa, hücre) açılır. Hücre toplamı hesaplanan tutarla karşılaştırılır. [Ayrıntı](KALEM_AYRINTISI.md)
+- VBA ve Power Query karşılığı öneri olarak yazıldı; Windows Excel'de denenince eklenecek.
+- Arayüz: iki küçük metnin kontrastı WCAG AA'ya yükseltildi (sıra rozeti, kenar çubuğu alt notu).
+
 ## V5.5 — Kasım 2026
 
 - **Konumlar otomatik bulunur** (Python, makro, Power Query): Ayarlar › Dosya ve Konum Ayarları'ndaki Maliyet, Kontrol ve Endeks konum satırları artık isteğe bağlıdır. Satır yoksa konum dosyadan bulunur ve Uyarılar'a yazılır; Ayarlar'da değer varsa o kullanılır. Eski Ayarlar dosyaları değişmeden çalışır. [Kurallar](VERI_VE_HESAP.md#konumların-otomatik-bulunması-v55)

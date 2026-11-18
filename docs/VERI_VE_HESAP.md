@@ -35,6 +35,8 @@ Birden fazla bölüm aynı kontrol grubuna bağlanabilir. Örnekte Giriş ve Tar
 
 Seçili yıl bütçe yılı değilse önemlilik uygulanmaz; tahmin ve hacim sayfaları oluşturulmaz.
 
+**Kalem ayrıntısı (V5.6, Python):** hacim ve birim maliyet etkisi tek gider satırına da ayrılır. Kalem bütçe birim maliyeti = kalem bütçesi / bölümün bütçe işlem adedi; formüller yukarıdakiyle aynıdır. Bir bölümün bütün kalemlerinin etkileri toplamı bölüm satırına eşittir. [Kalem ayrıntısı](KALEM_AYRINTISI.md)
+
 ## V5.4 bütçe sürümleri ve trend
 
 Python (`surum.py`), makro (`MakroSurum`) ve Power Query şablonu aynı kuralları uygular.
