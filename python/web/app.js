@@ -113,7 +113,7 @@ function buildFilters() {
   $("#filters").innerHTML = Object.keys(filterNames)
     .map(
       (key) =>
-        `<div class="filter"><div class="filter-heading"><span>${filterNames[key]}</span><button data-filter-all="${key}">${selected(key).length === meta.options[key].length ? "Temizle" : "Tümü"}</button></div><div class="listbox" role="listbox" aria-label="${filterNames[key]}" aria-multiselectable="true">${meta.options[key].map((v, i) => `<label role="option" aria-selected="${selected(key).includes(v)}"><input type="checkbox" data-filter="${key}" data-index="${i}" ${selected(key).includes(v) ? "checked" : ""}>${esc(label(key, v))}</label>`).join("")}</div></div>`,
+        `<div class="filter"><div class="filter-heading"><span>${filterNames[key]}</span><button data-filter-all="${key}">${selected(key).length === meta.options[key].length ? "Temizle" : "Tümü"}</button></div><div class="listbox" role="group" aria-label="${filterNames[key]}">${meta.options[key].map((v, i) => `<label><input type="checkbox" data-filter="${key}" data-index="${i}" ${selected(key).includes(v) ? "checked" : ""}>${esc(label(key, v))}</label>`).join("")}</div></div>`,
     )
     .join("");
   $$("#filters .listbox").forEach((el, i) => (el.scrollTop = scrolls[i] || 0));
@@ -269,7 +269,7 @@ function lineChart(
         body += `<text x="${xx(i)}" y="${yy(v) + (si % 2 === 0 ? -11 : 17)}" text-anchor="middle" class="value-label">${fmt(v, counts ? 0 : 2)}</text>`;
     });
   }
-  return `<div class="chart wide"><svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Dönem çizgi grafiği">${body}</svg></div>`;
+  return `<div class="chart wide" tabindex="0" role="region" aria-label="Grafik · yatay kaydırılabilir"><svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Dönem çizgi grafiği">${body}</svg></div>`;
 }
 function renderGeneral() {
   const years = data.selection.years,
@@ -344,7 +344,7 @@ function combo(rows, totals = false) {
       ...years.map((y, i) => [`${y} Gerçekleşen`, palette[i % palette.length]]),
       ...(b.some((v) => v !== null) ? [[`${meta.budgetYear} Bütçe`, "#bd743b"]] : []),
     ]) +
-    `<div class="chart wide"><svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Personel sütun ve bütçe çizgi grafiği">${out}</svg></div>`
+    `<div class="chart wide" tabindex="0" role="region" aria-label="Grafik · yatay kaydırılabilir"><svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Personel sütun ve bütçe çizgi grafiği">${out}</svg></div>`
   );
 }
 function segments(id, entries, current) {
@@ -386,7 +386,7 @@ function renderTransactions() {
     cards(data.transactions.cards, true, data.transactions.name) +
     panel(
       "Yıl ve ay bazında · " + data.transactions.name,
-      `<div class="scroll-table"><table><thead><tr><th>Yıl / metrik</th>${columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows || `<tr><td colspan="14">Seçime uygun kayıt yok.</td></tr>`}</tbody></table></div>`,
+      `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Yıl / metrik</th>${columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows || `<tr><td colspan="14">Seçime uygun kayıt yok.</td></tr>`}</tbody></table></div>`,
       "Yılların yanındaki + / − ile metrikleri açın. Sapma = bütçe − gerçekleşen; bütçeyi aşan adet yeşil.",
     )
   );
@@ -445,14 +445,14 @@ function renderDetail() {
     if (groupsOpen.has(g.name)) rows += g.items.map((r) => detailRow(r, "detail")).join("");
   }
   rows += detailRow({ name: "TOPLAM", ...data.detail.total, history: [] }, "total");
-  return `<div class="detail-grid">${panel("Ana ve alt giderler", `<div class="scroll-table"><table><thead><tr><th>Gider kalemi</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Bütçe − gerçekleşen<br>Milyon TL</th><th>Sapma %</th></tr></thead><tbody>${rows}</tbody></table></div>`, "Alt gider adına tıklayarak bütçe, gerçekleşen, hacim / birim maliyet etkisi ve kaynak hücrelerini açın. Gerçekleşen hücresinin üzerine gelerek seçili yılların trendini görün.")}<section class="panel donut-panel"><div class="panel-head"><h3>Ana giderlerin payı</h3></div>${donut(data.detail.groups)}</section></div>`;
+  return `<div class="detail-grid">${panel("Ana ve alt giderler", `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Gider kalemi</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Bütçe − gerçekleşen<br>Milyon TL</th><th>Sapma %</th></tr></thead><tbody>${rows}</tbody></table></div>`, "Alt gider adına tıklayarak bütçe, gerçekleşen, hacim / birim maliyet etkisi ve kaynak hücrelerini açın. Gerçekleşen hücresinin üzerine gelerek seçili yılların trendini görün.")}<section class="panel donut-panel"><div class="panel-head"><h3>Ana giderlerin payı</h3></div>${donut(data.detail.groups)}</section></div>`;
 }
 function localList(key) {
   const current = state[key] ?? meta.options.department;
   return `<div class="local-filter"><details><summary>Tablo bölümleri · ${current.length} seçili</summary><div class="listbox"><div class="filter-heading"><button data-local-all="${key}">Tümü</button><button data-local-none="${key}">Temizle</button></div>${meta.options.department.map((n, i) => `<label><input type="checkbox" data-local="${key}" data-index="${i}" ${current.includes(n) ? "checked" : ""}>${esc(n)}</label>`).join("")}</div></details></div>`;
 }
 function matrix(rows, fields) {
-  return `<div class="scroll-table"><table><thead><tr><th>Bölüm / düzey</th>${fields.map((f) => `<th>${esc(f.label)}</th>`).join("")}</tr></thead><tbody>${
+  return `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Bölüm / düzey</th>${fields.map((f) => `<th>${esc(f.label)}</th>`).join("")}</tr></thead><tbody>${
     rows
       .map(
         (r) =>
@@ -567,7 +567,7 @@ function renderPriority() {
         .includes(prioritySearch.toLocaleLowerCase("tr")),
     );
   const ready = data.selection.years.length === 1 && data.selection.years[0] === meta.budgetYear;
-  const table = `<div class="scroll-table"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Sapma<br>Milyon TL</th><th>Sapma %</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><button class="line-link metric-label" data-line="${r.code}" data-line-department="${esc(r.department)}" title="Kalem ayrıntısını aç">${esc(r.item)}</button></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad">${fmt(r.gap)}</td><td class="bad">${pct(r.rate)}</td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
+  const table = `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Sapma<br>Milyon TL</th><th>Sapma %</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><button class="line-link metric-label" data-line="${r.code}" data-line-department="${esc(r.department)}" title="Kalem ayrıntısını aç">${esc(r.item)}</button></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad">${fmt(r.gap)}</td><td class="bad">${pct(r.rate)}</td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
   return (
     `<div class="cards">${card("Brüt bütçe aşımı", fmt(p.gross), "Milyon TL", p.gross > 0 ? "bad" : "")}${card("Net bütçeyi aşan bölüm", fmt(p.netDepartments, 0), "bölüm")}${card("En büyük 5 aşımın payı", pct(p.top5), "Brüt bütçe aşımı içindeki pay")}${card("Bölüm–gider aşım kaydı", ready ? fmt(p.rows.length, 0) : "—", "kayıt")}</div><div class="section-tools"><input class="mini-search" id="prioritySearch" value="${esc(prioritySearch)}" placeholder="Bölüm veya gider ara" aria-label="Sapma tablosunda ara"><div><button data-comments="review">Açıklamaları toplu düzenle</button> <button id="importNotesBtn">Açıklama yükle</button> <button id="mergeNotesBtn">Rapor açıklamalarını birleştir</button></div></div>` +
     panel(
@@ -672,7 +672,7 @@ function showAudit() {
   );
 }
 function rawTable(headers, rows) {
-  return `<div class="scroll-table"><table><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((v) => `<td>${typeof v === "number" ? fmt(v) : esc(v ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="scroll-table" tabindex="0"><table><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((v) => `<td>${typeof v === "number" ? fmt(v) : esc(v ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function hover(cell, event) {
   const info = JSON.parse(cell.dataset.hover);
@@ -1128,7 +1128,7 @@ async function showWorkspace() {
       .map((n) => `<option>${esc(n)}</option>`)
       .join(
         "",
-      )}</select></label></div><div class="modal-actions"><button id="saveViewBtn">Mevcut seçimi adlandır ve kaydet</button><button id="loadViewBtn">Seçili görünümü aç</button><button id="deleteViewBtn">Görünümü sil</button></div></details><details><summary>Çalıştırma geçmişi ve girdi kopyaları</summary>${field("Yeniden üretim çıktı konumu", "historyOutput", meta.output, "text", true, "folder")}<p>Her raporda kullanılan girdiler ayrı kopyalanır. Yeniden üretim o kopyaları kullanır; güncel dosyalara dönmez. Kopyalar disk alanı kullanır. Aynı ayar yolunun bir önceki çalışmasıyla değişen kaynaklar karşılaştırılır.</p><div class="scroll-table"><table><thead><tr><th>Çalışma</th><th>Durum</th><th>Dönem</th><th>Değişen / kaldırılan kaynak</th><th>Sonuç</th><th>İşlem</th></tr></thead><tbody>${workspaceData.history.map((h) => `<tr><td>${esc(h.started)}</td><td>${esc(h.state)}</td><td>${esc(h.args.year)} · ${esc(h.args.months.join(", "))}</td><td>${esc(h.changedFiles.map((x) => x.split(/[\\/]/).pop()).join(", "))}${h.removedFiles.length ? " / Kaldırılan: " + esc(h.removedFiles.join(", ")) : ""}</td><td>${esc(h.result?.folder || h.result?.error || "")}</td><td><button data-replay="${esc(h.id)}">Bu girdilerle yeniden üret</button></td></tr>`).join("")}</tbody></table></div></details>`,
+      )}</select></label></div><div class="modal-actions"><button id="saveViewBtn">Mevcut seçimi adlandır ve kaydet</button><button id="loadViewBtn">Seçili görünümü aç</button><button id="deleteViewBtn">Görünümü sil</button></div></details><details><summary>Çalıştırma geçmişi ve girdi kopyaları</summary>${field("Yeniden üretim çıktı konumu", "historyOutput", meta.output, "text", true, "folder")}<p>Her raporda kullanılan girdiler ayrı kopyalanır. Yeniden üretim o kopyaları kullanır; güncel dosyalara dönmez. Kopyalar disk alanı kullanır. Aynı ayar yolunun bir önceki çalışmasıyla değişen kaynaklar karşılaştırılır.</p><div class="scroll-table" tabindex="0"><table><thead><tr><th>Çalışma</th><th>Durum</th><th>Dönem</th><th>Değişen / kaldırılan kaynak</th><th>Sonuç</th><th>İşlem</th></tr></thead><tbody>${workspaceData.history.map((h) => `<tr><td>${esc(h.started)}</td><td>${esc(h.state)}</td><td>${esc(h.args.year)} · ${esc(h.args.months.join(", "))}</td><td>${esc(h.changedFiles.map((x) => x.split(/[\\/]/).pop()).join(", "))}${h.removedFiles.length ? " / Kaldırılan: " + esc(h.removedFiles.join(", ")) : ""}</td><td>${esc(h.result?.folder || h.result?.error || "")}</td><td><button data-replay="${esc(h.id)}">Bu girdilerle yeniden üret</button></td></tr>`).join("")}</tbody></table></div></details>`,
   );
 }
 const fmtTL = (v) => fmt(v, 0);
@@ -1256,7 +1256,7 @@ async function showLayout() {
   layoutData = await api("layout-preview", {});
   showModal(
     "Tablo düzeni ve örnek alan",
-    `<p>Kaynak: ${esc(layoutData.file)} · Sayfa: ${esc(layoutData.sheet)}</p><label class="form-field"><span>Hücreye tıklayarak doldurulacak parametre</span><select id="layoutTarget">${layoutData.parameters.map((r, i) => `<option value="${i}">${esc(r[0] + " / " + r[1])}</option>`).join("")}</select></label><div class="scroll-table"><table><tbody>${layoutData.sample.map((row) => `<tr>${row.map((c) => `<td><button data-layout-cell="${esc(c[0])}">${esc(c[0] + ": " + c[1])}</button></td>`).join("")}</tr>`).join("")}</tbody></table></div><p>Başlangıç hücreleri ve satırlar mevcut ayar Excel’ine yazılır. Bütçe ve endeks bloklarını bulma kuralları korunur. Kaydetmeden önce kaynakların tamamı okunarak doğrulanır; önceki ayarın yedeği alınır.</p><div class="scroll-table"><table><thead><tr><th>Alan</th><th>Parametre</th><th>Değer</th></tr></thead><tbody>${layoutData.parameters.map((r, i) => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td><input data-layout-index="${i}" value="${esc(r[2])}" type="${typeof r[2] === "number" ? "number" : "text"}" step="any"></td></tr>`).join("")}</tbody></table></div><button id="saveLayoutBtn" class="primary">Düzeni doğrula ve kaydet</button>`,
+    `<p>Kaynak: ${esc(layoutData.file)} · Sayfa: ${esc(layoutData.sheet)}</p><label class="form-field"><span>Hücreye tıklayarak doldurulacak parametre</span><select id="layoutTarget">${layoutData.parameters.map((r, i) => `<option value="${i}">${esc(r[0] + " / " + r[1])}</option>`).join("")}</select></label><div class="scroll-table" tabindex="0"><table><tbody>${layoutData.sample.map((row) => `<tr>${row.map((c) => `<td><button data-layout-cell="${esc(c[0])}">${esc(c[0] + ": " + c[1])}</button></td>`).join("")}</tr>`).join("")}</tbody></table></div><p>Başlangıç hücreleri ve satırlar mevcut ayar Excel’ine yazılır. Bütçe ve endeks bloklarını bulma kuralları korunur. Kaydetmeden önce kaynakların tamamı okunarak doğrulanır; önceki ayarın yedeği alınır.</p><div class="scroll-table" tabindex="0"><table><thead><tr><th>Alan</th><th>Parametre</th><th>Değer</th></tr></thead><tbody>${layoutData.parameters.map((r, i) => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td><input data-layout-index="${i}" value="${esc(r[2])}" type="${typeof r[2] === "number" ? "number" : "text"}" step="any"></td></tr>`).join("")}</tbody></table></div><button id="saveLayoutBtn" class="primary">Düzeni doğrula ve kaydet</button>`,
   );
 }
 function commentVisible() {
@@ -1336,7 +1336,7 @@ function renderComments() {
       .map(([v, t]) => `<option value="${v}" ${v === commentFilter ? "selected" : ""}>${t}</option>`)
       .join(
         "",
-      )}</select></label><input id="commentSearch" value="${esc(commentSearch)}" placeholder="Bölüm, gider veya metin ara"><span id="commentSelectedCount"></span></div><details><summary>Seçili satırlara ortak açıklama uygula</summary><textarea id="commentCommonText" maxlength="32000" placeholder="Aynı açıklamanın geçerli olduğu satırları seçin. Metin taslağa uygulanır; onay ayrı yapılır."></textarea><button id="commentSameBtn">Metni seçili taslaklara uygula</button></details><div class="scroll-table comment-table"><table><thead><tr><th>Seç</th><th>Bölüm / alt gider</th><th>Önceki yorum · kaynak dönem</th><th>Bu dönem taslağı · doğrudan düzenle</th><th>Veri kontrolü</th></tr></thead><tbody id="commentRows"></tbody></table></div><p class="control-note">Kırmızı taslaklar rapora “Kontrol bekliyor — önceki dönemden” etiketiyle gider. Onaylananlar normal renge döner; geçersiz sayılanlar rapora alınmaz. Mevcut bu dönem açıklamasını Sapma öncelikleri ekranından düzenleyebilirsiniz.</p>`;
+      )}</select></label><input id="commentSearch" value="${esc(commentSearch)}" placeholder="Bölüm, gider veya metin ara"><span id="commentSelectedCount"></span></div><details><summary>Seçili satırlara ortak açıklama uygula</summary><textarea id="commentCommonText" maxlength="32000" placeholder="Aynı açıklamanın geçerli olduğu satırları seçin. Metin taslağa uygulanır; onay ayrı yapılır."></textarea><button id="commentSameBtn">Metni seçili taslaklara uygula</button></details><div class="scroll-table comment-table" tabindex="0"><table><thead><tr><th>Seç</th><th>Bölüm / alt gider</th><th>Önceki yorum · kaynak dönem</th><th>Bu dönem taslağı · doğrudan düzenle</th><th>Veri kontrolü</th></tr></thead><tbody id="commentRows"></tbody></table></div><p class="control-note">Kırmızı taslaklar rapora “Kontrol bekliyor — önceki dönemden” etiketiyle gider. Onaylananlar normal renge döner; geçersiz sayılanlar rapora alınmaz. Mevcut bu dönem açıklamasını Sapma öncelikleri ekranından düzenleyebilirsiniz.</p>`;
   renderCommentRows();
 }
 async function saveCommentBatch(action, dirtyOnly = false) {
