@@ -1,5 +1,11 @@
 # Sürüm notları
 
+## V5.7.1 — Kasım 2026 (tek kalemin hesap izi)
+
+- **Hesap izi:** Kalem ayrıntısı penceresinde yeni tablo: gerçekleşen (kaynak dosya ve kapanış dönemi, toplanan aylar), **seçili bütçe** (güncel mi ilk mi, hangi dosya ve dönem), fark ve fark %. Power Query şablonunun Kalem Ayrıntısı sayfası da karşılaştırma bütçesini yazar (B6).
+- **Düzeltme:** Karşılaştırma bütçesi "İlk bütçe" seçiliyken kaynak hücre listesi ("Hesap nasıl oluştu?" ve kalem ayrıntısı) bütçe hücrelerini kapanış dosyasından okuyordu; tutar ilk bütçeyken hücreler güncel bütçeydi ve mutabakat "tutmuyor" diyordu. Artık bütçe hücreleri bölümün yılın ilk kapanış dosyasından okunur. Test: `tests/test_kalem.py › LineTraceBasisTests` (ilk dosyadaki bütçe değiştirilerek; düzeltme geri alınınca test düşer).
+- **Python ve Excel yan yana:** [KALEM_IZI.md](KALEM_IZI.md) iki kalemi (Giriş · kalem 3, Sayım · kalem 1) adım adım ve ay ay iki sürümde gösterir; `tools/pqtest/kalem_izi.py` her gönderimde çalışır, fark ya da eskimiş belge varsa iş düşer.
+
 ## V5.7 — Kasım 2026 (Python web arayüzü ve tarayıcı demosu)
 
 - **Sapma iş diliyle yazılır:** Sapma öncelikleri tablosunda eksi işaretli "Sapma" ve "Sapma %" sütunları yerine tek bir **Durum** cümlesi var: "Bütçeyi 17,61 milyon TL aştı (%20,54)". Panodaki hesap `bütçe − gerçekleşen` olduğu için eksi işaret aşım demekti; Excel raporlarındaki `gerçekleşen − bütçe` ve Lehte/Aleyhte kuralıyla karışıyordu. Genel durum kartında da "bütçe aşıldı / bütçenin altında" notu çıkar. Hesap değişmedi.

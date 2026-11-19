@@ -104,7 +104,13 @@ def detail(data, state, code, department=None, notes=None):
                 "reason": "Bütçe ve etkiler yalnız bütçe yılı tek başına seçildiğinde hesaplanır.",
             }
         note = notes.get((n, code), {})
+        snap = data.source_snapshots.get((data.closing, n)) if hasattr(data, "source_snapshots") else None
+        b_period, b_file = data.budget_source(n) if hasattr(data, "budget_source") else (None, None)
         row.update(
+            actualFile=snap[3] if snap else "",
+            actualPeriod=butce.label(data.closing),
+            budgetFile=(b_file or "") if budget_ready else "",
+            budgetPeriod=butce.label(b_period) if budget_ready and b_period else "",
             department=n,
             manager=data.config["bolumler"][n]["mudurluk"],
             rate=butce.ratio(row["variance"], row["budget"]),
@@ -149,7 +155,38 @@ def detail(data, state, code, department=None, notes=None):
         )
 
     rules = analiz.settings(data.config)
+    basis = getattr(data, "budget_basis", "Güncel bütçe")
+    month_text = ", ".join(str(m) for m in months)
+
+    def files(key, period):
+        seen = []
+        for r in departments:
+            item = (r[key], r[period])
+            if item[0] and item not in seen:
+                seen.append(item)
+        return "; ".join(f"{f} (kapanış {p})" for f, p in seen) or "—"
+
+    # Tek kalemin hesap izi: her adım tutarı, nereden geldiğini ve nasıl hesaplandığını söyler.
+    trace = [
+        {"step": "Gerçekleşen", "value": actual,
+         "source": files("actualFile", "actualPeriod"),
+         "how": f"{len(names)} bölüm × {len(years)} yıl × ay {month_text}: kaynak hücrelerin toplamı"},
+    ]
+    if budget_ready:
+        trace += [
+            {"step": f"Seçili bütçe · {basis}", "value": budget,
+             "source": files("budgetFile", "budgetPeriod"),
+             "how": ("Yılın ilk kapanış dosyasındaki bütçe (yıl içi revizyonlardan önce)" if basis != "Güncel bütçe"
+                     else "Kapanış dosyasındaki bütçe (yıl içindeki son revizyon)")
+                    + f"; aynı aylar ({month_text}) toplanır"},
+            {"step": "Fark", "value": variance, "source": "—",
+             "how": "gerçekleşen − seçili bütçe (pozitif: Aleyhte, negatif: Lehte)"},
+            {"step": "Fark %", "value": butce.ratio(variance, budget), "source": "—",
+             "how": "fark / seçili bütçe"},
+        ]
     return {
+        "basis": basis,
+        "trace": trace,
         "code": code,
         "name": label,
         "group": group,

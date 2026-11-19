@@ -132,3 +132,58 @@ class LineDetailHTTPTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LineTraceBasisTests(unittest.TestCase):
+    """Hesap izi seçili bütçeyi ve geldiği dosyayı/dönemi söyler; ilk bütçede kaynak hücreler ilk kapanış
+    dosyasından okunur ve hesaplanan bütçeyle tutar (dış inceleme, Kasım 2026)."""
+
+    def test_trace_current_basis(self):
+        r = kalem.detail(Dataset(SETTINGS, (2026, 10)), {"filters": {}}, 3, department="Giriş")
+        self.assertEqual(r["basis"], "Güncel bütçe")
+        steps = {t["step"]: t for t in r["trace"]}
+        self.assertEqual(list(steps), ["Gerçekleşen", "Seçili bütçe · Güncel bütçe", "Fark", "Fark %"])
+        self.assertIn("Ekim 2026", steps["Seçili bütçe · Güncel bütçe"]["source"])
+        self.assertIn("kapanış 2026-10", steps["Seçili bütçe · Güncel bütçe"]["source"])
+        self.assertEqual(steps["Fark"]["value"], r["actual"] - r["budget"])
+        self.assertEqual(steps["Fark %"]["value"], r["rate"])
+        self.assertTrue(all(x["ok"] for x in r["reconciliation"]))
+
+    def test_first_basis_reads_budget_cells_from_first_closing_file(self):
+        import shutil
+        from openpyxl import load_workbook
+
+        import butce
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "ornek"
+            shutil.copytree(BASE / "ornek", root)
+            data0 = Dataset(root / "Ayarlar.xlsx", (2026, 10))
+            cfg = data0.config["maliyet"]
+            path = root / data0.config["maliyet_klasoru"] / "Eylül 2026 - Dosya 1.xlsx"
+            wb = load_workbook(path)
+            ws = wb["Giriş"]
+            col = butce.positioned_columns(ws, cfg, (2026, 9))[1][(2026, 1)]
+            cell = ws.cell(cfg["ilk_gider_satiri"] + 2, col)  # kalem 3, Ocak bütçesi
+            cell.value = float(cell.value) + 1_000_000
+            wb.save(path)
+
+            real = analiz.settings
+            analiz.settings = lambda c: {**real(c), "karsilastirma_butcesi": "İlk bütçe"}
+            try:
+                first = Dataset(root / "Ayarlar.xlsx", (2026, 10))
+                r1 = kalem.detail(first, {"filters": {}}, 3, department="Giriş")
+            finally:
+                analiz.settings = real
+            r0 = kalem.detail(Dataset(root / "Ayarlar.xlsx", (2026, 10)), {"filters": {}}, 3, department="Giriş")
+
+        self.assertEqual(r1["basis"], "İlk bütçe (yıl başı)")
+        self.assertEqual(r1["budget"] - r0["budget"], D("1000000"))
+        self.assertEqual(r1["actual"], r0["actual"])
+        step = next(t for t in r1["trace"] if t["step"].startswith("Seçili bütçe"))
+        self.assertIn("Eylül 2026 - Dosya 1.xlsx (kapanış 2026-09)", step["source"])
+        budget_cells = [s for s in r1["sources"] if s[4] == "Bütçe"]
+        self.assertTrue(budget_cells and all("Eylül 2026" in s[6] for s in budget_cells))
+        actual_cells = [s for s in r1["sources"] if s[4] == "Gerçekleşen"]
+        self.assertTrue(all("Ekim 2026" in s[6] for s in actual_cells))
+        self.assertTrue(all(x["ok"] for x in r1["reconciliation"]), r1["reconciliation"])

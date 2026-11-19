@@ -149,17 +149,28 @@ def source_cells(data, names, years, months, code=None, counts=False):
                 books[path] = load_workbook(path, data_only=True)
             ws = books[path][n]
             a, b = butce.positioned_columns(ws, cfg, data.closing)
+            # Bütçe hücreleri karşılaştırma bütçesinin dosyasından okunur (ilk bütçe: yılın ilk kapanış dosyası).
+            # İşlem adedi bütçesi her iki bazda da kapanış dosyasınındır (surum.py kuralı).
+            b_ws, b_cols, b_path = ws, b, path
+            period, b_file = data.budget_source(n) if hasattr(data, "budget_source") else (data.closing, snap[3])
+            if b_file and b_file != snap[3]:
+                b_path = (data.root / data.config["maliyet_klasoru"] / b_file).resolve()
+                if b_path not in books:
+                    books[b_path] = load_workbook(b_path, data_only=True)
+                b_ws = books[b_path][n]
+                b_cols = butce.positioned_columns(b_ws, cfg, period)[1]
             manager = data.config["bolumler"][n]["mudurluk"]
 
-            def add(target, title, kind, r, cols, year, m):
+            def add(target, title, kind, r, cols, year, m, sheet=None, file=None):
+                sheet, file = sheet or ws, file or path
                 c = cols.get((year, m))
-                cell = ws.cell(r, c) if c else None
+                cell = sheet.cell(r, c) if c else None
                 v = butce.number(cell.value) if cell else None
                 if kind.startswith("Gerçekleşen") or kind == "İşlem adedi (gerçekleşen)":
                     if (year, m) > data.closing:
                         v = None
                 rows.append(
-                    [n, manager, target, title, kind, butce.label((year, m)), str(path), n,
+                    [n, manager, target, title, kind, butce.label((year, m)), str(file), n,
                      cell.coordinate if cell else "", v]
                 )
 
@@ -174,7 +185,7 @@ def source_cells(data, names, years, months, code=None, counts=False):
                     for m in months:
                         add(target, title, "Gerçekleşen", r, a, year, m)
                         if budget_ok and year == data.budget_year:
-                            add(target, title, "Bütçe", r, b, year, m)
+                            add(target, title, "Bütçe", r, b_cols, year, m, b_ws, b_path)
             if counts:
                 r = cfg["islem_adedi_satiri"]
                 for year in years:

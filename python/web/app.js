@@ -1275,6 +1275,10 @@ async function showLineDetail(code, department) {
         `<tr><td><strong>${esc(r.department)}</strong><br><span class="metric-label">${esc(r.manager)}${r.material ? " · önemli sapma" : ""}</span></td><td>${fmtTL(r.budget)}</td><td>${fmtTL(r.actual)}</td><td class="${signed(r.variance, false)}">${fmtTL(r.variance)}<br><span class="metric-label">${esc(r.direction || "")}</span></td><td>${fmt(r.count, 0)} / ${fmt(r.plannedCount, 0)}</td><td>${fmt(r.unitActual)} / ${fmt(r.unitBudget)}</td>${r.volume === null ? `<td colspan="2" class="metric-label">${lineEffectText(r)}</td>` : `<td class="${signed(r.volume, false)}">${fmtTL(r.volume)}</td><td class="${signed(r.price, false)}">${fmtTL(r.price)}</td>`}</tr>`,
     )
     .join("")}</tbody></table></div>`;
+  // Hesap izi: her adım tutarı, kaynağı (dosya ve kapanış dönemi) ve hesap yolu; % satırı oran olarak yazılır.
+  const traceTable = `<div class="scroll-table" tabindex="0" role="region" aria-label="Hesap izi"><table><thead><tr><th>Adım</th><th>Tutar</th><th>Kaynak dosya · dönem</th><th>Nasıl</th></tr></thead><tbody>${d.trace
+    .map((t) => `<tr><td><strong>${esc(t.step)}</strong></td><td>${t.step === "Fark %" ? pct(t.value) : fmtTL(t.value) + " TL"}</td><td>${esc(t.source)}</td><td>${esc(t.how)}</td></tr>`)
+    .join("")}</tbody></table></div>`;
   const rec = d.reconciliation
     .map(
       (r) =>
@@ -1283,7 +1287,7 @@ async function showLineDetail(code, department) {
     .join("");
   showModal(
     `${d.name} · ${scope}`,
-    `<p class="control-note">${esc(d.group)} · gider kodu ${d.code} · ${esc(period)} · Önemlilik eşiği ${esc(d.threshold)}${d.material ? " · <strong>önemli sapma</strong>" : ""}</p>${cardsHtml}${bridge}<h3 class="line-heading">Bölüm kırılımı</h3>${deptTable}<h3 class="line-heading">Açıklama</h3>${lineNotes(d)}<details class="line-details"><summary>Rakamı oluşturan kaynak satırlar · ${fmt(d.sources.length, 0)} hücre</summary><ul class="line-rec">${rec}</ul>${d.missingDepartments.length ? `<div class="notice">Eksik kaynak: ${esc(d.missingDepartments.join(", "))}</div>` : ""}${lineSources(d)}</details><details class="line-details"><summary>Hesap kuralı</summary><p class="control-note">${esc(d.formula)}</p><p class="control-note">Detay durum tablosundaki “Bütçe − gerçekleşen” sütunu bu sapmanın ters işaretlisidir.</p></details>`,
+    `<p class="control-note">${esc(d.group)} · gider kodu ${d.code} · ${esc(period)} · Önemlilik eşiği ${esc(d.threshold)}${d.material ? " · <strong>önemli sapma</strong>" : ""}</p>${cardsHtml}${bridge}<h3 class="line-heading">Hesap izi · karşılaştırma: ${esc(d.basis)}</h3>${traceTable}<h3 class="line-heading">Bölüm kırılımı</h3>${deptTable}<h3 class="line-heading">Açıklama</h3>${lineNotes(d)}<details class="line-details"><summary>Rakamı oluşturan kaynak satırlar · ${fmt(d.sources.length, 0)} hücre</summary><ul class="line-rec">${rec}</ul>${d.missingDepartments.length ? `<div class="notice">Eksik kaynak: ${esc(d.missingDepartments.join(", "))}</div>` : ""}${lineSources(d)}</details><details class="line-details"><summary>Hesap kuralı</summary><p class="control-note">${esc(d.formula)}</p><p class="control-note">Detay durum tablosundaki “Bütçe − gerçekleşen” sütunu bu sapmanın ters işaretlisidir.</p></details>`,
   );
 }
 async function showTrace(department = "", code = null) {

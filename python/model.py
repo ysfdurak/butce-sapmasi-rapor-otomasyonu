@@ -254,6 +254,21 @@ class Dataset:
             "defaults": {"year": [self.budget_year], "month": list(range(1, self.closing_month + 1))},
         }
 
+    def budget_source(self, name):
+        """Bölümün karşılaştırma bütçesinin geldiği kaynak: (kapanış dönemi, dosya adı) ya da (None, None).
+
+        Güncel bütçe: kapanış dosyası. İlk bütçe: bölümün kapanış yılındaki ilk kapanış dosyası.
+        """
+        import surum
+
+        if self.budget_basis == surum.FIRST:
+            v = surum.versions(self.config, self.source_snapshots, self.closing).get(name, {})
+            if v.get("first"):
+                return v["first_period"], v["first"][3]
+            return None, None
+        snap = self.source_snapshots.get((self.closing, name))
+        return (self.closing, snap[3]) if snap else (None, None)
+
     def selection(self, state):
         options = self.meta()["options"]
         filters = state.get("filters", {})

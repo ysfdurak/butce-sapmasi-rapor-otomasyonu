@@ -1019,6 +1019,13 @@ def build_kalem_ayrinti(wb):
     ws["C4"] = '"Tümü" ya da kapsamdaki bir bölüm'
     ws["C4"].font = NOTE
     ws["B5"] = f"=IFERROR(INDEX('_Satir'!$F$2:$F${MAXI + 1},MATCH($B$3,'_Satir'!$E$2:$E${MAXI + 1},0)),\"Kalem bulunamadı\")"
+    # Hesap izi: bütçe sütunları hangi bütçeyle hesaplanıyor (Kontrol Paneli C7, Python kalem.detail › basis)
+    ws["A6"] = "Karşılaştırma bütçesi"
+    ws["A6"].font = BOLD
+    ws["B6"] = "='Kontrol Paneli'!C7"
+    ws["C6"] = ("Güncel: kapanış dosyasındaki bütçe. İlk: bölümün yıl içindeki ilk kapanış dosyasındaki bütçe. "
+                "Gerçekleşenin kaynağı bölüm tablosundaki dosyadır (kapanış dosyası).")
+    ws["C6"].font = NOTE
     # Özet (satır 7–8)
     titles = ["Bütçe (TL)", "Gerçekleşen (TL)", "Sapma: gerçekleşen − bütçe (TL)", "Sapma %", "Yön", "Hacim etkisi (TL)",
               "Birim maliyet etkisi (TL)", "Köprü farkı (TL)"]
