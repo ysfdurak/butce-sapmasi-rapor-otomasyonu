@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+# İş akışı yalnızca kodu okur ve yapıt yükler; GITHUB_TOKEN'a yazma yetkisi verilmez.
+permissions:
+  contents: read
+
 jobs:
   vba:
     name: VBA kaynak denetimi
