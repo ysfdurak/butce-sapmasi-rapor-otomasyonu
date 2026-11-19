@@ -66,6 +66,19 @@ const esc = (s) =>
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
+// Sapmayı iş diliyle yaz: "bütçeyi 17,61 milyon TL aştı (%20,54)". Kaynakta gap = bütçe − gerçekleşen
+// olduğu için eksi işaret aşım demektir; kullanıcı bu işareti çözmek zorunda kalmasın.
+const overShort = (r) =>
+  `Bütçeyi ${fmt(r.overrun)} milyon TL aştı${r.rate === null || r.rate === undefined ? " (bütçe 0)" : ` (%${fmt(Math.abs(r.rate) * 100)})`}`;
+const overText = (r) => `${r.department} · ${r.item}: ${overShort(r).charAt(0).toLocaleLowerCase("tr") + overShort(r).slice(1)}`;
+function monthSpan(ms) {
+  const m = [...ms].sort((a, b) => a - b);
+  if (!m.length) return "Ay seçilmedi";
+  const ardisik = m.every((v, i) => !i || v === m[i - 1] + 1);
+  if (m.length === 1) return months[m[0] - 1];
+  return ardisik ? `${months[m[0] - 1]}–${months[m[m.length - 1] - 1]}` : m.map((v) => months[v - 1].slice(0, 3)).join(", ");
+}
+const periodText = (years, ms) => `${monthSpan(ms)} ${years.length ? years.join(", ") : "· yıl seçilmedi"}`;
 const signed = (v, positiveGood = true) =>
   v === null || v === undefined || v === 0 ? "" : v > 0 === positiveGood ? "good" : "bad";
 function toast(text) {
@@ -117,6 +130,44 @@ function buildFilters() {
     )
     .join("");
   $$("#filters .listbox").forEach((el, i) => (el.scrollTop = scrolls[i] || 0));
+  filterBar();
+}
+// Filtreler kapalı başlar; etkin dönem ve daraltılmış filtreler tek satırda görünür, tek tıkla açılır.
+let filtersOpen = false;
+try {
+  filtersOpen = localStorage.getItem("butce.filtreler") === "acik";
+} catch (e) {}
+function filterBar() {
+  const bar = $(".selection-bar"),
+    head = bar && bar.querySelector(".section-label");
+  if (!head) return;
+  let t = $("#filterToggle"),
+    sum = $("#filterSummary");
+  if (!t) {
+    t = document.createElement("button");
+    t.id = "filterToggle";
+    t.className = "filter-toggle";
+    t.setAttribute("aria-controls", "filters");
+    head.insertBefore(t, $("#resetBtn"));
+    sum = document.createElement("div");
+    sum.id = "filterSummary";
+    sum.className = "filter-summary";
+    head.after(sum);
+  }
+  const daralan = Object.keys(filterNames)
+    .filter((k) => !["year", "month"].includes(k) && selected(k).length !== meta.options[k].length)
+    .map((k) => `${filterNames[k]}: ${selected(k).length}/${meta.options[k].length}`);
+  sum.innerHTML = `<b>Etkin dönem:</b> ${esc(periodText(selected("year"), selected("month")))} · ${selected("department").length}/${meta.options.department.length} bölüm${daralan.length ? ` · <b>Daraltılan:</b> ${esc(daralan.join(" · "))}` : ""}`;
+  bar.classList.toggle("kapali", !filtersOpen);
+  t.setAttribute("aria-expanded", String(filtersOpen));
+  t.textContent = filtersOpen ? "Filtreleri gizle" : `Filtreleri aç (${Object.keys(filterNames).length})`;
+  t.onclick = () => {
+    filtersOpen = !filtersOpen;
+    try {
+      localStorage.setItem("butce.filtreler", filtersOpen ? "acik" : "kapali");
+    } catch (e) {}
+    filterBar();
+  };
 }
 function renderNav() {
   $("#nav").innerHTML = pages
@@ -183,7 +234,7 @@ function card(label, value, unit, color = "") {
 }
 function cards(c, counts = false, title = "İşlem adedi") {
   const d = counts ? 0 : 2;
-  return `<div class="cards">${card(counts ? "Bütçe · " + title : "Bütçe tutarı", fmt(c.budget, d), c.unit)}${card(counts ? "Gerçekleşen · " + title : "Gerçekleşen tutar", fmt(c.actual, d), c.unit)}${card("Bütçe − gerçekleşen", fmt(c.gap, d), c.unit, signed(c.gap, !counts))}${card("Bütçe sapma oranı", pct(c.rate), "Sapma / bütçe", signed(c.rate, !counts))}</div>`;
+  return `<div class="cards">${card(counts ? "Bütçe · " + title : "Bütçe tutarı", fmt(c.budget, d), c.unit)}${card(counts ? "Gerçekleşen · " + title : "Gerçekleşen tutar", fmt(c.actual, d), c.unit)}${card("Bütçe − gerçekleşen", fmt(c.gap, d), counts || !c.gap ? c.unit : `${c.unit} · ${c.gap < 0 ? "bütçe aşıldı" : "bütçenin altında"}`, signed(c.gap, !counts))}${card("Bütçe sapma oranı", pct(c.rate), "Sapma / bütçe", signed(c.rate, !counts))}</div>`;
 }
 function panel(title, content, sub = "", extra = "") {
   return `<section class="panel"><div class="panel-head"><div><h3>${esc(title)}</h3>${sub ? `<div class="panel-subtitle">${esc(sub)}</div>` : ""}</div>${extra}</div>${content}</section>`;
@@ -271,6 +322,23 @@ function lineChart(
   }
   return `<div class="chart wide" tabindex="0" role="region" aria-label="Grafik · yatay kaydırılabilir"><svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Dönem çizgi grafiği">${body}</svg></div>`;
 }
+function topThree() {
+  const p = data.priority,
+    sel = data.selection,
+    ready = sel.years.length === 1 && sel.years[0] === meta.budgetYear,
+    head = `<div class="panel-head"><div><h3>En büyük 3 bütçe aşımı</h3><div class="panel-subtitle">Etkin dönem: ${esc(periodText(sel.years, sel.months))} · ${sel.departments.length} bölüm · bölüm–alt gider bazında</div></div>${ready && p.rows.length ? `<button data-page="priority">Tüm aşımlar (${fmt(p.rows.length, 0)}) →</button>` : ""}</div>`;
+  if (!ready)
+    return `<section class="panel top3">${head}<p class="control-note">Sıralama yalnız bütçe yılı (${meta.budgetYear}) tek başına seçiliyken hesaplanır.</p></section>`;
+  if (!p.rows.length)
+    return `<section class="panel top3">${head}<p class="control-note">Seçili dönemde bütçeyi aşan bölüm–gider kaydı yok.</p></section>`;
+  return `<section class="panel top3">${head}<ol class="top3-list">${p.rows
+    .slice(0, 3)
+    .map(
+      (r, i) =>
+        `<li><span class="rank">${i + 1}</span><div><strong class="bad">${esc(overText(r))}</strong><span class="metric-label">${esc(r.manager)} · gerçekleşen ${fmt(r.actual)}, bütçe ${fmt(r.budget)} milyon TL</span><div class="top3-actions"><button class="line-link" data-line="${r.code}" data-line-department="${esc(r.department)}">Kaynak kalemleri aç</button><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${i}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></div></div></li>`,
+    )
+    .join("")}</ol></section>`;
+}
 function renderGeneral() {
   const years = data.selection.years,
     selected = data.selection.months,
@@ -292,6 +360,7 @@ function renderGeneral() {
     { width: Math.max(600, selected.length * 64), height: 350, bounds: trendBounds },
   );
   return (
+    topThree() +
     cards(data.general.cards) +
     `<div class="general-grid">${panel("Müdürlük bazında gerçekleşen gider", bars(data.general.managers), "Seçili yıl ve ayların toplamı")}${panel("Müdürlük bazında bütçe sapması", bars(data.general.managers, { field: "gap", signedColor: true }), "Bütçe − gerçekleşen · Milyon TL")}<section class="panel trend-panel"><div class="panel-head"><div><h3>Aylık bütçe ve gerçekleşen</h3><div class="panel-subtitle">Her ayın kendi değeri · Milyon TL</div></div></div>${legend(series.map((s) => [s.name, s.color]))}${chart}<div class="zoom-controls"><span>Dikey aralık</span><input id="ymin" type="number" aria-label="Grafik alt sınırı" placeholder="Alt" value="${trendBounds?.[0] ?? ""}"><input id="ymax" type="number" aria-label="Grafik üst sınırı" placeholder="Üst" value="${trendBounds?.[1] ?? ""}"><button data-zoom="apply">Uygula</button><button data-zoom="in" aria-label="Yakınlaştır">+</button><button data-zoom="out" aria-label="Uzaklaştır">−</button><button data-zoom="up" aria-label="Aralığı yukarı kaydır">↑</button><button data-zoom="down" aria-label="Aralığı aşağı kaydır">↓</button><button data-zoom="reset">Sıfırla</button></div></section></div>`
   );
@@ -567,7 +636,7 @@ function renderPriority() {
         .includes(prioritySearch.toLocaleLowerCase("tr")),
     );
   const ready = data.selection.years.length === 1 && data.selection.years[0] === meta.budgetYear;
-  const table = `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Sapma<br>Milyon TL</th><th>Sapma %</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><button class="line-link metric-label" data-line="${r.code}" data-line-department="${esc(r.department)}" title="Kalem ayrıntısını aç">${esc(r.item)}</button></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad">${fmt(r.gap)}</td><td class="bad">${pct(r.rate)}</td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
+  const table = `<div class="scroll-table" tabindex="0"><table><thead><tr><th>Bölüm / alt gider</th><th>Gerçekleşen<br>Milyon TL</th><th>Bütçe<br>Milyon TL</th><th>Durum</th><th>Açıklama</th></tr></thead><tbody>${filtered.map((r, i) => `<tr><td><span class="rank">${p.rows.indexOf(r) + 1}</span><strong>${esc(r.department)}</strong><br><button class="line-link metric-label" data-line="${r.code}" data-line-department="${esc(r.department)}" title="Kalem ayrıntısını aç">${esc(r.item)}</button></td><td>${fmt(r.actual)}</td><td>${fmt(r.budget)}</td><td class="bad"><strong>${esc(overShort(r))}</strong></td><td><button class="note-button ${r.status === "pending" ? "pending-note" : ""}" data-note="${p.rows.indexOf(r)}">${esc(r.note || (r.stale ? "Tutar değişti · yeniden açıklama gir" : "＋ Açıklama ekle"))}</button></td></tr>`).join("") || `<tr><td colspan="6">${!ready ? "Bütçe yılını tek başına seçin." : p.incomplete ? "Eksik gider/bütçe verisi nedeniyle sıralama oluşturulmadı." : "Seçimde bütçe aşımı yok."}</td></tr>`}</tbody></table></div>`;
   return (
     `<div class="cards">${card("Brüt bütçe aşımı", fmt(p.gross), "Milyon TL", p.gross > 0 ? "bad" : "")}${card("Net bütçeyi aşan bölüm", fmt(p.netDepartments, 0), "bölüm")}${card("En büyük 5 aşımın payı", pct(p.top5), "Brüt bütçe aşımı içindeki pay")}${card("Bölüm–gider aşım kaydı", ready ? fmt(p.rows.length, 0) : "—", "kayıt")}</div><div class="section-tools"><input class="mini-search" id="prioritySearch" value="${esc(prioritySearch)}" placeholder="Bölüm veya gider ara" aria-label="Sapma tablosunda ara"><div><button data-comments="review">Açıklamaları toplu düzenle</button> <button id="importNotesBtn">Açıklama yükle</button> <button id="mergeNotesBtn">Rapor açıklamalarını birleştir</button></div></div>` +
     panel(

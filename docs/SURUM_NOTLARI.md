@@ -1,5 +1,12 @@
 # Sürüm notları
 
+## V5.7 — Kasım 2026 (Python web arayüzü ve tarayıcı demosu)
+
+- **Sapma iş diliyle yazılır:** Sapma öncelikleri tablosunda eksi işaretli "Sapma" ve "Sapma %" sütunları yerine tek bir **Durum** cümlesi var: "Bütçeyi 17,61 milyon TL aştı (%20,54)". Panodaki hesap `bütçe − gerçekleşen` olduğu için eksi işaret aşım demekti; Excel raporlarındaki `gerçekleşen − bütçe` ve Lehte/Aleyhte kuralıyla karışıyordu. Genel durum kartında da "bütçe aşıldı / bütçenin altında" notu çıkar. Hesap değişmedi.
+- **Genel durumda en büyük 3 aşım:** İlk ekranda etkin dönemle birlikte en büyük üç bölüm–alt gider aşımı görünür; aynı satırdan kaynak kalemler ve açıklama açılır, "Tüm aşımlar" düğmesi Sapma öncelikleri sayfasına gider.
+- **Filtreler kapalı başlar:** Ortak seçimler tek satırlık özetle (etkin dönem, bölüm sayısı, daraltılan filtreler) görünür; "Filtreleri aç" tek tıkla altı filtreyi açar, tercih tarayıcıda hatırlanır.
+- Makro ve Power Query raporları değişmedi: orada sapma zaten `gerçekleşen − bütçe` ve Lehte/Aleyhte sözcüğüyle yazılıyor.
+
 ## V5.6 — Kasım 2026
 
 - **Kalem ayrıntısı** (Python web arayüzü ve tarayıcı demosu): Detay durum veya Sapma öncelikleri ekranında alt gider adına tıklayınca bütçe, gerçekleşen, sapma, hacim etkisi, birim maliyet etkisi, bölüm kırılımı, açıklama durumu ve rakamı oluşturan kaynak hücreler (dosya, sayfa, hücre) açılır. Hücre toplamı hesaplanan tutarla karşılaştırılır. [Ayrıntı](KALEM_AYRINTISI.md)
