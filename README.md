@@ -6,6 +6,9 @@ Uygulama, farklı dosyalardaki bölüm giderlerini tek bir kapanışta toplar. G
 
 **Kurulumsuz dene:** [Tarayıcı demosu](https://ysfdurak.github.io/butce-sapmasi-rapor-otomasyonu/demo/) — Python sürümü sentetik veriyle doğrudan tarayıcıda çalışır; yüklediğiniz dosyalar bilgisayarınızdan çıkmaz. [Nasıl çalışıyor?](docs/TARAYICI_DEMOSU.md)
 
+
+**Projeyi anlatırken:** Mülakatta sorulabilecek 10 soru, kısa cevaplar ve verilen kararlar (sorun → karar → bedel): [docs/MULAKAT.md](docs/MULAKAT.md).
+
 ## Çalıştırma seçenekleri
 
 | Sürüm | Çıktı | İlk adım |
