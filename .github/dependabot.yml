@@ -1,0 +1,14 @@
+# Bağımlılık güncellemeleri: GitHub her hafta bilinen açıkları ve yeni sürümleri kontrol eder,
+# gerekirse güncelleme isteği (PR) açar. Güvenlik açığı uyarıları ayrıca depo ayarlarından açılır.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 5
+    groups:
+      kucuk-guncellemeler:
+        update-types: ["minor", "patch"]
