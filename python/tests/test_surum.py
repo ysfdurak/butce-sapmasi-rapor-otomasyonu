@@ -62,3 +62,39 @@ class SurumTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DashboardBasisTests(unittest.TestCase):
+    """Pano, Excel raporlarıyla aynı karşılaştırma bütçesini kullanır (Ayarlar › karsilastirma_butcesi)."""
+
+    def test_dashboard_uses_first_budget_when_selected(self):
+        from pathlib import Path
+        from decimal import Decimal as D
+        import analiz
+        from model import Dataset
+
+        base = Path(__file__).resolve().parents[1] / "ornek/Ayarlar.xlsx"
+        current = Dataset(base, (2026, 10))
+        self.assertEqual(current.meta()["budgetBasis"], "current")
+        real_settings, real_first = analiz.settings, surum.with_first_budget
+
+        def doubled(config, snapshots, closing):
+            # Örnek veride ilk ve güncel bütçe aynı; bağlantıyı görmek için ilk bütçeyi iki katına çıkar.
+            out = real_first(config, snapshots, closing)
+            return {
+                k: ({c: (lab, a, {p: (v * 2 if v is not None else None) for p, v in b.items()}) for c, (lab, a, b) in s[0].items()}, *s[1:])
+                if k[0] == closing else s
+                for k, s in out.items()
+            }
+
+        analiz.settings = lambda c: {**real_settings(c), "karsilastirma_butcesi": "İlk bütçe"}
+        surum.with_first_budget = doubled
+        try:
+            first = Dataset(base, (2026, 10))
+        finally:
+            analiz.settings, surum.with_first_budget = real_settings, real_first
+        self.assertEqual(first.meta()["budgetBasis"], "first")
+        a = current.query({})["general"]["cards"]["budget"]
+        b = first.query({})["general"]["cards"]["budget"]
+        self.assertEqual(b, a * 2)
+        self.assertEqual(len(first.revisions), len(current.revisions))  # revizyonlar kaynak dosyalardan

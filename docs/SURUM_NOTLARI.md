@@ -6,6 +6,8 @@
 - **Genel durumda en büyük 3 aşım:** İlk ekranda etkin dönemle birlikte en büyük üç bölüm–alt gider aşımı görünür; aynı satırdan kaynak kalemler ve açıklama açılır, "Tüm aşımlar" düğmesi Sapma öncelikleri sayfasına gider.
 - **Filtreler kapalı başlar:** Ortak seçimler tek satırlık özetle (etkin dönem, bölüm sayısı, daraltılan filtreler) görünür; "Filtreleri aç" tek tıkla altı filtreyi açar, tercih tarayıcıda hatırlanır.
 - Makro ve Power Query raporları değişmedi: orada sapma zaten `gerçekleşen − bütçe` ve Lehte/Aleyhte sözcüğüyle yazılıyor.
+- **Karşılaştırma bazı her yerde yazılı ve raporlarla aynı:** Cümle "Gerçekleşen gider, güncel bütçeyi 17,61 milyon TL aştı (%20,54)" biçiminde; panel alt başlığı ve filtre özeti bazı söyler (güncel bütçe: kapanış dosyası; ilk bütçe: yılın ilk kapanış dosyası). Düzeltme: Ayarlar › `karsilastirma_butcesi` "İlk bütçe" seçiliyken Excel raporları ilk bütçeyle, pano ise güncel bütçeyle hesaplıyordu; pano artık aynı ayarı uygular (`model.py`, test: `tests/test_surum.py` › `DashboardBasisTests`). Revizyon karşılaştırması kaynak dosyalardan yapılmaya devam eder.
+- Terim notu: "tahmin" sözcüğü yalnız **yıl sonu tahmini** için kullanılır; sapma her zaman bütçeye (güncel ya da ilk) göredir.
 
 ## V5.6 — Kasım 2026
 

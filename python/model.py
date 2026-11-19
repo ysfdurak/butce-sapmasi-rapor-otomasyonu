@@ -69,6 +69,14 @@ class Dataset:
             self.warnings,
             progress=progress,
         )
+        # Karşılaştırma bütçesi (Ayarlar › Rapor › karsilastirma_butcesi) Excel raporlarıyla aynı uygulanır:
+        # "İlk bütçe" seçiliyse panodaki bütçe de ilk kapanış dosyasınınkidir. Revizyonlar kaynak dosyalardan hesaplanır.
+        import analiz, surum
+
+        self.budget_basis = surum.comparison(analiz.settings(self.config))
+        self.source_snapshots = self.snapshots
+        if self.budget_basis == surum.FIRST:
+            self.snapshots = surum.with_first_budget(self.config, self.source_snapshots, self.closing)
         progress("Ciro ve dip toplam kaynakları okunuyor")
         self.revenue, self.controls, self.revenue_budget = butce.read_control(
             self.root / self.config["kontrol_dosyasi"],
@@ -116,7 +124,7 @@ class Dataset:
         progress("Personel ve işlem göstergeleri hazırlanıyor")
         self._read_indicators()
         progress("Geriye dönük değişiklikler karşılaştırılıyor")
-        self.revisions = list(butce.revisions(self.snapshots, self.config, self.closing))
+        self.revisions = list(butce.revisions(self.source_snapshots, self.config, self.closing))
         if inventory(self) != before:
             raise ValueError("Kaynaklar okunurken değişti; yeniden yenileyin.")
         self.fingerprint = before
@@ -242,6 +250,7 @@ class Dataset:
             "sources": self.sources,
             "warnings": self.warnings,
             "revisionCount": len(self.revisions),
+            "budgetBasis": "first" if self.budget_basis != "Güncel bütçe" else "current",
             "defaults": {"year": [self.budget_year], "month": list(range(1, self.closing_month + 1))},
         }
 
