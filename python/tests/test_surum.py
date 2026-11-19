@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import surum  # noqa: E402
+import butce  # noqa: E402
 
 CONFIG = {"bolumler": {"A": {"mudurluk": "M", "direktorluk": "Dir"}}, "kontrol": {"tolerans": 0.01}}
 LAYOUT = [("A", "Bölüm", ["A"]), ("M", "Müdürlük toplamı", ["A"]), ("Dir", "Direktörlük toplamı", ["A"])]
@@ -98,3 +99,57 @@ class DashboardBasisTests(unittest.TestCase):
         b = first.query({})["general"]["cards"]["budget"]
         self.assertEqual(b, a * 2)
         self.assertEqual(len(first.revisions), len(current.revisions))  # revizyonlar kaynak dosyalardan
+
+
+class DashboardEqualsReportTests(unittest.TestCase):
+    """Pano = rapor: panodaki toplam gerçekleşen ve bütçe, Excel rapor motorunun (butce.run ile aynı adımlar)
+    satırlarının toplamına eşit olmalı. İki bütçe temelinde de denenir; ilk bütçe, farkı görmek için iki katına
+    çıkarılır. Birinden biri temeli yok sayarsa (Kasım 2026'da panoda olan hata) test düşer."""
+
+    def _report_totals(self, base, closing, months):
+        import analiz
+
+        config = butce.read_settings(base)
+        snapshots = butce.read_snapshots(base.parent / config["maliyet_klasoru"], config, closing, [])
+        if surum.comparison(analiz.settings(config)) == surum.FIRST:
+            snapshots = surum.with_first_budget(config, snapshots, closing)
+        detail, _, _ = butce.make_report(config, closing, closing, months, snapshots, {}, {}, {}, [])
+        actual = sum((r[5] or 0) for r in detail)
+        planned = sum((r[7] or 0) for r in detail)
+        return actual / 10**6, planned / 10**6
+
+    def _check(self, first):
+        from pathlib import Path
+        import analiz
+        from model import Dataset
+
+        base = Path(__file__).resolve().parents[1] / "ornek/Ayarlar.xlsx"
+        real_settings, real_first = analiz.settings, surum.with_first_budget
+
+        def doubled(config, snapshots, closing):
+            out = real_first(config, snapshots, closing)
+            return {
+                k: ({c: (lab, a, {p: (v * 2 if v is not None else None) for p, v in b.items()}) for c, (lab, a, b) in s[0].items()}, *s[1:])
+                if k[0] == closing else s
+                for k, s in out.items()
+            }
+
+        if first:
+            analiz.settings = lambda c: {**real_settings(c), "karsilastirma_butcesi": "İlk bütçe"}
+            surum.with_first_budget = doubled
+        try:
+            cards = Dataset(base, (2026, 10)).query({})["general"]["cards"]
+            actual, planned = self._report_totals(base, (2026, 10), list(range(1, 11)))
+        finally:
+            analiz.settings, surum.with_first_budget = real_settings, real_first
+        self.assertEqual(cards["actual"], actual)
+        self.assertEqual(cards["budget"], planned)
+        return cards
+
+    def test_current_budget(self):
+        self._check(False)
+
+    def test_first_budget(self):
+        current = self._check(False)
+        first = self._check(True)
+        self.assertEqual(first["budget"], current["budget"] * 2, "ilk bütçe gerçekten kullanıldı")

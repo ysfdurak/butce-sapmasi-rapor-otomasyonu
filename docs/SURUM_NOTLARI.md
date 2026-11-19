@@ -9,6 +9,8 @@
 - **Karşılaştırma bazı her yerde yazılı ve raporlarla aynı:** Cümle "Gerçekleşen gider, güncel bütçeyi 17,61 milyon TL aştı (%20,54)" biçiminde; panel alt başlığı ve filtre özeti bazı söyler (güncel bütçe: kapanış dosyası; ilk bütçe: yılın ilk kapanış dosyası). Düzeltme: Ayarlar › `karsilastirma_butcesi` "İlk bütçe" seçiliyken Excel raporları ilk bütçeyle, pano ise güncel bütçeyle hesaplıyordu; pano artık aynı ayarı uygular (`model.py`, test: `tests/test_surum.py` › `DashboardBasisTests`). Revizyon karşılaştırması kaynak dosyalardan yapılmaya devam eder.
 - Terim notu: "tahmin" sözcüğü yalnız **yıl sonu tahmini** için kullanılır; sapma her zaman bütçeye (güncel ya da ilk) göredir.
 
+- **Pano = rapor testi:** `tests/test_surum.py › DashboardEqualsReportTests` panodaki toplam gerçekleşen ve bütçeyi, Excel rapor motorunun (`butce.run` ile aynı adımlar) satır toplamlarıyla karşılaştırır; güncel ve ilk bütçe temelinde. Panonun temeli yok saydığı Kasım 2026 hatasını bu test yakalar (geri alınan düzeltmeyle düştüğü doğrulandı).
+- **Temel açıklaması:** Karşılaştırma bazı metni artık ne demek olduğunu da söylüyor (ilk bütçe: yıl başında onaylanan; güncel bütçe: yıl içindeki son revizyon); öncelik sayfası değiştirme yerini gösterir (Ayarlar › Rapor › Karşılaştırma bütçesi).
 ## V5.6 — Kasım 2026
 
 - **Kalem ayrıntısı** (Python web arayüzü ve tarayıcı demosu): Detay durum veya Sapma öncelikleri ekranında alt gider adına tıklayınca bütçe, gerçekleşen, sapma, hacim etkisi, birim maliyet etkisi, bölüm kırılımı, açıklama durumu ve rakamı oluşturan kaynak hücreler (dosya, sayfa, hücre) açılır. Hücre toplamı hesaplanan tutarla karşılaştırılır. [Ayrıntı](KALEM_AYRINTISI.md)

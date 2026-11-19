@@ -72,8 +72,8 @@ const esc = (s) =>
 const basisWord = () => (meta?.budgetBasis === "first" ? "ilk bütçeyi" : "güncel bütçeyi");
 const basisText = () =>
   meta?.budgetBasis === "first"
-    ? "Karşılaştırma bazı: ilk bütçe (yılın ilk kapanış dosyası)"
-    : `Karşılaştırma bazı: güncel bütçe (${months[meta.closing[1] - 1]} ${meta.closing[0]} kapanış dosyası)`;
+    ? "Karşılaştırma bazı: ilk bütçe (yıl başında onaylanan, yılın ilk kapanış dosyası)"
+    : `Karşılaştırma bazı: güncel bütçe (yıl içindeki son revizyon, ${months[meta.closing[1] - 1]} ${meta.closing[0]} kapanış dosyası)`;
 const overShort = (r) =>
   `Gerçekleşen gider, ${basisWord()} ${fmt(r.overrun)} milyon TL aştı${r.rate === null || r.rate === undefined ? " (bütçe 0)" : ` (%${fmt(Math.abs(r.rate) * 100)})`}`;
 const overText = (r) => `${r.department} · ${r.item}: ${overShort(r).charAt(0).toLocaleLowerCase("tr") + overShort(r).slice(1)}`;
@@ -657,7 +657,7 @@ function renderPriority() {
     panel(
       "Bütçe aşımı ve açıklamalar",
       table,
-      `${basisText()}. Açıklamalar tam seçili ay kümesine bağlıdır. ${data.noteCount} kayıtlı açıklama.`,
+      `${basisText()}. Değiştirmek için: Ayarlar › Rapor › Karşılaştırma bütçesi. Açıklamalar tam seçili ay kümesine bağlıdır. ${data.noteCount} kayıtlı açıklama.`,
     )
   );
 }
