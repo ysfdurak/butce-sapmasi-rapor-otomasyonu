@@ -13,8 +13,8 @@ jobs:
     name: VBA kaynak denetimi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: vba_elle kopyaları ve statik denetim
@@ -24,8 +24,8 @@ jobs:
     name: Tarayıcı demosu dosya listesi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: manifest.json güncel mi
@@ -45,8 +45,8 @@ jobs:
           - os: windows-latest
             python: "3.13"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Testler (paketteki wheels ile, pip kurulumu yok)
@@ -60,11 +60,11 @@ jobs:
     runs-on: windows-latest
     needs: powerquery-sablon
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: pq-aciklama-ornek
           path: python/ornek/pq_aciklama
@@ -119,8 +119,8 @@ jobs:
     name: Power Query şablonu (LibreOffice ile hesap)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: LibreOffice Calc
@@ -137,7 +137,7 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
         run: python tools/pqtest/kalem_izi.py --yaz && git diff --exit-code docs/KALEM_IZI.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pq-aciklama-ornek
           path: python/ornek/pq_aciklama
