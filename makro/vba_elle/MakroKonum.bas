@@ -94,18 +94,18 @@ Public Function CostLayout(ByVal ws As Worksheet) As Object
                     If markerRow = 0 Then
                         markerRow = r: markerCol = c
                     ElseIf r <> markerRow Then
-                        Exit Function  ' farklý satýrlarda "Bütçe": belirsiz
+                        found("neden") = "farklý satýrlarda ""Bütçe"" yazýyor": Exit Function
                     End If
                 End If
             End If
         Next c
     Next r
-    If markerRow = 0 Then Exit Function
+    If markerRow = 0 Then found("neden") = "altý tarih/ay olan ""Bütçe"" hücresi yok": Exit Function
     header = markerRow + 1
     For c = 1 To markerCol - 1
         If IsDateCell(g(header, c)) Then start = c: Exit For
     Next c
-    If start = 0 Then Exit Function
+    If start = 0 Then found("neden") = "Bütçe baþlýk satýrýnda solda tarih yok (" & CellRef(markerCol, header) & ")": Exit Function
     found("tarih_baslangici") = CellRef(start, header)
     found("butce_etiketi") = CellRef(markerCol, markerRow)
     For c = start - 1 To 1 Step -1
@@ -115,13 +115,13 @@ Public Function CostLayout(ByVal ws As Worksheet) As Object
         Next x
         If texts >= 3 Then nameCol = c: Exit For
     Next c
-    If nameCol = 0 Then Exit Function
+    If nameCol = 0 Then found("neden") = "tarihlerin solunda gider adý sütunu yok": Exit Function
     found("gider_sutunu") = nameCol
     For x = header + 1 To header + 59
         label = K(Safe(g, x, nameCol, nRows, nCols))
         If InStr(label, "islem aded") > 0 Then countRow = x: Exit For
     Next x
-    If countRow = 0 Then Exit Function
+    If countRow = 0 Then found("neden") = """Ýþlem Adedi"" satýrý yok": Exit Function
     found("islem_adedi_satiri") = countRow
     found("ilk_gider_satiri") = countRow + 1
     Do While IsText(Safe(g, countRow + 1 + size, nameCol, nRows, nCols))
@@ -220,7 +220,7 @@ End Function
 Public Sub KonumTamamla()
     Dim costKeys As Variant, folder As String, name As String, best As String, bestPeriod As String, period As String
     Dim wb As Workbook, ws As Worksheet, found As Object, added As Object, path As String, sheetName As String
-    Dim lacking As String, code As Variant
+    Dim lacking As String, code As Variant, costNote As String
     Set AutoLayout = New Collection
     costKeys = Array("tarih_baslangici", "butce_etiketi", "gider_sutunu", "islem_adedi_satiri", "ilk_gider_satiri", "gider_kalem_sayisi")
     If Not LegacyMode("Maliyet", "tarih_baslangici", Array("yil_satiri", "ay_satiri", "dip_toplam_satiri", "indeks_sutunu", "ilk_donem_sutunu", "gerceklesen_araligi", "butce_araligi")) Then
@@ -238,10 +238,13 @@ Public Sub KonumTamamla()
                 Loop
             End If
             If best <> "" Then
+                costNote = best & ": bölüm sayfasý yok"
                 Set wb = ReadBook(folder & "\" & best)
                 For Each ws In wb.Worksheets
                     If Depts.Exists(K(ws.Name)) And Not Excluded.Exists(K(ws.Name)) Then
                         Set found = CostLayout(ws): sheetName = ws.Name
+                        costNote = best & " > " & sheetName
+                        If found.Exists("neden") Then costNote = costNote & ": " & found("neden"): found.Remove "neden"
                         Exit For
                     End If
                 Next ws
@@ -252,6 +255,8 @@ Public Sub KonumTamamla()
                         If added.Count > 0 Then AutoLayout.Add Array("Maliyet", best & " > " & sheetName, Describe(added))
                     End If
                 End If
+            ElseIf folder <> "" Then
+                costNote = "maliyet klasöründe .xlsx yok: " & folder
             End If
         End If
         For Each code In Array("tarih_baslangici", "butce_etiketi", "islem_adedi_satiri", "ilk_gider_satiri")
@@ -297,7 +302,10 @@ Public Sub KonumTamamla()
         End If
         If Not Has("Endeks", "endeks_araligi") Then lacking = lacking & IIf(lacking = "", "", ", ") & "Endeks > endeks_araligi"
     End If
-    If lacking <> "" Then Fail "Konum dosyadan bulunamadý; Ayarlar > Dosya ve Konum Ayarlarý'na girin: " & lacking
+    If lacking <> "" Then
+        If costNote <> "" And InStr(lacking, "Maliyet >") > 0 Then lacking = lacking & " (" & costNote & ")"
+        Fail "Konum dosyadan bulunamadý; Ayarlar > Dosya ve Konum Ayarlarý'na girin: " & lacking
+    End If
 End Sub
 
 ' LoadSnapshots baþýnda: dosyadan bulunan konumlar Uyarýlar'da görünür.
@@ -314,6 +322,7 @@ End Sub
 Public Function CostRetry(ByVal ws As Worksheet, ByRef found As Object) As Object
     Dim code As Variant, saved As Object, changed As Object
     Set found = CostLayout(ws)
+    If found.Exists("neden") Then found.Remove "neden"
     If Not found.Exists("tarih_baslangici") Then Exit Function
     Set saved = Dict(): Set changed = Dict()
     For Each code In found.Keys

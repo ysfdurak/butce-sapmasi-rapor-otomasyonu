@@ -41,16 +41,24 @@ Private Sub KonumTest()
         "Kontrol|ilk_blok_satiri", "Kontrol|ilk_ay_sutunu", "Kontrol|ciro_araligi", "Endeks|endeks_araligi", "Endeks|baslik_satiri", "Endeks|ilk_veri_satiri")
         If Cfg.Exists(code) Then saved("x" & code) = Cfg(code): Cfg.Remove code
     Next code
+    On Error GoTo Hata
     KonumTamamla
     For Each code In codes
-        Expect "Otomatik konum " & code, Cfg(code), saved(code)
+        Expect "Otomatik konum " & code, Opt(Split(code, Sep)(0), Split(code, Sep)(1), Null), saved(code)
     Next code
     Expect "Otomatik konum notu", AutoLayout.Count, 3
+Geri:
+    On Error GoTo 0
     For Each code In saved.Keys
         id = CStr(code)
         If Left$(id, 1) = "x" Then Cfg(Mid$(id, 2)) = saved(code)
     Next code
     Set AutoLayout = New Collection
+    Exit Sub
+Hata:
+    ' Konum testi düþerse ayarlar geri yüklenir ve diðer testler sürer.
+    failures = failures & vbCrLf & "Otomatik konum: " & Err.Description
+    Resume Geri
 End Sub
 
 Public Sub SentetikTest()
@@ -68,7 +76,7 @@ Public Sub SentetikTest()
     For i = 1 To 10
         Picked(CStr(i)) = True
     Next i
-    LoadSettings: LoadSnapshots: LoadControl: LoadIndices
+    Call LoadSettings: LoadSnapshots: LoadControl: LoadIndices
     Set scope = DeptScope(): CalculateChecks: HazirlaSurumler: CalculateUnits
     KonumTest
     Expect "Bölüm sayýsý", Depts.Count, 12
@@ -198,7 +206,7 @@ Public Sub SentetikTest()
     End If
     Set ws = ThisWorkbook.Worksheets("Test Sonuçlarý")
     ws.Range("A1").Value2 = "Windows Excel sentetik hesap testi"
-    ws.Range("A2").Value2 = Now
+    ws.Range("A2").Value = Now: ws.Range("A2").NumberFormat = "dd.mm.yyyy hh:mm"
     ws.Range("A4").Value2 = text: ws.Range("A4").WrapText = True
     ws.Columns("A").ColumnWidth = 115: ws.Rows(4).AutoFit: ws.Activate
     MsgBox text, vbInformation

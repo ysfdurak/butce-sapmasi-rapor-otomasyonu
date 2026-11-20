@@ -98,16 +98,16 @@ End Function
 ' Önemli sapma satýrlarý, |sapma| büyükten küçüðe. Her satýr:
 ' (0 müdürlük, 1 bölüm, 2 gider kodu, 3 gider kalemi, 4 gider grubu, 5 gerçekleþen, 6 bütçe, 7 sapma, 8 oran, 9 yön, 10 bölüm anahtarý)
 Public Function MaterialRows(ByVal scope As Object) As Collection
-    Dim result As Collection, items As Object, n As Variant, code As Variant, local As Object, meta As Variant
+    Dim result As Collection, items As Object, n As Variant, code As Variant, yerelKume As Object, meta As Variant
     Dim a As Variant, b As Variant, v As Variant, row As Variant, i As Long, placed As Boolean
     Set result = New Collection
     If ReportYear <> CloseYear Then Set MaterialRows = result: Exit Function
     Set items = ItemNames()
     For Each n In scope.Keys
-        meta = Depts(n): Set local = SingleScope(CStr(n))
+        meta = Depts(n): Set yerelKume = SingleScope(CStr(n))
         For Each code In items.Keys
-            a = ExpenseTotal(local, "A", ReportYear, CStr(code))
-            b = ExpenseTotal(local, "B", ReportYear, CStr(code))
+            a = ExpenseTotal(yerelKume, "A", ReportYear, CStr(code))
+            b = ExpenseTotal(yerelKume, "B", ReportYear, CStr(code))
             v = Minus(a, b)
             If IsMaterial(v, b) Then
                 row = Array(meta(1), meta(0), CLng(code), items(code), GroupOf(CLng(code)), a, b, v, Divide(v, b), Direction(v), CStr(n))
@@ -133,24 +133,24 @@ End Function
 ' Her eleman: Array(baþlýk, satýr türü, kapsam sözlüðü). Python: butce.hierarchy
 Public Function ReportLayout(ByVal scope As Object, ByVal general As Boolean) As Collection
     Dim result As Collection, directors As Object, director As Variant, managers As Object, manager As Variant
-    Dim n As Variant, meta As Variant, local As Object, directorScope As Object, names As Object
+    Dim n As Variant, meta As Variant, yerelKume As Object, directorScope As Object, names As Object
     Set result = New Collection: Set directors = Dict(): Set names = Dict()
     For Each n In scope.Keys
         meta = Depts(n)
         If Not directors.Exists(K(meta(2))) Then directors.Add K(meta(2)), Dict(): names(K(meta(2))) = meta(2)
         Set managers = directors(K(meta(2)))
         If Not managers.Exists(K(meta(1))) Then managers.Add K(meta(1)), Dict(): names(K(meta(2)) & Sep & K(meta(1))) = meta(1)
-        Set local = managers(K(meta(1))): local(n) = True
+        Set yerelKume = managers(K(meta(1))): yerelKume(n) = True
     Next n
     For Each director In directors.Keys
         Set managers = directors(director): Set directorScope = Dict()
         For Each manager In managers.Keys
-            Set local = managers(manager)
-            For Each n In local.Keys
+            Set yerelKume = managers(manager)
+            For Each n In yerelKume.Keys
                 result.Add Array(Depts(n)(0), "Bölüm", SingleScope(CStr(n)))
                 directorScope(n) = True
             Next n
-            result.Add Array(names(director & Sep & manager), "Müdürlük toplamý", local)
+            result.Add Array(names(director & Sep & manager), "Müdürlük toplamý", yerelKume)
         Next manager
         If general Then result.Add Array(names(director), "Direktörlük toplamý", directorScope)
     Next director

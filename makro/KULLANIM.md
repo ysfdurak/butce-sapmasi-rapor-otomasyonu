@@ -128,7 +128,7 @@ Tartım: Diğer açıklama
 
 ## 6. Windows canlı kabul kontrolü
 
-- [ ] VBA editöründe Compile VBAProject hatasız; on bir modül yüklü. Ayrıntılı V5 listesi: [canlı kontrol](../docs/CANLI_KONTROL.md).
+- [ ] VBA editöründe Compile VBAProject hatasız; on üç modül yüklü. Ayrıntılı V5 listesi: [canlı kontrol](../docs/CANLI_KONTROL.md).
 - [ ] Kaynakları seçip Konumları kaydet çalıştır; üç yol ayar Excel'inde güncellenmiş, diğer eşleştirmeler aynı ve yedek dosyası oluşmuş.
 - [ ] Kontrol dosyasını kapat/aç; ayar yolu, çıktı yolu ve çoklu ay seçimi korunmuş.
 - [ ] Kaynak önizlemesinde personel/işlem adları gerçek kaynak hücreleriyle aynı; kontrol raporunun sonundaki gösterge tablosunda da bunlar var.

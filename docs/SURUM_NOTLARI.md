@@ -1,5 +1,16 @@
 # Sürüm notları
 
+## V5.7.2 — Kasım 2026 (gerçek Excel testinden düzeltmeler)
+
+Windows'ta gerçek Excel'de uçtan uca deneme sırasında bulunan sorunlar:
+
+- **Derleme hatası:** `local` VBA'da değişken adı olamıyor; MakroAnaliz, MakroHesap ve MakroYaz derlenmiyordu. Değişken `yerelKume` oldu.
+- **Atlanan çağrılar:** Satır başında `LoadSettings: LoadSnapshots` gibi yazılan satırlarda VBA ilk adı etiket sayıyor ve o prosedürü hiç çalıştırmıyordu (7 yer: ayar okuma, kontrol hesapları, panel okuma). Bu satırlar `Call` ile başlıyor.
+- **Denetim aracı:** `tools/vba_araclari.py kontrol` bu iki hatayı artık yakalar (ayrılmış sözcükle değişken adı; prosedür adıyla başlayan etiket satırı). CI her gönderimde çalıştırır.
+- **Konum bulma hata metni:** Maliyet konumu dosyadan bulunamazsa mesaj hangi dosya ve sayfada, hangi adımda takıldığını söyler (ör. "İşlem Adedi satırı yok"). Sentetik testte konum testi düşerse diğer testler yine çalışır ve sonuç listesinde görünür.
+- **Görünüm:** Test Sonuçları'nda tarih seri sayı yerine `gg.aa.yyyy ss:dd`; Çalışma Merkezi açıklaması ve Kontrol Paneli durum metni kesilmiyor.
+- **Belge:** KULLANIM.md kontrol listesinde modül sayısı on üç.
+
 ## V5.7.1 — Kasım 2026 (tek kalemin hesap izi)
 
 - **Hesap izi:** Kalem ayrıntısı penceresinde yeni tablo: gerçekleşen (kaynak dosya ve kapanış dönemi, toplanan aylar), **seçili bütçe** (güncel mi ilk mi, hangi dosya ve dönem), fark ve fark %. Power Query şablonunun Kalem Ayrıntısı sayfası da karşılaştırma bütçesini yazar (B6).

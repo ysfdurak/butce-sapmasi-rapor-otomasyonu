@@ -17,7 +17,7 @@ End Function
 
 Public Sub WorkGate(ByVal message As String)
     Application.StatusBar = message
-    ThisWorkbook.Worksheets("Kontrol Paneli").Range("B34").Value2 = message
+    PanelDurum message
     DoEvents
     If StopRequested Then Fail "Kullanýcý isteðiyle güvenli adým sýnýrýnda durduruldu. Önceki raporlar korundu."
 End Sub
@@ -47,8 +47,12 @@ Public Sub MerkezHazirla()
     AddWorkButton ws, "Dönem ve çýktý seçimi", "DonemPanelineGit", "J5"
     AddWorkButton ws, "Önceki ayýn yorumlarýný getir", "YorumGetir", "J7"
     AddWorkButton ws, "Açýklamalarý toplu düzenle", "YorumListele", "J9"
-    ws.Columns("A:I").ColumnWidth = 24: ws.Rows("3:3").RowHeight = 42
-    ws.Range("A3:I3").WrapText = True
+    ws.Columns("A:I").ColumnWidth = 24
+    ' Açýklama tek hücrede kaydýrýlýnca kesiliyordu; satýr boyunca birleþtirilip kaydýrýlýr.
+    With ws.Range("A3:I3")
+        .Merge: .WrapText = True: .VerticalAlignment = xlTop
+    End With
+    ws.Rows("3:3").RowHeight = 34
     ws.Range("A1:I1").Interior.Color = RGB(225, 236, 239): ws.Range("A1").Font.Size = 19
     Set old = WorkspaceSheet("Kayýtlý Görünümler")
     If old.Range("A1").Value2 = "" Then RowValues old, 1, Array("Görünüm adý", "Ayar dosyasý", "Kapanýþ yýlý", "Kapanýþ ayý", "Rapor yýlý", "Çýktý konumu", "Seçili aylar")
@@ -68,7 +72,7 @@ Private Sub FullRead()
     WorkGate "Endeks okunuyor"
     LoadIndices
     WorkGate "Birim maliyet ve revizyonlar hesaplanýyor"
-    CalculateChecks: HazirlaSurumler: CalculateUnits
+    Call CalculateChecks: HazirlaSurumler: CalculateUnits
 End Sub
 
 Public Sub MerkezKontrol()
@@ -241,7 +245,7 @@ Public Sub GorunumAc()
             For i = 1 To 12
                 lb.Selected(i) = (InStr(chosen, "," & Format$(i, "00") & ",") > 0)
             Next i
-            AyarKaynakOku: panel.Activate: Exit Sub
+            Call AyarKaynakOku: panel.Activate: Exit Sub
         End If
     Next r
     Fail "Görünüm bulunamadý."
@@ -557,7 +561,7 @@ Public Sub DuzenOnizle()
     WorkRunning = True: StopRequested = False
     security = Application.AutomationSecurity: Application.AutomationSecurity = 3
     On Error GoTo Bad
-    ReadPanel: LoadSnapshots
+    Call ReadPanel: LoadSnapshots
     Set ws = WorkspaceSheet("Tablo Düzeni"): ws.Cells.Clear
     ws.Range("A1").Value2 = "Parametrik kaynak düzeni"
     ws.Range("A2").Value2 = "D sütununda yeni deðerleri girin. Kaydetmeden önce tüm kaynaklar okunur; ayar yedeði alýnýr."
@@ -613,7 +617,7 @@ Public Sub DuzenKaydet()
     WorkRunning = True: StopRequested = False
     security = Application.AutomationSecurity: Application.AutomationSecurity = 3
     On Error GoTo Bad
-    ReadPanel: originalRootPath = RootPath
+    Call ReadPanel: originalRootPath = RootPath
     Set ws = WorkspaceSheet("Tablo Düzeni"): target = SettingsPath: signature = CStr(ws.Range("H2").Value2)
     If ws.Range("H1").Value2 <> target Or SettingsSignature(target) <> signature Then Fail "Ayar deðiþti; tablo düzenini yeniden okuyun."
     Set fso = CreateObject("Scripting.FileSystemObject")
