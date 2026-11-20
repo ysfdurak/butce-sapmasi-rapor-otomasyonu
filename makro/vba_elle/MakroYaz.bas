@@ -106,21 +106,21 @@ Private Sub SummaryRow(ByVal ws As Worksheet, ByVal row As Long, ByVal label As 
 End Sub
 
 Public Sub WriteSummary(ByVal wb As Workbook, ByVal scope As Object, ByVal general As Boolean)
-    Dim ws As Worksheet, row As Long, manager As Variant, n As Variant, meta As Variant, local As Object, mgrs As Object
+    Dim ws As Worksheet, row As Long, manager As Variant, n As Variant, meta As Variant, yerelKume As Object, mgrs As Object
     Set ws = NewSheet(wb, "Genel Özet", "Gider özeti — TL")
     RowValues ws, 5, Array("Birim", "Düzey", SelectionCaption(ReportYear - 1) & " Gerçekleþen TL", SelectionCaption() & " Gerçekleþen TL", SelectionCaption() & " Bütçe TL", "Bütçe - Gerçekleþen TL", "Bütçe aþým oraný %", "OPEX / Þirket Cirosu %")
     Header ws.Range("A5:H5"): row = 6: Set mgrs = Managers(scope)
     For Each manager In mgrs.Keys
-        Set local = Dict()
+        Set yerelKume = Dict()
         For Each n In scope.Keys
             meta = Depts(n)
             If K(meta(1)) = K(manager) Then
-                local(n) = True
+                yerelKume(n) = True
                 SummaryRow ws, row, CStr(meta(0)), "Bölüm", SingleScope(CStr(n))
                 row = row + 1
             End If
         Next n
-        SummaryRow ws, row, CStr(manager) & " toplamý", "Müdürlük", local: row = row + 1
+        SummaryRow ws, row, CStr(manager) & " toplamý", "Müdürlük", yerelKume: row = row + 1
     Next manager
     If general Then SummaryRow ws, row, "Direktörlük genel toplamý", "Direktörlük", scope: row = row + 1
     ws.Range("C6:F" & row - 1).NumberFormat = MoneyFmt
@@ -148,7 +148,7 @@ End Sub
 Public Sub WriteExpenses(ByVal wb As Workbook, ByVal scope As Object, ByVal general As Boolean)
     Dim ws As Worksheet, names As Object, groupsUsed As Object, code As Variant, groupName As Variant
     Dim n As Variant, meta As Variant, col As Long, width As Long, row As Long, first As Long, subtotal As Long
-    Dim a As Variant, b As Variant, item As String, last As Long, local As Object, rr As Long
+    Dim a As Variant, b As Variant, item As String, last As Long, yerelKume As Object, rr As Long
     Set ws = NewSheet(wb, "Giderler", "Ana ve alt giderler — TL")
     Set names = ItemNames(): Set groupsUsed = Dict()
     For Each code In names.Keys
@@ -175,8 +175,8 @@ Public Sub WriteExpenses(ByVal wb As Workbook, ByVal scope As Object, ByVal gene
                 RowValues ws, row, Array(groupName, CLng(code), names(code))
                 col = 4
                 For Each n In scope.Keys
-                    Set local = SingleScope(CStr(n)): a = ExpenseTotal(local, "A", ReportYear, CStr(code)): b = Null
-                    If ReportYear = CloseYear Then b = ExpenseTotal(local, "B", ReportYear, CStr(code))
+                    Set yerelKume = SingleScope(CStr(n)): a = ExpenseTotal(yerelKume, "A", ReportYear, CStr(code)): b = Null
+                    If ReportYear = CloseYear Then b = ExpenseTotal(yerelKume, "B", ReportYear, CStr(code))
                     FourValues ws, row, col, a, b
                     col = col + width
                 Next n
@@ -187,8 +187,8 @@ Public Sub WriteExpenses(ByVal wb As Workbook, ByVal scope As Object, ByVal gene
         RowValues ws, row, Array(groupName, Null, CStr(groupName) & " toplamý")
         col = 4
         For Each n In scope.Keys
-            Set local = SingleScope(CStr(n)): a = GroupTotal(local, CStr(groupName), "A", ReportYear, names): b = Null
-            If ReportYear = CloseYear Then b = GroupTotal(local, CStr(groupName), "B", ReportYear, names)
+            Set yerelKume = SingleScope(CStr(n)): a = GroupTotal(yerelKume, CStr(groupName), "A", ReportYear, names): b = Null
+            If ReportYear = CloseYear Then b = GroupTotal(yerelKume, CStr(groupName), "B", ReportYear, names)
             FourValues ws, row, col, a, b
             col = col + width
         Next n
@@ -198,8 +198,8 @@ Public Sub WriteExpenses(ByVal wb As Workbook, ByVal scope As Object, ByVal gene
     RowValues ws, row, Array("Genel toplam", Null, "Tüm ana giderler toplamý")
     col = 4
     For Each n In scope.Keys
-        Set local = SingleScope(CStr(n)): a = ExpenseTotal(local, "A", ReportYear): b = Null
-        If ReportYear = CloseYear Then b = ExpenseTotal(local, "B", ReportYear)
+        Set yerelKume = SingleScope(CStr(n)): a = ExpenseTotal(yerelKume, "A", ReportYear): b = Null
+        If ReportYear = CloseYear Then b = ExpenseTotal(yerelKume, "B", ReportYear)
         FourValues ws, row, col, a, b
         VarianceColors ws.Range(ws.Cells(6, col + 2), ws.Cells(row, col + 2))
         VarianceColors ws.Range(ws.Cells(6, col + 3), ws.Cells(row, col + 3)), False
@@ -247,22 +247,22 @@ Private Sub UnitRow(ByVal ws As Worksheet, ByVal r As Long, ByVal label As Strin
 End Sub
 
 Public Sub WriteUnits(ByVal wb As Workbook, ByVal scope As Object, ByVal general As Boolean)
-    Dim ws As Worksheet, mgrs As Object, manager As Variant, n As Variant, meta As Variant, local As Object
+    Dim ws As Worksheet, mgrs As Object, manager As Variant, n As Variant, meta As Variant, yerelKume As Object
     Dim r As Long, count As Long
     Set ws = NewSheet(wb, "Birim Maliyet", "Birim maliyet — TL / iþlem")
     RowValues ws, 5, Array("Birim", "Düzey", CStr(ReportYear - 1) & " Gerçekleþen BM", CStr(ReportYear) & " Gerçekleþen BM", CStr(CloseYear) & " Bütçe BM", "Dönem enflasyonu %", "Endekslenmiþ önceki yýl BM", "Reel iyileþme %", "Müdürlük aðýrlýðý %", "Direktörlük aðýrlýðý %", "Seçili dönem gideri TL", "Seçili dönem iþlem adedi")
     Header ws.Range("A5:L5"): r = 6: Set mgrs = Managers(scope)
     ws.Range("L5").Value2 = "Seçili dönem " & IndicatorCaption(scope, 5)
     For Each manager In mgrs.Keys
-        Set local = Dict()
+        Set yerelKume = Dict()
         For Each n In scope.Keys
             meta = Depts(n)
             If K(meta(1)) = K(manager) And Units.Exists(n) Then
-                local(n) = True
+                yerelKume(n) = True
                 UnitRow ws, r, CStr(meta(0)), "Bölüm", SingleScope(CStr(n)): r = r + 1
             End If
         Next n
-        If local.Count > 0 Then UnitRow ws, r, CStr(manager) & " toplamý", "Müdürlük", local: r = r + 1
+        If yerelKume.Count > 0 Then UnitRow ws, r, CStr(manager) & " toplamý", "Müdürlük", yerelKume: r = r + 1
     Next manager
     If general And Units.Count > 0 Then UnitRow ws, r, "Direktörlük genel toplamý", "Direktörlük", scope: r = r + 1
     If r = 6 Then ws.Cells(r, 1).Value2 = "Seçilen aylar için karþýlaþtýrýlabilir eþleþtirilmiþ bölüm yok.": r = r + 1

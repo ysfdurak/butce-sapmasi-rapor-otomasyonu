@@ -34,18 +34,18 @@ Public Function ExpenseTotal(ByVal scope As Object, ByVal slot As String, ByVal 
 End Function
 
 Public Function ItemNames() As Object
-    Dim names As Object, d As Object, n As Variant, code As Variant, local As Object, a As Variant
+    Dim names As Object, d As Object, n As Variant, code As Variant, yerelKume As Object, a As Variant
     Dim sorted As Object, keys As Variant, i As Long, j As Long, tmp As Variant
     Set names = Dict(): Set sorted = Dict()
     For Each n In Depts.Keys
         Set d = CurrentSnap(CStr(n))
         If Not d Is Nothing Then
-            Set local = d("names")
-            For Each code In local.Keys
+            Set yerelKume = d("names")
+            For Each code In yerelKume.Keys
                 If names.Exists(code) Then
-                    If names(code) <> local(code) Then Fail "Bölümler arasında gider adı farklı; gider eşleştirmesini tamamlayın: " & code
+                    If names(code) <> yerelKume(code) Then Fail "Bölümler arasında gider adı farklı; gider eşleştirmesini tamamlayın: " & code
                 Else
-                    names.Add code, local(code)
+                    names.Add code, yerelKume(code)
                 End If
             Next code
         End If
@@ -123,7 +123,7 @@ Public Sub CalculateChecks()
     Dim id As String, bucket As Collection, target As Object, m As Variant, d As Object
     Dim a As Variant, b As Variant, diff As Variant, state As String, labels As String, manager As String
     Dim row As Variant, cm As Long, old As Object, fresh As Object, codes As Object, code As Variant
-    Dim local As Object, slot As Variant, affected As Long, last As Long, before As Variant, after As Variant
+    Dim yerelKume As Object, slot As Variant, affected As Long, last As Long, before As Variant, after As Variant
     Set Checks = New Collection: Set Revisions = New Collection: Set clusters = Dict()
     For Each n In Depts.Keys
         meta = Depts(n): id = K(meta(2)) & Sep & K(meta(5))
@@ -208,13 +208,13 @@ Public Sub CalculateChecks()
             If old Is Nothing Or fresh Is Nothing Then
                 Warn CStr(meta(0)), "", P(CloseYear, cm) & ": Ardışık kaynak eksik; revizyon karşılaştırılamadı."
             Else
-                Set codes = Dict(): Set local = old("names")
-                For Each code In local.Keys
-                    codes(code) = local(code)
+                Set codes = Dict(): Set yerelKume = old("names")
+                For Each code In yerelKume.Keys
+                    codes(code) = yerelKume(code)
                 Next code
-                Set local = fresh("names")
-                For Each code In local.Keys
-                    codes(code) = local(code)
+                Set yerelKume = fresh("names")
+                For Each code In yerelKume.Keys
+                    codes(code) = yerelKume(code)
                 Next code
                 For Each code In codes.Keys
                     For Each slot In Array("A", "B")

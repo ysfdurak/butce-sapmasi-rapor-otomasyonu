@@ -43,7 +43,7 @@ Public Sub PanelHazirla()
     MerkezHazirla
     WorkspaceSheet("Çalýþma Merkezi").Activate
     ActiveWindow.DisplayGridlines = False
-    ws.Range("B34").Value2 = "Hazýr. Aylarý seçin, kaynaklarý kontrol edin ve Rapor oluþtur'a basýn."
+    PanelDurum "Hazýr. Aylarý seçin, kaynaklarý kontrol edin ve Rapor oluþtur'a basýn."
 End Sub
 
 Public Sub AyarSec()
@@ -139,7 +139,7 @@ Public Sub RaporOlustur()
     Application.ScreenUpdating = False: Application.AutomationSecurity = 3
     Application.Calculation = xlCalculationManual
     Set ws = ThisWorkbook.Worksheets("Kontrol Paneli")
-    ws.Range("B34").Value2 = "Kaynaklar okunuyor…"
+    PanelDurum "Kaynaklar okunuyor…"
     YorumKaydedilmemisKontrol
     ReadPanel
     WorkGate "Girdi kopyalarý hazýrlanýyor"
@@ -151,14 +151,14 @@ Public Sub RaporOlustur()
     LoadIndices
     Set names = ItemNames()
     If names.Count = 0 Then Fail "Seçilen kapanýþta raporlanabilir gider bulunamadý. Kaynaklarý ve eþleþtirmeleri kontrol edin."
-    CalculateChecks: HazirlaSurumler: CalculateUnits
+    Call CalculateChecks: HazirlaSurumler: CalculateUnits
     ValidateArchive ArchivePath
     SaveReports
     ws.Range("D36").Value2 = RunPath
-    ws.Range("B34").Value2 = "Tamamlandý. " & Managers(DeptScope()).Count + 1 & " dosya; " & Warnings.Count & " uyarý."
+    PanelDurum "Tamamlandý. " & Managers(DeptScope()).Count + 1 & " dosya; " & Warnings.Count & " uyarý."
     success = True
     ArchiveEnd True, ""
-    If Not SaveController() Then ws.Range("B34").Value2 = ws.Range("B34").Value2 & " Kontrol dosyasýný Ctrl+S ile kaydedin."
+    If Not SaveController() Then PanelDurum CStr(ws.Range("B34").Value2) & " Kontrol dosyasýný Ctrl+S ile kaydedin."
 Done:
     ' Geri yükleme adýmlarý hata verse bile Excel ayarlarý mutlaka eski hâline döner.
     On Error Resume Next
@@ -180,6 +180,18 @@ Bad:
     Resume Failed
 Failed:
     On Error Resume Next
-    ThisWorkbook.Worksheets("Kontrol Paneli").Range("B34").Value2 = "Hata: " & errText
+    PanelDurum "Hata: " & errText
     GoTo Done
+End Sub
+
+' Durum metni birleþtirilmiþ B34:J35 alanýna yazýlýr; uzun mesajlar kesilmesin diye satýr yüksekliði büyütülür.
+Public Sub PanelDurum(ByVal message As String)
+    Dim ws As Worksheet, lines As Long
+    Set ws = ThisWorkbook.Worksheets("Kontrol Paneli")
+    ws.Range("B34").Value2 = message
+    ws.Range("B34:J35").WrapText = True
+    lines = Len(message) \ 85 + 1
+    If lines < 2 Then lines = 2
+    If lines > 12 Then lines = 12
+    ws.Rows(34).RowHeight = 15 * lines - 15: ws.Rows(35).RowHeight = 15
 End Sub

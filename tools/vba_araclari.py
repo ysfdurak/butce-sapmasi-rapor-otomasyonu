@@ -22,7 +22,17 @@ RESERVED = {
     "kill", "reset", "width", "let", "set", "dim", "redim", "call", "goto", "gosub", "return", "resume",
     "stop", "end", "exit", "with", "select", "case", "loop", "next", "wend", "erase", "error", "event",
     "friend", "implements", "new", "nothing", "type", "enum", "property", "date", "mid", "load", "unload",
+    "local",
 }
+# Değişken adı olarak kullanılınca derlemeyi durduran sözcükler (Excel'de "local" ile yaşandı).
+RESERVED_VARIABLES = {
+    "local", "dim", "set", "let", "call", "goto", "gosub", "return", "exit", "end", "next", "loop", "wend",
+    "with", "select", "case", "new", "nothing", "type", "enum", "property", "option", "public", "private",
+    "global", "static", "const", "redim", "erase", "resume", "stop",
+}
+VARIABLE = re.compile(r"(?:^|,)\s*(?:ByVal\s+|ByRef\s+|Optional\s+|ParamArray\s+)?(\w+)(?:\(\))?\s+As\b", re.IGNORECASE)
+# Satır başında "Ad:" VBA'da etiket sayılır; "Prosedur: Diger" yazılınca ilk çağrı hiç çalışmaz.
+LABEL_LINE = re.compile(r"^\s*(\w+):(?!=)")
 DECLARATION = re.compile(
     r"^\s*(?:Public\s+|Private\s+|Friend\s+)?(?:Static\s+)?(Sub|Function|Property\s+(?:Get|Let|Set))\s+(\w+)",
     re.IGNORECASE,
@@ -33,7 +43,7 @@ def encoded(text):
     return text.replace("\r\n", "\n").replace("\n", "\r\n").encode("cp1254")
 
 
-def lint(path, text):
+def lint(path, text, procedures=frozenset()):
     problems = []
     lines = text.splitlines()
     if not lines or lines[0] != f'Attribute VB_Name = "{path.stem}"':
@@ -44,6 +54,18 @@ def lint(path, text):
         match = DECLARATION.match(line)
         if match and match.group(2).lower() in RESERVED:
             problems.append(f"{path.name}:{number}: '{match.group(2)}' VBA'da ayrılmış sözcük; prosedür adı olamaz")
+        code = line.split("'", 1)[0]
+        stripped = code.strip()
+        if re.match(r"(?i)(dim|private|public|static|const)\s", stripped) or match:
+            names = VARIABLE.findall(stripped.split("(", 1)[1] if match and "(" in stripped else re.sub(r"(?i)^(dim|private|public|static|const)\s+", "", stripped))
+            for name in names:
+                if name.lower() in RESERVED_VARIABLES:
+                    problems.append(f"{path.name}:{number}: '{name}' değişken adı olamaz (derleme hatası)")
+        label = LABEL_LINE.match(code)
+        if label and label.group(1).lower() in procedures:
+            problems.append(
+                f"{path.name}:{number}: '{label.group(1)}:' etiket sanılır, çağrı atlanır; 'Call {label.group(1)}:' yazın"
+            )
         try:
             line.encode("cp1254")
         except UnicodeEncodeError as error:
@@ -51,6 +73,16 @@ def lint(path, text):
                 f"{path.name}:{number}: Windows-1254'te olmayan karakter {line[error.start]!r}; ChrW() kullanın"
             )
     return problems
+
+
+def procedure_names():
+    names = set()
+    for path in modules():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            match = DECLARATION.match(line)
+            if match:
+                names.add(match.group(2).lower())
+    return frozenset(names)
 
 
 def project_checks():
@@ -95,9 +127,10 @@ def generate():
 def check():
     problems = []
     names = {p.stem for p in modules()}
+    procedures = procedure_names()
     for path in modules():
         text = path.read_text(encoding="utf-8")
-        problems += lint(path, text)
+        problems += lint(path, text, procedures)
         copy = TARGET / path.name
         try:
             if copy.read_bytes() != encoded(text):

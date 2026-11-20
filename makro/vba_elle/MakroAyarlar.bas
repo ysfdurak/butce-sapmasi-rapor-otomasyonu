@@ -246,7 +246,7 @@ Public Sub KonumlariKaydet()
     If seen.Count <> 3 Then Fail "Üç kaynak konumu ayar Excel'inde bulunamadý."
     wb.Save: wb.Close False: Set wb = Nothing
     SettingsPath = temporary
-    LoadSettings: LoadSnapshots: LoadControl: LoadIndices
+    Call LoadSettings: LoadSnapshots: LoadControl: LoadIndices
     Set names = ItemNames()
     If names.Count = 0 Then Fail "Yeni konumlarda kapanýþ giderleri okunamadý."
     If SettingsSignature(target) <> signature Then Fail "Ayar dosyasý iþlem sýrasýnda deðiþti; üzerine yazýlmadý."
