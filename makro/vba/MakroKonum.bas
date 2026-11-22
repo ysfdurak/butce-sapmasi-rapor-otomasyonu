@@ -232,7 +232,9 @@ Public Sub KonumTamamla()
                 Do While name <> ""
                     If Left$(name, 2) <> "~$" Then
                         period = FilenamePeriod(folder & "\" & name)
-                        If period & "|" & name > bestPeriod & "|" & best Then bestPeriod = period: best = name
+                        ' İlk dosya her zaman aday olur: "2026-10|..." metni boş adayın "|" işaretinden küçük sıralandığı için
+                        ' karşılaştırma tek başına hiçbir dosyayı seçmiyordu (Windows Excel'de bulundu, 22.11.2026).
+                        If best = "" Or period & "|" & name > bestPeriod & "|" & best Then bestPeriod = period: best = name
                     End If
                     name = Dir$()
                 Loop
