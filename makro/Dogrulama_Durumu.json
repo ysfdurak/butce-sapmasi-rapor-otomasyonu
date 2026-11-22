@@ -146,11 +146,11 @@
     "reports call note writer"
   ],
   "modules": 10,
-  "windows_excel_compilation": "NOT_RUN",
+  "windows_excel_compilation": "PASS (22.11.2026, Windows 11 + masaüstü Excel; vba_elle ile elle kurulum, Debug > Compile hatasız)",
   "windows_source_path_save_and_restore": "NOT_RUN",
   "windows_report_generation": "NOT_RUN",
   "windows_native_controls": "NOT_RUN",
-  "native_synthetic_test": "included; not executed here",
+  "native_synthetic_test": "PASS 188/188 (22.11.2026, Windows Excel). Önce 177 geçti, otomatik konum düştü; düzeltme: MakroKonum en yeni maliyet dosyası seçimi",
   "financial_rule_module": "unchanged from V1",
   "scope": "standalone macro report package; seven-page dashboard factory not included",
   "v5": {
@@ -161,7 +161,8 @@
       "SheetByKey ile sayfa bulma",
       "Managers/DeptScope K() karşılaştırması",
       "RaporOlustur hata işleyicisi Resume ile",
-      "ItemCount ile gider kalem sayısı"
+      "ItemCount ile gider kalem sayısı",
+      "KonumTamamla: en yeni maliyet dosyası hiç seçilmiyordu ('2026-10|...' metni boş aday '|' işaretinden küçük sıralanıyor); ilk dosya artık aday (Windows Excel, 22.11.2026)"
     ],
     "native_excel_compile_and_run": "NOT_RUN — docs/CANLI_KONTROL.md",
     "independent_review": "V5 VBA değişiklikleri ayrı bir inceleme ajanıyla derleyici gözüyle incelendi; bulgular düzeltildi."
