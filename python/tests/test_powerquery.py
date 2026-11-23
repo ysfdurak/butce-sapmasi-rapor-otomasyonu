@@ -61,6 +61,12 @@ class PowerQueryDataTests(unittest.TestCase):
     def test_template_builds_empty_and_filled(self):
         empty = pq_sablon.build()
         self.assertIsNone(empty["Veri"]["A1"].value)  # sorgu A1'e yüklenir
+        # Veri sayfasında hiçbir hücre dolu olmamalı: sorgu tablosu (48 sütun) yüklenirken sağındaki bir değer
+        # Excel'in sütun eklemesine ve şablondaki Veri!X:X başvurularının kaymasına yol açar (gerçek Excel'de görüldü,
+        # 23 Kasım 2026: AL1'deki not yüzünden 11 sütun kaydı, rapor "Veri yok" dedi).
+        dolu = [c.coordinate for row in empty["Veri"].iter_rows() for c in row if c.value is not None]
+        self.assertEqual(dolu, [])
+        self.assertGreaterEqual(len(pq_sablon.COLUMNS), 48)
         self.assertIn("Kontrol Paneli", empty.sheetnames)
         filled = pq_sablon.build(self.rows)
         self.assertEqual(filled["Veri"].max_row, len(self.rows) + 1)

@@ -247,6 +247,7 @@ def build_panel(wb):
         ("Bütçe - Bölüm / Müdürlük / Direktörlük", "Güncel bütçe, ay ay ve yıl toplamı"),
         ("Bütçe Değişimi", "Önceki ay kapanış dosyasına göre bütçesi değişen satırlar ve kalemler"),
         ("Trend", "Aylık sapma trendi ve üst üste aleyhte giden kalemler"),
+        ("Veri", "Butce_Veri sorgusunun yükleme yeri (A1). Elle bir şey yazmayın: tablonun yanındaki hücre formülleri kaydırır"),
     ]
     for i, (name, text) in enumerate(guide, 26):
         ws.cell(i, 2, name).font = Font(bold=True, color="233C57")
@@ -1682,8 +1683,9 @@ def build(rows=None):
         veri.append(COLUMNS)
         for row in rows:
             veri.append(row)
-    veri["AL1"] = ("Bu sayfa Power Query sorgusunun (Butce_Veri) yükleme yeridir. Sorguyu buraya, A1 hücresine "
-                   "yükleyin; elle değiştirmeyin.")
+    # Veri sayfası BOŞ kalır: sorgunun tablosunun sağına yazılan tek bir hücre bile (eskiden AL1'deki açıklama notu)
+    # Excel'in yüklemede sütun eklemesine, şablondaki bütün Veri!X:X başvurularının kaymasına yol açar. Sayfanın
+    # ne olduğu Kontrol Paneli'nin Sayfalar listesinde yazar.
     build_helpers(wb)
     build_bolum(wb)
     build_duzen(wb)
