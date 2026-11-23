@@ -102,22 +102,27 @@ let
                      #"Kapanış" = kapanis, Aylar = aylar,
                      #"Gerçekleşen (dosyada)" = Sayi(Alan(r, "Gerçekleşen (seçili aylar)")),
                      #"Bütçe (dosyada)" = Sayi(Alan(r, "Bütçe (seçili aylar)")),
-                     #"Kaynak dosya" = f[Name], #"Dosya tarihi" = dosyaTarihi, #"Okuma notu" = notu])
+                     #"Kaynak dosya" = f[Name], #"Dosya tarihi" = dosyaTarihi, #"Okuma notu" = notu,
+                     _Zaman = f[Date modified]])
         in
             List.Buffer(kayitlar),
     DosyaSonuclari = List.Transform(Table.ToRecords(Dosyalar), (f) =>
         let r = try OkuDosya(f)
         in if r[HasError] then {[Anahtar = "Dosya|" & f[Name], #"Kaynak dosya" = f[Name],
                 #"Dosya tarihi" = DateTime.ToText(f[Date modified], "yyyy-MM-dd HH:mm"),
-                #"Okuma notu" = "Dosya okunamadı: " & Text.From(r[Error][Message]), Kaynakta = "Var"]}
+                #"Okuma notu" = "Dosya okunamadı: " & Text.From(r[Error][Message]), Kaynakta = "Var",
+                _Zaman = f[Date modified]]}
            else r[Value]),
     Toplanan0 = List.Combine(DosyaSonuclari),
     // Aynı anahtar birden çok dosyada: en yeni dosya alınır; metinler farklıysa çakışma notu (onaylanamaz).
+    // "En yeni" özgün değiştirilme zamanıyla (saniye ve altı dahil) belirlenir; ekranda gösterilen dakikalık metinle değil.
+    // Yalnız zamanlar tam eşitse dosya adı sırası karar verir. _Zaman yalnız bu karşılaştırma içindir, tabloya girmez.
+    YeniSirasi = (a, b) => let c = Value.Compare(a[_Zaman], b[_Zaman]) in if c <> 0 then c else Value.Compare(a[#"Kaynak dosya"], b[#"Kaynak dosya"]),
     YeniAnahtarlar = List.Distinct(List.Transform(Toplanan0, each [Anahtar])),
     Toplanan = List.Buffer(List.Transform(YeniAnahtarlar, (k) =>
         let
             grup = List.Select(Toplanan0, each [Anahtar] = k),
-            secilen = List.Last(List.Sort(grup, each [#"Dosya tarihi"] & "|" & [#"Kaynak dosya"])),
+            secilen = Record.RemoveFields(List.Last(List.Sort(grup, YeniSirasi)), "_Zaman"),
             metinler = List.Distinct(List.Transform(grup, each Record.FieldOrDefault(_, "Açıklama", null))),
             dosyalar = Text.Combine(List.Transform(grup, each [#"Kaynak dosya"]), ", ")
         in

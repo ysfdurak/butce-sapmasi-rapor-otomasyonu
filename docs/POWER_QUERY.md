@@ -121,7 +121,7 @@ Her ay:
    - `Güncel`: açıklama bu kapanış ve ay seçimi için yazılmış, tutarlar değişmemiş.
    - `Tutar değişti`: açıklama yazıldıktan sonra tutar değişmiş (revizyon); müdürlükten güncel açıklama isteyin.
    - `Önceki kapanış (…)` / `Ay seçimi farklı`: başka dönem için yazılmış. Uygunsa **Bu döneme aktar**.
-   - `Bu bölümde bu kod yok`, `Çakışma…`, `Dosya okunamadı…`: dosyayı düzeltin.
+   - `Bu bölümde bu kod yok`, `Çakışma…`, `Dosya okunamadı…`: dosyayı düzeltin. Aynı satır birden çok dosyada varsa değiştirilme zamanı en yeni olan alınır (saniye ve altı dahil; **Dosya tarihi** sütunu yalnız dakikayı gösterir). Metinler farklıysa `Çakışma…` notu düşer.
 3. **Durum** sütununda seçin: `Onaylandı`, `Reddedildi`, `Bekliyor` veya `Bu döneme aktar`; gerekirse **Onay notu** yazın.
 4. **Tümünü Yenile**. İşlem, adınız ve zamanla **İşlem geçmişi** sütununa eklenir; Giderler ve Önemli Sapmalar güncellenir.
 

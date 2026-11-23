@@ -1,5 +1,9 @@
 # Sürüm notları
 
+## V5.7.3 — Kasım 2026 (denetim D19)
+
+- **Açıklama kaynağı seçimi:** Aynı satır iki dönen dosyada varsa Power Query "en yeni" dosyayı dakikaya yuvarlanmış metinle seçiyordu; aynı dakikada gelen iki dosyada adı alfabetik sonra gelen eski dosya alınabiliyordu. Artık özgün değiştirilme zamanı karşılaştırılır, yalnız tam eşitlikte dosya adı karar verir. Farklı metinler için çakışma uyarısı aynen kalır. `powerquery/Butce_Aciklama.pq` ve Python benzetimi (`tools/pq_aciklama.py`) birlikte değişti; test `python/tests/test_pq_aciklama_secim.py`.
+
 ## V5.7.2 — Kasım 2026 (gerçek Excel testinden düzeltmeler)
 
 Windows'ta gerçek Excel'de uçtan uca deneme sırasında bulunan sorunlar:

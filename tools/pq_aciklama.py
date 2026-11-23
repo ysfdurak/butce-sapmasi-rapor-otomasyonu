@@ -107,6 +107,7 @@ def read_file(path, departments):
             "Gerçekleşen (dosyada)": number(r.get("Gerçekleşen (seçili aylar)")),
             "Bütçe (dosyada)": number(r.get("Bütçe (seçili aylar)")),
             "Kaynak dosya": path.name, "Dosya tarihi": stamp, "Okuma notu": note,
+            "_zaman": path.stat().st_mtime_ns,
         })
     return result
 
@@ -144,12 +145,15 @@ def build(settings_path, folder, previous=(), user="", period=None, months=None,
         except Exception as error:  # noqa: BLE001 — sorgu da her okuma hatasını satıra yazar
             collected0.append({"Anahtar": "Dosya|" + path.name, "Kaynak dosya": path.name,
                                "Dosya tarihi": datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
-                               "Okuma notu": "Dosya okunamadı: " + str(error), "Kaynakta": "Var"})
+                               "Okuma notu": "Dosya okunamadı: " + str(error), "Kaynakta": "Var",
+                               "_zaman": path.stat().st_mtime_ns})
     new_keys = list(dict.fromkeys(r["Anahtar"] for r in collected0))
     collected = []
     for k in new_keys:
         group = [r for r in collected0 if r["Anahtar"] == k]
-        chosen = sorted(group, key=lambda r: r["Dosya tarihi"] + "|" + r["Kaynak dosya"])[-1]
+        # En yeni dosya: özgün zaman (ns), eşitse dosya adı. Dakikalık "Dosya tarihi" metni karar vermez.
+        chosen = dict(sorted(group, key=lambda r: (r["_zaman"], r["Kaynak dosya"]))[-1])
+        chosen.pop("_zaman", None)
         texts = {r.get("Açıklama") for r in group}
         if len(texts) > 1 and empty(chosen.get("Okuma notu")):
             files = ", ".join(r["Kaynak dosya"] for r in group)
