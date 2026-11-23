@@ -1,5 +1,10 @@
 # Sürüm notları
 
+## V5.7.4 — Kasım 2026 (gerçek Excel denemesi)
+
+- **Power Query şablonu gerçek Excel'de çalışmıyordu (düzeltildi):** Şablonun Veri sayfasında, tablonun sağında AL1 hücresinde bir açıklama notu vardı. Tablo 36 sütunken sorun yoktu; R1..R12 (ilk bütçe) sütunları eklenince tablo 48 sütuna çıktı ve nota çarptı. Excel `Veri!$A$1`'e yüklerken yer açmak için 11 sütun ekledi, şablondaki bütün `Veri!A:A` başvuruları `Veri!L:L`'ye kaydı; Kontrol Paneli "Veri yok" dedi, raporlar boş kaldı. CI şablonu LibreOffice'te veriyi doğrudan yazarak denediği için bunu görmüyordu. Not kaldırıldı (açıklaması Kontrol Paneli › Sayfalar'a taşındı); test boş şablonun Veri sayfasında tek bir dolu hücre olmamasını şart koşuyor.
+- **Gerçek Excel'de doğrulanan (Microsoft 365, Windows, 23 Kasım 2026):** örnek veriyle 3.379 satır; Ekim 2026, Ocak–Ekim, Tümü için gerçekleşen 3.449.383.390,31 TL ve bütçe 3.440.938.980,13 TL (beklenen değerler); doğrulanamayan kontrol 0. Butce_Aciklama: aynı dakikada (14:11:13 ve 14:11:24) kaydedilmiş iki dosyadan gerçekten yeni olanı seçildi, çakışma notu yazıldı (V5.7.3 düzeltmesi); "Onaylandı" yenilemeden sonra korundu ve işlem geçmişine eklendi; şablondan hazırlanmamış dosyalar "Dosya okunamadı" satırı olarak listelendi.
+
 ## V5.7.3 — Kasım 2026 (denetim D19)
 
 - **Açıklama kaynağı seçimi:** Aynı satır iki dönen dosyada varsa Power Query "en yeni" dosyayı dakikaya yuvarlanmış metinle seçiyordu; aynı dakikada gelen iki dosyada adı alfabetik sonra gelen eski dosya alınabiliyordu. Artık özgün değiştirilme zamanı karşılaştırılır, yalnız tam eşitlikte dosya adı karar verir. Farklı metinler için çakışma uyarısı aynen kalır. `powerquery/Butce_Aciklama.pq` ve Python benzetimi (`tools/pq_aciklama.py`) birlikte değişti; test `python/tests/test_pq_aciklama_secim.py`.

@@ -167,6 +167,7 @@ Elle kontrol: örnek verilerle Ekim 2026, Ocak–Ekim, Tümü: gerçekleşen **3
 | Belirti | Neden / çözüm |
 | --- | --- |
 | Kontrol Paneli: "Veri yok" | Sorgu `Veri!$A$1`'e yüklenmedi. **Veri › Sorgular ve Bağlantılar** › `Butce_Veri` sağ tık › **Yükle…** › Var olan sayfa `=Veri!$A$1`. |
+| Sorgu yüklendi (Veri satırı dolu) ama Kontrol Paneli yine "Veri yok", raporlar boş | Yükleme sırasında Excel Veri sayfasına sütun ekledi ve şablonun formülleri kaydı. Neden: Veri sayfasında tablonun sağında dolu bir hücre vardı (V5.7.3 ve öncesi şablonlarda AL1'deki not). Çözüm: güncel `Butce_Rapor_Sablonu.xlsx` ile yeniden kurun; Veri sayfasına hiçbir şey yazmayın. Kaymış bir dosya geri düzelmez. |
 | `DataFormat.Error` / dosya bulunamadı | `AyarDosyasi` yolu veya Ayarlar'daki `maliyet_klasoru`, `kontrol_dosyasi`, `endeks_dosyasi` yanlış. |
 | Açıklama Onayı'ndaki durumlar yenilemede kayboluyor | Sorgu Açıklama Onayı tablosunu okuyamıyor: tablo `'Açıklama Onayı'!$A$1`'de olmalı; satır ve sütunları silinmemeli. |
 | `Formula.Firewall` hatası | **Veri › Veri Al › Sorgu Seçenekleri › Geçerli Çalışma Kitabı › Gizlilik › Gizlilik düzeylerini yoksay**. |
