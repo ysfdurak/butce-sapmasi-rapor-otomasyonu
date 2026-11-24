@@ -1,5 +1,11 @@
 # Sürüm notları
 
+## V5.7.5 — Kasım 2026 (makro sürümü gerçek Excel denemesi)
+
+- **Makro raporu hiç oluşmuyordu (düzeltildi):** Müdürlük raporlarının Giderler sayfasında her bölüm için "… Gerçekleşen TL", "… Bütçe TL", "Bütçe - Gerçekleşen TL" başlıkları var. Açıklama okuyucusu (`MakroAciklama.ExpensePositions`) gerçekleşen sütununu başlıkta "gerceklesen" geçmesine bakarak buluyordu; fark sütunu da bu sözcüğü taşıdığı için her bölüm iki kez sayıldı ve "Rapor oluşturulamadı… Geçersiz bölüm başlığı: SheetN" hatası çıktı. Hata V5.7.1'deki başlık değişikliğiyle geldi; statik denetim ve Python testleri VBA'yı çalıştırmadığı için görünmedi. Koşul artık "bütçe" ile başlayan başlığı dışarıda bırakıyor. Test: `python/tests/test_makro_gider_basliklari.py`.
+- **Gerçek Excel'de doğrulanan (Microsoft 365, Windows, 24 Kasım 2026):** örnek ayarlarla Ocak–Ekim 2026; direktörlük raporu + 4 müdürlük raporu üretildi. Gerçekleşen 3.449.383.390,31 TL, bütçe 3.440.938.980,13 TL (Power Query ve Python ile aynı, kuruşu kuruşuna). Ciro kontrolleri "Doğrulandı"; 96 uyarı örnek verideki geriye dönük düzeltmeler (Şubat rakamlarının Ekim dosyasında değişmesi), beklenen.
+- **Bilinen pürüz:** Kurulumdan sonra panel "Kurulum bekleniyor" durumunda kalabiliyor; `PanelHazirla` makrosu çalıştırılınca düzeliyor. Hata metinlerinde çalışma kitabı adı ("Sheet9") yerine sayfa ve bölüm adı yazmak daha anlaşılır olur — sıradaki iyileştirme.
+
 ## V5.7.4 — Kasım 2026 (gerçek Excel denemesi)
 
 - **Power Query şablonu gerçek Excel'de çalışmıyordu (düzeltildi):** Şablonun Veri sayfasında, tablonun sağında AL1 hücresinde bir açıklama notu vardı. Tablo 36 sütunken sorun yoktu; R1..R12 (ilk bütçe) sütunları eklenince tablo 48 sütuna çıktı ve nota çarptı. Excel `Veri!$A$1`'e yüklerken yer açmak için 11 sütun ekledi, şablondaki bütün `Veri!A:A` başvuruları `Veri!L:L`'ye kaydı; Kontrol Paneli "Veri yok" dedi, raporlar boş kaldı. CI şablonu LibreOffice'te veriyi doğrudan yazarak denediği için bunu görmüyordu. Not kaldırıldı (açıklaması Kontrol Paneli › Sayfalar'a taşındı); test boş şablonun Veri sayfasında tek bir dolu hücre olmamasını şart koşuyor.
