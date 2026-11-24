@@ -106,7 +106,7 @@ If Err.Number <> 0 Then StopInstall "XLSM kaydedilemedi: " & Err.Description
 excel.DisplayAlerts = True : excel.EnableEvents = True : excel.Visible = True
 excel.Run "'" & Replace(book.Name, "'", "''") & "'!PanelHazirla"
 If Err.Number <> 0 Then
-    MsgBox "XLSM hazir. Sirket kurallarina gore makrolari etkinlestirin, ardindan Alt+F8 > PanelHazirla calistirin. " & Err.Description, 48, "Butce makro kurulumu"
+    MsgBox "XLSM hazir. Sirket kurallarina gore makrolari etkinlestirip dosyayi yeniden acin; panel ilk acilista kendiliginden hazirlanir (olmazsa Alt+F8 > PanelHazirla). " & Err.Description, 48, "Butce makro kurulumu"
 Else
     book.Save
     If mode = "upgrade" Then

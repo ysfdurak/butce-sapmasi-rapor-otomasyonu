@@ -1,10 +1,15 @@
 # Sürüm notları
 
+## V5.7.6 — Kasım 2026 (kurulum sonrası ilk açılış, anlaşılır hata metinleri)
+
+- **Panel "Kurulum bekleniyor"da kalmıyor:** Kurulum.vbs, makrolar kapalı ya da VBA projesine erişim kapalıyken paneli hazırlayamıyordu; kullanıcı Alt+F8 › PanelHazirla'yı bilmezse ay listesi ve düğmeler hiç gelmiyordu. Artık `MakroPanel.Auto_Open` dosya her açıldığında ay listesinin varlığına bakar, yoksa paneli kendisi hazırlar; olmazsa nedenini durum satırına yazar. Windows Excel'de denendi: liste silinip dosya kapatıldı, normal açılışta panel kendiliğinden kuruldu, durum "Hazır" oldu.
+- **Hata metinleri yerini söylüyor:** Giderler sayfası okunurken çıkan hatalar artık dosya, sayfa, hücre ve başlığı yazar (ör. "Aynı bölüm iki kez okunuyor: "Giriş" (… › Giderler, F5 "Bütçe - Gerçekleşen TL")"). Önceki metin yalnız çalışma kitabı adını ("Sheet9") veriyordu.
+- **Not:** Bu bilgisayarda Excel'in "VBA proje nesne modeline güven" ayarı kapalı olduğu için Kurulum.vbs modülleri ekleyemedi ve elle kurulumu önerdi (beklenen, ayar değiştirilmedi). Elle kurulum (vba_elle'den içe aktarma) çalıştı.
+
 ## V5.7.5 — Kasım 2026 (makro sürümü gerçek Excel denemesi)
 
 - **Makro raporu hiç oluşmuyordu (düzeltildi):** Müdürlük raporlarının Giderler sayfasında her bölüm için "… Gerçekleşen TL", "… Bütçe TL", "Bütçe - Gerçekleşen TL" başlıkları var. Açıklama okuyucusu (`MakroAciklama.ExpensePositions`) gerçekleşen sütununu başlıkta "gerceklesen" geçmesine bakarak buluyordu; fark sütunu da bu sözcüğü taşıdığı için her bölüm iki kez sayıldı ve "Rapor oluşturulamadı… Geçersiz bölüm başlığı: SheetN" hatası çıktı. Hata V5.7.1'deki başlık değişikliğiyle geldi; statik denetim ve Python testleri VBA'yı çalıştırmadığı için görünmedi. Koşul artık "bütçe" ile başlayan başlığı dışarıda bırakıyor. Test: `python/tests/test_makro_gider_basliklari.py`.
 - **Gerçek Excel'de doğrulanan (Microsoft 365, Windows, 24 Kasım 2026):** örnek ayarlarla Ocak–Ekim 2026; direktörlük raporu + 4 müdürlük raporu üretildi. Gerçekleşen 3.449.383.390,31 TL, bütçe 3.440.938.980,13 TL (Power Query ve Python ile aynı, kuruşu kuruşuna). Ciro kontrolleri "Doğrulandı"; 96 uyarı örnek verideki geriye dönük düzeltmeler (Şubat rakamlarının Ekim dosyasında değişmesi), beklenen.
-- **Bilinen pürüz:** Kurulumdan sonra panel "Kurulum bekleniyor" durumunda kalabiliyor; `PanelHazirla` makrosu çalıştırılınca düzeliyor. Hata metinlerinde çalışma kitabı adı ("Sheet9") yerine sayfa ve bölüm adı yazmak daha anlaşılır olur — sıradaki iyileştirme.
 
 ## V5.7.4 — Kasım 2026 (gerçek Excel denemesi)
 

@@ -1,6 +1,21 @@
 Attribute VB_Name = "MakroPanel"
 Option Explicit
 
+' Excel dosyayý kullanýcý açtýðýnda (makrolar etkinse) kendiliðinden çalýþýr. Kurulum.vbs PanelHazirla'yý
+' çalýþtýramadýysa (makrolar kapalýyken kurulum) panel "Kurulum bekleniyor"da kalýyordu; ilk açýlýþta tamamlanýr.
+Public Sub Auto_Open()
+    Dim lb As Object
+    On Error Resume Next
+    Set lb = ThisWorkbook.Worksheets("Kontrol Paneli").ListBoxes("MRV_Aylar")
+    On Error GoTo 0
+    If Not lb Is Nothing Then Exit Sub
+    On Error GoTo Bad
+    PanelHazirla
+    Exit Sub
+Bad:
+    PanelDurum "Panel hazýrlanamadý: " & Err.Description & " Ayar dosyasý yolunu kontrol edip Alt+F8 > PanelHazirla çalýþtýrýn."
+End Sub
+
 Public Sub PanelHazirla()
     Dim ws As Worksheet, lb As Object, button As Object, i As Long, names As Variant, item As Variant
     Dim labels As Variant, actions As Variant, j As Long, old As Object, keep(1 To 12) As Boolean, hadList As Boolean, limit As Long

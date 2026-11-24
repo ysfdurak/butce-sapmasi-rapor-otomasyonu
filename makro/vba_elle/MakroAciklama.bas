@@ -15,7 +15,7 @@ Public Function ExpensePositions(ByVal wb As Workbook, ByRef rows As Object, ByR
     For r = 6 To ws.Cells(ws.Rows.Count, 3).End(xlUp).Row
         If Len(CStr(ws.Cells(r, 2).Value2)) > 0 And IsNumeric(ws.Cells(r, 2).Value2) Then
             code = CStr(CLng(ws.Cells(r, 2).Value2))
-            If rows.Exists(code) Then Fail "Mükerrer gider kodu: " & wb.Name
+            If rows.Exists(code) Then Fail "Mükerrer gider kodu " & code & ": " & wb.Name & " › Giderler, satýr " & r
             rows.Add code, r
         End If
     Next r
@@ -24,11 +24,12 @@ Public Function ExpensePositions(ByVal wb As Workbook, ByRef rows As Object, ByR
         title = K(ws.Cells(5, c).Value2)
         If InStr(title, "gerceklesen") > 0 And Left$(title, 5) <> "butce" Then
             n = CanonicalDept(CStr(ws.Cells(4, c).MergeArea.Cells(1, 1).Value2))
-            If n = "" Or columns.Exists(n) Then Fail "Geçersiz bölüm baþlýðý: " & wb.Name
+            If n = "" Then Fail "Bölüm baþlýðý boþ: " & wb.Name & " › Giderler, " & ws.Cells(4, c).Address(False, False) & " (""" & CStr(ws.Cells(5, c).Value2) & """ sütununun üstü)"
+            If columns.Exists(n) Then Fail "Ayný bölüm iki kez okunuyor: """ & CStr(ws.Cells(4, c).MergeArea.Cells(1, 1).Value2) & """ (" & wb.Name & " › Giderler, " & ws.Cells(5, c).Address(False, False) & " """ & CStr(ws.Cells(5, c).Value2) & """). Rapor baþlýklarý deðiþmiþ olabilir; sürüm notlarýna bakýn."
             columns.Add n, c
         ElseIf title = "aciklama" Then
             n = CanonicalDept(CStr(ws.Cells(4, c).MergeArea.Cells(1, 1).Value2))
-            If notes.Exists(n) Then Fail "Mükerrer açýklama alaný: " & wb.Name
+            If notes.Exists(n) Then Fail "Ayný bölümde iki açýklama sütunu var: """ & CStr(ws.Cells(4, c).MergeArea.Cells(1, 1).Value2) & """ (" & wb.Name & " › Giderler, " & ws.Cells(5, c).Address(False, False) & ")"
             notes.Add n, c
         End If
     Next c

@@ -29,7 +29,7 @@ Kurumsal makro politikası geçerlidir. Kurulum güvenlik ayarı değiştirmez. 
 2. `Alt+F11` ile VBA editörünü açın. Bu çalışma kitabının projesini seçin.
 3. **File → Import File** yoluyla `vba_elle` klasöründeki on üç `.bas` modülünün tamamını içeri alın. Bu kopyalar Türkçe Windows (1254) içindir. Türkçe harfler bozulursa UTF-8 `vba` kopyalarını bir metin editöründe açıp metni yeni standart modüllere yapıştırın; `Attribute VB_Name` satırını yapıştırmayın ve modül adlarını dosya adlarıyla aynı yapın.
 4. **Debug → Compile VBAProject** seçin. Hata varsa hata metnini ve işaretlenen satırı kaydedin.
-5. Excel'e dönün; `Alt+F8 → PanelHazirla → Çalıştır`. Kaydedin.
+5. Excel'e dönün ve kaydedin. Dosyayı bir sonraki açışınızda panel kendiliğinden hazırlanır; hemen görmek isterseniz `Alt+F8 → PanelHazirla → Çalıştır`.
 
 Bu yöntem programatik VBA proje erişimi gerektirmez. İmzalı dağıtım gerekiyorsa BT'nin mevcut imzalama süreci kullanılmalıdır.
 

@@ -39,5 +39,14 @@ class GiderBasliklari(unittest.TestCase):
         self.assertEqual(sum(okuyucu_secer(b) for b in basliklar), 1, basliklar)
 
 
+class IlkAcilis(unittest.TestCase):
+    def test_auto_open_paneli_hazirlar(self):
+        panel = (VBA / "MakroPanel.bas").read_text(encoding="utf-8")
+        govde = panel.split("Public Sub Auto_Open()", 1)[1].split("End Sub", 1)[0]
+        self.assertIn('ListBoxes("MRV_Aylar")', govde)
+        self.assertIn("PanelHazirla", govde)
+        self.assertIn("PanelDurum", govde)
+
+
 if __name__ == "__main__":
     unittest.main()
