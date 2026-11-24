@@ -22,7 +22,7 @@ Public Function ExpensePositions(ByVal wb As Workbook, ByRef rows As Object, ByR
     endCol = ws.Cells(5, ws.Columns.Count).End(xlToLeft).Column
     For c = 4 To endCol
         title = K(ws.Cells(5, c).Value2)
-        If InStr(title, "gerceklesen") > 0 Then
+        If InStr(title, "gerceklesen") > 0 And Left$(title, 5) <> "butce" Then
             n = CanonicalDept(CStr(ws.Cells(4, c).MergeArea.Cells(1, 1).Value2))
             If n = "" Or columns.Exists(n) Then Fail "Geçersiz bölüm baþlýðý: " & wb.Name
             columns.Add n, c
