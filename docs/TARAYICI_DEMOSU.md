@@ -34,6 +34,7 @@ python/web/app.js  ── fetch("/api/…") ─▶  demo/bridge.js isteği yakal
 - **Çıktı klasörü sanaldır:** Raporlar indirme bağlantısıyla verilir.
 - **Kalıcılık yok:** Açıklamalar ve kayıtlı görünümler sekme kapanınca silinir.
 - **Kapat düğmesi gizlidir.**
+- **Kullanım ölçümü ve geri bildirim (yalnız demoda):** `demo/olcum.js` yalnız `ysfdurak.github.io` adresinde ortak ölçüm servisini (olcum.ysfdurak.com) yükler. Giden: açılan sayfa adı (`data-page` düğmeleri), "rapor üretildi" işlemi, aktif süre, cihaz türü, dil. Dosya, tutar, bölüm adı gitmez; çerez yok; DNT/GPC'ye uyulur; adrese `?olcum=kapat` eklenince o tarayıcıda kapanır. Masaüstü sürümünün `python/web/app.js` dosyasına dokunulmadı: sayfa geçişleri belge düzeyinde tıklama dinleyicisiyle yakalanır.
 
 ## Bakım
 
