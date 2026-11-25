@@ -120,6 +120,7 @@
     try {
       const body = init.body ? new TextEncoder().encode(init.body) : new Uint8Array();
       const r = await call({ type: "request", method, path: path + url.search, body }, [body.buffer]);
+      if (long && r.status < 400 && window.olcumButce) (window.olcumKuyruk ||= []).push(["olay", "islem:rapor_uret"]);
       return new Response(r.body, {
         status: r.status === 204 ? 200 : r.status,
         headers: { "Content-Type": r.kind, ...(r.headers || {}) },
